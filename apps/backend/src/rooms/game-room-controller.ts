@@ -13,7 +13,7 @@ import { RoomRuntime } from './room-runtime.js';
 import { RoomError } from './room-error.js';
 import { bearer, parseRoomId } from './contracts.js';
 import { parseGameCommand, parseGameEnrollment } from './game-contracts.js';
-type Request = { socket: { remoteAddress?: string } };
+type Request = { socket: { remoteAddress?: string }; headers?: Record<string, unknown> };
 @Controller('v2/rooms')
 export class GameRoomController {
   constructor(@Inject(RoomRuntime) private readonly runtime: RoomRuntime) {}
@@ -26,7 +26,7 @@ export class GameRoomController {
     try {
       await this.runtime
         .requireService()
-        .rateLimit(request.socket.remoteAddress ?? 'unknown', operation, limit);
+        .rateLimit(this.runtime.clientAddress(request), operation, limit);
       return await action();
     } catch (error) {
       const failure =

@@ -33,3 +33,6 @@ UNAUTHORIZED/ROOM_EXPIRED по Socket.IO во время busy → HTTP заве�
 Проверки перед коммитом: Node check с PostgreSQL, 8 тестов ядра и 63 Flutter-теста
 с настоящим backend прошли. Android release APK собран; физические устройства
 и iOS этой проверкой не закрываются.
+
+После ревью в HTTPS-срезе реализованы физическая очистка истёкших записей,
+readiness и локально проверенный контейнерный запуск; см. [STATUS](../STATUS.md).

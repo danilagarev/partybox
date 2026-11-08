@@ -11,6 +11,9 @@ test('HTTP health responds and unknown routes return 404', async () => {
     assert.equal(health.status, 200);
     assert.deepEqual(await health.json(), { status: 'ok' });
     assert.equal((await fetch(`${origin}/unknown`)).status, 404);
+    const ready = await fetch(`${origin}/ready`);
+    assert.equal(ready.status, 503);
+    assert.deepEqual(await ready.json(), { status: 'unavailable' });
     const rooms = await fetch(`${origin}/rooms`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

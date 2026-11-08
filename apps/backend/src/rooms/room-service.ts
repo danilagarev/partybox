@@ -65,6 +65,22 @@ export class RoomService {
       .digest('base64url');
   }
 
+  async ready() {
+    await this.pool.query(
+      'SELECT 1 FROM pb_rooms, pb_enrollments, pb_room_commands, pb_rate_limits LIMIT 0',
+    );
+  }
+  async cleanupExpired() {
+    return this.transaction(async (client) => {
+      const now = this.now();
+      const rooms = await client.query<{ id: string }>(
+        'DELETE FROM pb_rooms WHERE expires_at<=$1 RETURNING id',
+        [now],
+      );
+      const limits = await client.query('DELETE FROM pb_rate_limits WHERE reset_at<=$1', [now]);
+      return { roomIds: rooms.rows.map((r) => r.id), rateLimits: limits.rowCount ?? 0 };
+    });
+  }
   async rateLimit(ip: string, operation: string, limit: number) {
     const now = this.now();
     // Stable keyed IP digest avoids storing raw addresses or trusting proxy headers.

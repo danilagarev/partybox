@@ -53,3 +53,7 @@ apps/mobile/test/failures/
 # Local Android install packages
 *.apk
 output/android/
+
+# VPS runtime secrets and database backups
+/deploy/secrets/
+/deploy/backups/

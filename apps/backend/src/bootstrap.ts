@@ -5,9 +5,15 @@ import { RoomRuntime } from './rooms/room-runtime.js';
 import { AppModule } from './app.module.js';
 
 export async function createApp(
-  options: { databaseUrl?: string; tokenSecret?: string; now?: () => Date } = {
+  options: {
+    databaseUrl?: string;
+    tokenSecret?: string;
+    now?: () => Date;
+    trustOneProxy?: boolean;
+  } = {
     databaseUrl: process.env.DATABASE_URL,
     tokenSecret: process.env.ROOM_TOKEN_SECRET,
+    trustOneProxy: process.env.TRUST_PROXY_HOPS === '1',
   },
 ) {
   const runtime = new RoomRuntime(options);

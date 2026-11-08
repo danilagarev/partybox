@@ -12,7 +12,7 @@ import {
 import { RoomError } from './room-error.js';
 import { RoomRuntime } from './room-runtime.js';
 import { bearer, parseEnrollment, parseLeave, parseRoomId } from './contracts.js';
-type Request = { socket: { remoteAddress?: string } };
+type Request = { socket: { remoteAddress?: string }; headers?: Record<string, unknown> };
 
 @Controller('rooms')
 export class RoomController {
@@ -26,7 +26,7 @@ export class RoomController {
     try {
       await this.runtime
         .requireService()
-        .rateLimit(request.socket.remoteAddress ?? 'unknown', operation, limit);
+        .rateLimit(this.runtime.clientAddress(request), operation, limit);
       return await action();
     } catch (error) {
       const failure =

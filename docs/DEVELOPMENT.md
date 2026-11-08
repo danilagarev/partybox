@@ -165,7 +165,7 @@ store-подпись ещё не настроена. Для обновления
 `docs/STATUS.md`, а не через скрытую память конкретного агента.
 
 Remote `origin`: `https://github.com/danilagarev/vechero.git`.
-После публикации включить обязательные CI-проверки `node` и `flutter` для `main`.
+После публикации включить обязательные CI-проверки `node`, `flutter` и `https` для `main`.
 CI не отправляет приложение в магазины. Подпись и deployment требуют отдельной настройки.
 
 ## Источники решений
@@ -314,3 +314,20 @@ generated-файл вручную не редактировать. Общие п
 Общие векторы: `packages/game-contracts/vectors/spy-v1.json`, запускаются в Node
 и чистом Dart. Все generated TS/Dart/OpenAPI-файлы обновляет общая generate-команда.
 Публичный backend здесь не развёрнут; сборка без ROOM_SERVER_URL остаётся локальной.
+
+## HTTPS и проверка развёртывания
+
+[Комплект VPS/HTTPS](deploy/VPS.md) собирает образ с чистым npm ci и ограниченным
+build context. Caddy → backend → PostgreSQL; миграция завершается до готовности
+приложения. `/ready` учитывает БД/таблицы, `/health` остаётся независимым.
+Истёкшие комнаты и IP-счётчики удаляются backend автоматически.
+`TRUST_PROXY_HOPS=0` по умолчанию игнорирует forwarded headers; значение 1 допустимо
+только за одним доверенным прокси с приватным backend.
+
+Из корня: `node deploy/smoke.mjs`, либо с Flutter
+`FLUTTER_BIN=/path/to/flutter/bin/flutter node deploy/smoke.mjs`.
+Второй вариант проходит полный раунд четырьмя Dart-клиентами по настоящему HTTPS,
+с явным тестовым CA и без отключения TLS. Проверяет Node-клиенты, миграцию,
+readiness, restart backend/БД, сохранение дедлайна и запрет подмены IP.
+Секреты/volumes smoke изолированы и удаляются. CI job https запускает тот же сценарий.
+Ни публичный сервер, ни четыре физических телефона этот smoke не подменяет.

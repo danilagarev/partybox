@@ -1,3 +1,4 @@
+import { clientAddress } from './client-address.js';
 import type { INestApplication } from '@nestjs/common';
 import { Server } from 'socket.io';
 import pg from 'pg';
@@ -11,7 +12,18 @@ export class RoomRuntime {
   private readonly pool?: pg.Pool;
   private deadlineTimer?: ReturnType<typeof setInterval>;
   private polling = false;
-  constructor(options: { databaseUrl?: string; tokenSecret?: string; now?: () => Date } = {}) {
+  private cleanupTimer?: ReturnType<typeof setInterval>;
+  private sweeping = false;
+  private readonly trustOneProxy: boolean;
+  constructor(
+    options: {
+      databaseUrl?: string;
+      tokenSecret?: string;
+      now?: () => Date;
+      trustOneProxy?: boolean;
+    } = {},
+  ) {
+    this.trustOneProxy = options.trustOneProxy ?? false;
     if (options.databaseUrl) {
       if (!options.tokenSecret) throw new Error('ROOM_TOKEN_SECRET is required with DATABASE_URL');
       this.pool = new pg.Pool({
@@ -28,6 +40,16 @@ export class RoomRuntime {
       });
     }
   }
+  clientAddress(request: {
+    socket: { remoteAddress?: string };
+    headers?: Record<string, unknown>;
+  }) {
+    return clientAddress(
+      request.socket.remoteAddress,
+      request.headers?.['x-forwarded-for'],
+      this.trustOneProxy,
+    );
+  }
   requireService() {
     if (!this.service) throw new RoomError('SERVICE_UNAVAILABLE', 503);
     return this.service;
@@ -41,7 +63,15 @@ export class RoomRuntime {
     io.use(async (socket, next) => {
       try {
         const service = this.requireService();
-        await service.rateLimit(socket.handshake.address, 'socket', 60);
+        await service.rateLimit(
+          clientAddress(
+            socket.handshake.address,
+            socket.handshake.headers['x-forwarded-for'],
+            this.trustOneProxy,
+          ),
+          'socket',
+          60,
+        );
         const roomId = parseRoomId(socket.handshake.auth.roomId);
         const token = parseToken(socket.handshake.auth.guestToken);
         const protocolVersion = socket.handshake.auth.protocolVersion ?? 1;
@@ -61,6 +91,11 @@ export class RoomRuntime {
       void this.pollDeadlines();
     }, 1000);
     this.deadlineTimer.unref();
+    this.cleanupTimer = setInterval(() => {
+      void this.cleanup();
+    }, 60000);
+    this.cleanupTimer.unref();
+    void this.cleanup();
     io.on('connection', (socket) => {
       const timer = setTimeout(
         () => {
@@ -113,8 +148,21 @@ export class RoomRuntime {
       this.polling = false;
     }
   }
+  private async cleanup() {
+    if (this.sweeping) return;
+    this.sweeping = true;
+    try {
+      const result = await this.requireService().cleanupExpired();
+      for (const id of result.roomIds) await this.publish(id);
+    } catch {
+      /* Retry without logging SQL or private state. */
+    } finally {
+      this.sweeping = false;
+    }
+  }
   async beforeApplicationShutdown() {
     clearInterval(this.deadlineTimer);
+    clearInterval(this.cleanupTimer);
     if (this.io) await new Promise<void>((resolve) => this.io!.close(() => resolve()));
   }
   async onApplicationShutdown() {

@@ -80,10 +80,41 @@ test(
     const databaseUrl = url.toString();
     const pool = new pg.Pool({ connectionString: databaseUrl, max: 10 });
     try {
+      await assert.rejects(new RoomService(pool, secret).ready());
       await migrate(pool);
       await migrate(pool);
       const instant = new Date();
       const service = new RoomService(pool, secret, () => instant);
+      await t.test(
+        'readiness requires migration; TTL cleanup preserves active rooms and cascades receipts',
+        async () => {
+          await service.ready();
+          let now = new Date();
+          const timed = new RoomService(pool, secret, () => now);
+          const old = await timed.enroll(enrollment());
+          await timed.rateLimit('cleanup-case', 'join', 10);
+          now = new Date(Date.parse(old.snapshot.publicState.expiresAt));
+          const fresh = await timed.enroll(enrollment());
+          const cleaned = await timed.cleanupExpired();
+          assert.ok(cleaned.roomIds.includes(old.snapshot.roomId));
+          assert.ok(!cleaned.roomIds.includes(fresh.snapshot.roomId));
+          const receipts = await pool.query(
+            'SELECT count(*)::int AS count FROM pb_enrollments WHERE room_id=$1',
+            [old.snapshot.roomId],
+          );
+          assert.equal(receipts.rows[0].count, 0);
+          await assert.rejects(
+            timed.snapshot(old.snapshot.roomId, old.guestToken),
+            code('ROOM_UNAVAILABLE'),
+          );
+          assert.equal(
+            (await timed.snapshot(fresh.snapshot.roomId, fresh.guestToken)).publicState.players
+              .length,
+            1,
+          );
+          assert.ok(cleaned.rateLimits >= 1);
+        },
+      );
       await t.test(
         'enrollment retries survive a new service and only return the owning token',
         async () => {

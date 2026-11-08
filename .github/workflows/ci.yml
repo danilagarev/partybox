@@ -57,3 +57,27 @@ jobs:
       - run: flutter pub get --enforce-lockfile
         working-directory: apps/mobile
       - run: make check-mobile
+
+  https:
+    needs: node
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+      - run: npm ci
+      - run: dart pub get --enforce-lockfile
+        working-directory: packages/game_core
+      - run: flutter pub get --enforce-lockfile
+        working-directory: apps/mobile
+      - run: node deploy/smoke.mjs
+        env:
+          FLUTTER_BIN: flutter

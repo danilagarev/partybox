@@ -5,7 +5,16 @@ import 'package:partybox_mobile/src/rooms/room_api.dart';
 import 'package:partybox_mobile/src/rooms/room_controller.dart';
 import 'package:partybox_mobile/src/rooms/room_vault.dart';
 
-class RealHttp extends HttpOverrides {}
+class RealHttp extends HttpOverrides {
+  RealHttp(this.certificate);
+  final String? certificate;
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final trust = context ?? SecurityContext(withTrustedRoots: true);
+    if (certificate != null) trust.setTrustedCertificates(certificate!);
+    return super.createHttpClient(trust);
+  }
+}
 
 class LoseResponse extends http.BaseClient {
   final http.Client inner = http.Client();
@@ -31,6 +40,11 @@ Future<void> until(bool Function() ready) async {
 }
 
 void main() {
+  final certificate = Platform.environment['ROOM_TEST_CA'];
+  // WebSocket caches its HttpClient; trust this CA in the test isolate as well.
+  if (certificate != null) {
+    SecurityContext.defaultContext.setTrustedCertificates(certificate);
+  }
   final server = Platform.environment['ROOM_TEST_SERVER'];
   test(
     'four Dart clients: lost response, restore, live roster, disconnect and host transfer',
@@ -136,7 +150,7 @@ void main() {
           await member.leave();
           expect(member.error, null);
         }
-      }, RealHttp());
+      }, RealHttp(Platform.environment['ROOM_TEST_CA']));
     },
     skip: server == null,
   );

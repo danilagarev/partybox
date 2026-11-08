@@ -1,0 +1,79 @@
+x-backend: &backend
+  image: vechero-backend:local
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+  environment:
+    DATABASE_PASSWORD_FILE: /run/secrets/database_password
+    ROOM_TOKEN_SECRET_FILE: /run/secrets/room_token_secret
+    TRUST_PROXY_HOPS: '1'
+  secrets:
+    - database_password
+    - room_token_secret
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 20s
+services:
+  postgres:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_USER: partybox
+      POSTGRES_DB: partybox
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_password]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [database]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U partybox -d partybox']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  migrate:
+    <<: *backend
+    command: [migrate]
+    networks: [database]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+  backend:
+    <<: *backend
+    networks: [frontend, database]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  proxy:
+    image: caddy:2.10.2-alpine
+    environment:
+      ROOM_DOMAIN: ${ROOM_DOMAIN:?Set ROOM_DOMAIN in deploy/.env}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [frontend]
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+secrets:
+  database_password:
+    file: ./secrets/database_password
+  room_token_secret:
+    file: ./secrets/room_token_secret
+networks:
+  frontend:
+  database:
+    internal: true
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
