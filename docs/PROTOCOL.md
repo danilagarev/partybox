@@ -74,7 +74,8 @@ Socket.IO использует прежние события, auth добавл�
 GameCommand: protocolVersion=2, commandId, expectedVersion, sessionId, type, payload.
 До партии sessionId=null; в партии требуется текущий sessionId. Команды:
 
-- spy.start: discussionMinutes (3–15), packId=spy-ru-base, только ведущий,
+- spy.start: discussionMinutes (3–15), packId из встроенного каталога
+  (`spy-ru-base`, `spy-ru-travel`, `spy-ru-unusual`), только ведущий,
   4–12 участников. После results создаёт новую партию с новым sessionId.
 - spy.ready: пустой payload, подтверждение собственной роли, один раз.
 - spy.vote: пустой payload, ведущий завершает обсуждение раньше.
@@ -94,3 +95,8 @@ ack. Изменённый payload с тем же ID даёт COMMAND_CONFLICT; a
 Сервер хранит секретную сессию в JSONB, фиксируя версию встроенного пакета.
 Время и случайность передаются чистым правилам явно. Общие TS/Dart-векторы
 проверяют переходы, deadline, недопустимые действия и обе победы.
+
+Расширение PB-025 сохраняет формат протокола 2 и прежние примеры. packId теперь
+проверяется как устойчивый ID, неизвестный серверу ID даёт INVALID_REQUEST (400).
+Приватная история ротации по packId/version сохраняется в той же транзакции;
+она не входит в snapshot. [ADR 0006](adr/0006-bundled-spy-catalog.md).

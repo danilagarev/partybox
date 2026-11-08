@@ -3,16 +3,104 @@
   "id": "spy-ru-base",
   "gameId": "spy",
   "locale": "ru",
-  "version": 1,
+  "version": 2,
   "title": "Знакомые места",
   "items": [
-    { "id": "airport", "label": "Аэропорт" },
-    { "id": "library", "label": "Библиотека" },
-    { "id": "train", "label": "Поезд" },
-    { "id": "museum", "label": "Музей" },
-    { "id": "restaurant", "label": "Ресторан" },
-    { "id": "camp", "label": "Туристический лагерь" },
-    { "id": "theater", "label": "Театр" },
-    { "id": "space-station", "label": "Космическая станция" }
+    {
+      "id": "airport",
+      "label": "Аэропорт"
+    },
+    {
+      "id": "library",
+      "label": "Библиотека"
+    },
+    {
+      "id": "train",
+      "label": "Поезд"
+    },
+    {
+      "id": "museum",
+      "label": "Музей"
+    },
+    {
+      "id": "restaurant",
+      "label": "Ресторан"
+    },
+    {
+      "id": "camp",
+      "label": "Туристический лагерь"
+    },
+    {
+      "id": "theater",
+      "label": "Театр"
+    },
+    {
+      "id": "space-station",
+      "label": "Космическая станция"
+    },
+    {
+      "id": "bakery",
+      "label": "Пекарня"
+    },
+    {
+      "id": "barbershop",
+      "label": "Парикмахерская"
+    },
+    {
+      "id": "school",
+      "label": "Школа"
+    },
+    {
+      "id": "hospital",
+      "label": "Больница"
+    },
+    {
+      "id": "supermarket",
+      "label": "Супермаркет"
+    },
+    {
+      "id": "cinema",
+      "label": "Кинотеатр"
+    },
+    {
+      "id": "pool",
+      "label": "Бассейн"
+    },
+    {
+      "id": "gym",
+      "label": "Спортзал"
+    },
+    {
+      "id": "post-office",
+      "label": "Почта"
+    },
+    {
+      "id": "car-wash",
+      "label": "Автомойка"
+    },
+    {
+      "id": "flower-shop",
+      "label": "Цветочный магазин"
+    },
+    {
+      "id": "playground",
+      "label": "Детская площадка"
+    },
+    {
+      "id": "zoo",
+      "label": "Зоопарк"
+    },
+    {
+      "id": "market",
+      "label": "Рынок"
+    },
+    {
+      "id": "university",
+      "label": "Университет"
+    },
+    {
+      "id": "garage",
+      "label": "Автосервис"
+    }
   ]
 }

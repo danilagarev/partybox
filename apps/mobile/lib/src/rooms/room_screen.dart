@@ -258,41 +258,19 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   Widget _lobby(RoomSnapshot snapshot) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      if (snapshot.game == null) ...[
+        _roomCode(snapshot),
+        const SizedBox(height: 20),
+      ],
       RoomGamePanel(
         key: ValueKey(snapshot.game?.sessionId ?? 'lobby'),
         controller: controller,
       ),
       const SizedBox(height: 20),
-      NightPanel(
-        accent: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const NightEyebrow('КОД КОМНАТЫ', color: NightColors.ink),
-            const SizedBox(height: 8),
-            Semantics(
-              label: 'Код комнаты ${snapshot.pin.split('').join(' ')}',
-              excludeSemantics: true,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${snapshot.pin.substring(0, 3)} ${snapshot.pin.substring(3)}',
-                  style: const TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Назовите код друзьям. Комната открыта 24 часа с создания.',
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 20),
+      if (snapshot.game != null) ...[
+        _roomCode(snapshot),
+        const SizedBox(height: 20),
+      ],
       Semantics(
         liveRegion: true,
         child: Text(
@@ -354,5 +332,29 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         child: const Text('Выйти из комнаты'),
       ),
     ],
+  );
+  Widget _roomCode(RoomSnapshot snapshot) => NightPanel(
+    accent: true,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const NightEyebrow('КОД КОМНАТЫ', color: NightColors.ink),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'Код комнаты ${snapshot.pin.split('').join(' ')}',
+          excludeSemantics: true,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${snapshot.pin.substring(0, 3)} ${snapshot.pin.substring(3)}',
+              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text('Назовите код друзьям. Комната открыта 24 часа с создания.'),
+      ],
+    ),
   );
 }

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "gameId": "spy",
+  "locale": "ru",
+  "packs": [
+    {
+      "id": "spy-ru-base",
+      "version": 2,
+      "description": "Повседневные места — легко представить, интересно обсуждать."
+    },
+    {
+      "id": "spy-ru-travel",
+      "version": 1,
+      "description": "От пляжа до горной хижины. Для тех, кто любит приключения."
+    },
+    {
+      "id": "spy-ru-unusual",
+      "version": 1,
+      "description": "Вымышленные и необычные места. Договоритесь, как вы их представляете."
+    }
+  ]
+}

@@ -21,6 +21,7 @@ COPY --from=build /app/apps/backend/dist apps/backend/dist
 COPY --from=build /app/packages/game-contracts packages/game-contracts
 COPY packages/game-content/package.json packages/game-content/
 COPY packages/game-content/packs packages/game-content/packs
+COPY packages/game-content/spy-catalog.json packages/game-content/
 COPY apps/backend/migrations apps/backend/migrations
 COPY deploy/entrypoint.mjs deploy/entrypoint.mjs
 USER node

@@ -24,7 +24,7 @@ export type GameCommand =
       type: 'spy.start';
       payload: {
         discussionMinutes: number;
-        packId: 'spy-ru-base';
+        packId: string;
       };
     }
   | {

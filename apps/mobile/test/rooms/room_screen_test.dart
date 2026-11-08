@@ -130,6 +130,7 @@ void main() {
     await tester.pumpAndSettle();
     api.receive!(api.current);
     await tester.pumpAndSettle();
+    await settleRoomContent(tester);
     await expectLater(
       find.byKey(const Key('lobby-capture')),
       matchesGoldenFile('goldens/lobby.png'),

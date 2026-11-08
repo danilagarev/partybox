@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "spy-ru-unusual",
+  "gameId": "spy",
+  "locale": "ru",
+  "version": 1,
+  "title": "За гранью обычного",
+  "items": [
+    {
+      "id": "submarine",
+      "label": "Подводная лодка"
+    },
+    {
+      "id": "polar-station",
+      "label": "Полярная станция"
+    },
+    {
+      "id": "film-set",
+      "label": "Съёмочная площадка"
+    },
+    {
+      "id": "circus-backstage",
+      "label": "Закулисье цирка"
+    },
+    {
+      "id": "volcano-lab",
+      "label": "Лаборатория у вулкана"
+    },
+    {
+      "id": "pirate-ship",
+      "label": "Пиратский корабль"
+    },
+    {
+      "id": "robot-factory",
+      "label": "Завод роботов"
+    },
+    {
+      "id": "royal-palace",
+      "label": "Королевский дворец"
+    },
+    {
+      "id": "dragon-cave",
+      "label": "Пещера дракона"
+    },
+    {
+      "id": "wizard-school",
+      "label": "Школа волшебников"
+    },
+    {
+      "id": "time-machine",
+      "label": "Машина времени"
+    },
+    {
+      "id": "underwater-hotel",
+      "label": "Подводный отель"
+    },
+    {
+      "id": "secret-base",
+      "label": "Секретная база"
+    },
+    {
+      "id": "flying-city",
+      "label": "Летающий город"
+    },
+    {
+      "id": "dinosaur-park",
+      "label": "Парк динозавров"
+    },
+    {
+      "id": "abandoned-mine",
+      "label": "Заброшенная шахта"
+    },
+    {
+      "id": "ghost-house",
+      "label": "Дом с привидениями"
+    },
+    {
+      "id": "cloud-post",
+      "label": "Почта на облаке"
+    },
+    {
+      "id": "giant-kitchen",
+      "label": "Кухня великана"
+    },
+    {
+      "id": "moon-farm",
+      "label": "Лунная ферма"
+    },
+    {
+      "id": "treasure-vault",
+      "label": "Сокровищница"
+    },
+    {
+      "id": "glass-labyrinth",
+      "label": "Стеклянный лабиринт"
+    },
+    {
+      "id": "airship",
+      "label": "Дирижабль"
+    },
+    {
+      "id": "mermaid-market",
+      "label": "Рынок русалок"
+    }
+  ]
+}

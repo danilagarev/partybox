@@ -140,7 +140,8 @@ const roomGameSchemaJson = r'''
                   "maximum": 15
                 },
                 "packId": {
-                  "const": "spy-ru-base"
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{1,79}$"
                 }
               },
               "required": [

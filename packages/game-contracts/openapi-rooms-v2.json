@@ -225,7 +225,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "discussionMinutes": { "type": "integer", "minimum": 3, "maximum": 15 },
-                  "packId": { "const": "spy-ru-base" }
+                  "packId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,79}$" }
                 },
                 "required": ["discussionMinutes", "packId"]
               }

@@ -19,6 +19,23 @@ test('game v2 contracts enforce own actor, phases of payloads and bounds', () =>
     assert.equal(validate({ ...example, playerId: 'foreign' }), false);
   }
   const validate = ajv.compile({ $ref: `${schema.$id}#/$defs/GameCommand` });
+  for (const packId of ['spy-ru-base', 'spy-ru-travel', 'spy-ru-unusual'])
+    assert.ok(
+      validate({
+        ...examples.GameCommand,
+        type: 'spy.start',
+        payload: { packId, discussionMinutes: 5 },
+      }),
+    );
+  for (const packId of ['', '../private', 'x'.repeat(81)])
+    assert.equal(
+      validate({
+        ...examples.GameCommand,
+        type: 'spy.start',
+        payload: { packId, discussionMinutes: 5 },
+      }),
+      false,
+    );
   for (const minutes of [2, 16, 3.5])
     assert.equal(
       validate({
@@ -51,4 +68,12 @@ test('v2 generated TS, Dart and OpenAPI stay aligned', async () => {
     api.components.schemas,
     JSON.parse(JSON.stringify(schema.$defs).replaceAll('#/$defs/', '#/components/schemas/')),
   );
+});
+
+test('previous base start and themed start examples share protocol 2', async () => {
+  const starts = JSON.parse(
+    await readFile(new URL('../examples/spy-start-v2.json', import.meta.url), 'utf8'),
+  );
+  const validate = ajv.compile({ $ref: `${schema.$id}#/$defs/GameCommand` });
+  for (const command of starts) assert.ok(validate(command), ajv.errorsText(validate.errors));
 });

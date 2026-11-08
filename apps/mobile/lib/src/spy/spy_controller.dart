@@ -30,6 +30,12 @@ final class SpyController extends ChangeNotifier {
     return milliseconds <= 0 ? 0 : (milliseconds / 1000).ceil();
   }
 
+  void selectPack(String id) {
+    if (_session != null) return;
+    adapter.selectPack(id);
+    notifyListeners();
+  }
+
   void start(List<String> names, Duration duration) {
     if (_session != null) return;
     _session = adapter.create([

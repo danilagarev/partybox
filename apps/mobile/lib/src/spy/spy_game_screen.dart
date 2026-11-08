@@ -11,6 +11,7 @@ import '../design/night_result_art.dart';
 
 import 'local_session_adapter.dart';
 import 'spy_controller.dart';
+import 'spy_question_help.dart';
 import '../storage/spy_setup.dart';
 
 class SpyGameScreen extends StatefulWidget {
@@ -71,8 +72,10 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     try {
       final adapter =
           widget.adapter ??
-          LocalSessionAdapter(pack: await (widget.loadPack ?? SpyPack.load)());
-      await _restoreSetup(adapter.pack.id);
+          (widget.loadPack != null
+              ? LocalSessionAdapter(pack: await widget.loadPack!())
+              : LocalSessionAdapter.catalog(packs: await SpyPack.loadAll()));
+      await _restoreSetup(adapter);
       if (!mounted) return;
       final controller = SpyController(adapter: adapter, now: widget.now);
       controller.setForeground(
@@ -91,7 +94,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     }
   }
 
-  Future<void> _restoreSetup(String packId) async {
+  Future<void> _restoreSetup(LocalSessionAdapter adapter) async {
     final store = widget.setupStore;
     if (store == null) return;
     try {
@@ -107,7 +110,11 @@ class _SpyGameScreenState extends State<SpyGameScreen>
           for (var i = 0; i < setup.names.length; i++) {
             _names[i].text = setup.names[i];
           }
-          _setupNotice = setup.packId == packId
+          final available = adapter.packs.any(
+            (pack) => pack.id == setup.packId,
+          );
+          if (available) adapter.selectPack(setup.packId);
+          _setupNotice = available
               ? 'Имена и время остались с прошлой игры. Начнём новый раунд.'
               : 'Прежний набор недоступен. Имена и время восстановлены; используем текущий набор.';
         case SetupRestoreStatus.invalid:
@@ -164,6 +171,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
         _count = 4;
         _setupRevision++;
         _minutes = 5;
+        _controller!.selectPack(_controller!.adapter.packs.first.id);
         _settings = false;
         _setupNotice = 'Сохранённые настройки удалены.';
       });
@@ -478,6 +486,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
           const Text(
             'Задавайте друг другу вопросы о месте. Не называйте локацию прямо.',
           ),
+          const SpyQuestionHelp(),
           const SizedBox(height: 24),
           NightButton(
             onPressed: controller.startVoting,
@@ -690,15 +699,28 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     const SizedBox(height: 24),
     DropdownButtonFormField<String>(
       isExpanded: true,
+      key: ValueKey('spy-pack-${controller.adapter.pack.id}'),
       initialValue: controller.adapter.pack.id,
       decoration: const InputDecoration(labelText: 'Набор локаций'),
       items: [
-        DropdownMenuItem(
-          value: controller.adapter.pack.id,
-          child: Text(controller.adapter.pack.title),
-        ),
+        for (final pack in controller.adapter.packs)
+          DropdownMenuItem(
+            value: pack.id,
+            child: Text(
+              pack.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
       ],
-      onChanged: (_) {},
+      onChanged: _saving ? null : (id) => controller.selectPack(id!),
+    ),
+    const SizedBox(height: 12),
+    if (controller.adapter.pack.description.isNotEmpty)
+      Text(controller.adapter.pack.description),
+    Text(
+      controller.adapter.pack.rotationLabel,
+      style: const TextStyle(color: NightColors.muted),
     ),
     const SizedBox(height: 24),
     DropdownButtonFormField<int>(
@@ -717,7 +739,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     if (widget.setupStore != null) ...[
       const SizedBox(height: 12),
       const Text(
-        'При старте сохраним имена и время. После закрытия приложения начните новый раунд.',
+        'При старте сохраним имена, тему и время. После закрытия приложения начните новый раунд.',
         style: TextStyle(color: NightColors.muted),
       ),
     ],

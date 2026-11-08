@@ -18,6 +18,7 @@
 !packages/game-contracts/generated/**
 !packages/game-content/
 !packages/game-content/package.json
+!packages/game-content/spy-catalog.json
 !packages/game-content/packs/
 !packages/game-content/packs/**
 !deploy/

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:partybox_mobile/src/rooms/room_api.dart';
 import 'package:partybox_mobile/src/rooms/room_models.dart';
 import 'package:partybox_mobile/src/rooms/room_vault.dart';
@@ -7,6 +8,18 @@ const roomId = '00000000-0000-4000-8000-000000000001';
 const selfId = '00000000-0000-4000-8000-000000000002';
 const otherId = '00000000-0000-4000-8000-000000000003';
 const testToken = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
+Future<void> settleRoomContent(WidgetTester tester) async {
+  for (var i = 0; i < 100; i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pumpAndSettle();
+    if (find.text('Загружаем темы…').evaluate().isEmpty) return;
+  }
+  fail('Bundled room themes did not load');
+}
+
 RoomSnapshot view({
   int version = 1,
   String host = selfId,

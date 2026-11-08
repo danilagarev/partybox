@@ -100,9 +100,10 @@ void main() {
         expect(host.snapshot!.players, hasLength(4));
         await host.play('spy.start', {
           'discussionMinutes': 3,
-          'packId': 'spy-ru-base',
+          'packId': 'spy-ru-travel',
         });
         expect(host.error, null);
+        expect(host.snapshot!.game!.packId, 'spy-ru-travel');
         await until(
           () => members.every(
             (m) => m.online && m.snapshot!.game?.phase == 'distribution',

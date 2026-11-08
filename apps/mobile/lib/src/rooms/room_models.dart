@@ -280,13 +280,14 @@ String roomCommandId() {
 final class RoomGame {
   RoomGame(Map<String, dynamic> value)
     : sessionId = value['sessionId'] as String,
+      packId = value['packId'] as String,
       phase = value['phase'] as String,
       readyIds = List<String>.unmodifiable(value['readyIds'] as List),
       deadline = value['deadline'] == null
           ? null
           : DateTime.parse(value['deadline'] as String),
       result = value['result'] as Map<String, dynamic>?;
-  final String sessionId, phase;
+  final String sessionId, phase, packId;
   final List<String> readyIds;
   final DateTime? deadline;
   final Map<String, dynamic>? result;

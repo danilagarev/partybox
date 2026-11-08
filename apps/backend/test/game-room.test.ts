@@ -97,10 +97,15 @@ test(
         403,
       );
       assert.equal(
-        (await send(host, 'spy.start', { discussionMinutes: 3, packId: 'spy-ru-base' })).status,
+        (await send(host, 'spy.start', { discussionMinutes: 3, packId: 'missing-pack' })).status,
+        400,
+      );
+      assert.equal(
+        (await send(host, 'spy.start', { discussionMinutes: 3, packId: 'spy-ru-travel' })).status,
         201,
       );
       const views = await Promise.all(members.map(snapshot));
+      assert.equal(views[0]!.publicState.game!.packId, 'spy-ru-travel');
       assert.equal(views.filter((v) => v.privateState?.role === 'spy').length, 1);
       const location = views.find((v) => v.privateState?.role === 'civilian')!.privateState!
         .location!;

@@ -9,6 +9,7 @@ import 'package:partybox_mobile/src/spy/local_session_adapter.dart';
 import 'package:partybox_mobile/src/spy/spy_game_screen.dart';
 import 'package:partybox_mobile/src/storage/spy_setup.dart';
 import 'support/local_game_flow.dart';
+import 'support/design_fonts.dart';
 
 class TestStore implements SpySetupStore {
   String? raw;
@@ -60,6 +61,114 @@ Widget screen(TestStore store) => MaterialApp(
 );
 
 void main() {
+  testWidgets(
+    'selected bundled theme is saved, restored and used for the round',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await loadDesignFonts(tester);
+      final packs = (await tester.runAsync(SpyPack.loadAll))!;
+      final store = TestStore()
+        ..raw = jsonEncode({
+          ...saved(count: 4).toJson(),
+          'packId': 'spy-ru-base',
+        });
+      Widget host() => RepaintBoundary(
+        key: const Key('theme-capture'),
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: nightTheme(),
+          home: SpyGameScreen(
+            adapter: LocalSessionAdapter.catalog(
+              packs: packs,
+              random: Random(42),
+            ),
+            setupStore: store,
+          ),
+        ),
+      );
+      await tester.pumpWidget(host());
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('К настройкам'));
+      await tapVisible(
+        tester,
+        find.byKey(const ValueKey('spy-pack-spy-ru-base')),
+      );
+      await tester.tap(find.text('Вокруг света').last);
+      await tester.pumpAndSettle();
+      await showWidget(tester, find.text('Настройки партии'));
+      await tester.drag(find.byType(ListView), const Offset(0, 1000));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byKey(const Key('theme-capture')),
+        matchesGoldenFile('goldens/spy-travel-settings.png'),
+      );
+      await tapVisible(tester, find.text('Раздать роли'));
+      expect(jsonDecode(store.raw!)['packId'], 'spy-ru-travel');
+      await tapVisible(tester, find.text('Показать мою роль'));
+      // The first four private cards contain exactly one common location from this theme.
+      final selected = <String>{};
+      for (var i = 0; i < 4; i++) {
+        if (i > 0) await tapVisible(tester, find.text('Показать мою роль'));
+        for (final label in packs[1].locations) {
+          if (find.text(label).evaluate().isNotEmpty) selected.add(label);
+        }
+        await tapVisible(tester, find.text('Скрыть и передать'));
+      }
+      expect(selected, hasLength(1));
+      await tapVisible(tester, find.text('О чём спросить?'));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.text(selected.single), findsNothing);
+      await tapVisible(tester, find.text('Продолжить обсуждение'));
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpWidget(host());
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('К настройкам'));
+      expect(
+        find.byKey(const ValueKey('spy-pack-spy-ru-travel')),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'long theme title remains usable on a small screen with large text',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final packs = (await tester.runAsync(SpyPack.loadAll))!;
+      final store = TestStore()..raw = jsonEncode(saved(count: 4).toJson());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: SpyGameScreen(
+            adapter: LocalSessionAdapter.catalog(packs: packs),
+            setupStore: store,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('К настройкам'));
+      await tapVisible(
+        tester,
+        find.byKey(const ValueKey('spy-pack-spy-ru-base')),
+      );
+      await tester.tap(find.text('За гранью обычного').last);
+      await tester.pumpAndSettle();
+      await tapVisible(tester, find.text('Раздать роли'));
+      expect(jsonDecode(store.raw!)['packId'], 'spy-ru-unusual');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('restores setup and clears names, player count and time', (
     tester,
   ) async {

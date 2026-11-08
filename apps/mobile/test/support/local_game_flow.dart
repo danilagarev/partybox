@@ -9,12 +9,7 @@ Future<void> showWidget(WidgetTester tester, Finder finder) async {
       finder,
       200,
       maxScrolls: 30,
-      scrollable: find
-          .descendant(
-            of: find.byType(ListView),
-            matching: find.byType(Scrollable),
-          )
-          .first,
+      scrollable: find.byType(Scrollable).first,
     );
   }
   await tester.ensureVisible(finder);
@@ -48,6 +43,8 @@ Future<void> tapVisible(
   await tester.tap(finder);
   if (loadsContent) {
     await tester.pump();
+    // Finish the route entrance so its asynchronous content loader is mounted.
+    await tester.pump(const Duration(milliseconds: 500));
     // Allow platform asset messages to complete outside the fake async zone.
     for (
       var attempt = 0;

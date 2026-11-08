@@ -10,6 +10,7 @@ import 'package:partybox_mobile/src/rooms/room_vault.dart';
 import 'package:partybox_mobile/src/design/night_theme.dart';
 import 'support.dart';
 import '../support/design_fonts.dart';
+import '../support/local_game_flow.dart';
 
 Map<String, dynamic> fixture() =>
     ((jsonDecode(
@@ -20,6 +21,39 @@ Map<String, dynamic> fixture() =>
             as Map)['GameSnapshot']
         as Map<String, dynamic>);
 void main() {
+  testWidgets('host starts a room with the selected theme', (tester) async {
+    final value = fixture();
+    (value['publicState'] as Map)['game'] = null;
+    value['privateState'] = null;
+    final api = FakeRoomApi()..current = RoomSnapshot.parse(value);
+    final controller = RoomController(
+      api: api,
+      vault: TestVault()..value = saved(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nightTheme(),
+        home: RoomScreen(controller: controller),
+      ),
+    );
+    await tester.pumpAndSettle();
+    api.receive!(api.current);
+    await tester.pumpAndSettle();
+    await settleRoomContent(tester);
+    await tapVisible(
+      tester,
+      find.byKey(const ValueKey('room-pack-spy-ru-base')),
+    );
+    await tester.tap(find.text('За гранью обычного').last);
+    await tester.pumpAndSettle();
+    await tapVisible(tester, find.text('Начать партию'));
+    expect(api.leaves.single.leave!['type'], 'spy.start');
+    expect(api.leaves.single.leave!['payload'], {
+      'packId': 'spy-ru-unusual',
+      'discussionMinutes': 5,
+    });
+    await tester.pumpWidget(const SizedBox());
+  });
   test(
     'room access v1 migrates to v2 without losing token or retry identity',
     () {
@@ -52,6 +86,16 @@ void main() {
               as Map;
       for (final key in examples.keys) {
         expect(RoomContract.accepts(key as String, examples[key]), true);
+      }
+      final starts =
+          jsonDecode(
+                File(
+                  '../../packages/game-contracts/examples/spy-start-v2.json',
+                ).readAsStringSync(),
+              )
+              as List;
+      for (final start in starts) {
+        expect(RoomContract.accepts('GameCommand', start), true);
       }
       final value = fixture();
       value['privateState'] = {'role': 'spy', 'location': 'Учебная локация'};
@@ -195,6 +239,7 @@ void main() {
       api.receive!(api.current);
       if (phase == 'distribution') controller.revealRole();
       await tester.pumpAndSettle();
+      await settleRoomContent(tester);
       await expectLater(
         find.byKey(const Key('game-capture')),
         matchesGoldenFile('goldens/network-$phase.png'),

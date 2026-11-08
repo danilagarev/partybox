@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { spyPacks, nextSpyLocation } from '../games/spy-content.js';
 import type { GameCommand, GameAck, GameSnapshot } from '@partybox/game-contracts/rooms-v2';
 import {
   createSpy,
@@ -38,14 +38,9 @@ interface Room {
   closed: boolean;
   members: Member[];
   game?: { id: string; packId: string; packVersion: number; state: SpyState; readyIds: string[] };
+  spyHistory?: Record<string, string[]>;
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
-const pack = JSON.parse(
-  readFileSync(
-    new URL('../../../../../packages/game-content/packs/spy-ru-base.json', import.meta.url),
-    'utf8',
-  ),
-) as { id: string; version: number; items: { label: string }[] };
 const ttl = 24 * 60 * 60 * 1000;
 
 export class RoomService {
@@ -392,19 +387,29 @@ export class RoomService {
         } else {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
           if (command.type === 'spy.start') {
+            const pack = spyPacks.get(command.payload.packId);
+            if (!pack) throw new RoomError('INVALID_REQUEST', 400);
             if (room.game && room.game.state.phase !== 'results')
               throw new RoomError('INVALID_PHASE', 409);
             const players = room.members.filter((m) => !m.left);
             if (players.length < 4) throw new RoomError('INVALID_PHASE', 409);
             if (players.some((m) => !m.gameClient))
               throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+            const key = `${pack.id}:${pack.version}`;
+            const selection = nextSpyLocation(pack, room.spyHistory?.[key] ?? [], randomInt);
+            room.spyHistory = Object.fromEntries(
+              [...spyPacks.values()].map((p) => {
+                const k = `${p.id}:${p.version}`;
+                return [k, k === key ? selection.history : (room.spyHistory?.[k] ?? [])];
+              }),
+            );
             room.game = {
               id: randomUUID(),
               packId: pack.id,
               packVersion: pack.version,
               state: createSpy(
                 players.map(({ id, name }) => ({ id, name })),
-                pack.items[randomInt(pack.items.length)]!.label,
+                selection.location,
                 randomInt(players.length),
                 command.payload.discussionMinutes * 60000,
               ),

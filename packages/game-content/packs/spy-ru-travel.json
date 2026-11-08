@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "spy-ru-travel",
+  "gameId": "spy",
+  "locale": "ru",
+  "version": 1,
+  "title": "Вокруг света",
+  "items": [
+    {
+      "id": "hotel",
+      "label": "Отель"
+    },
+    {
+      "id": "beach",
+      "label": "Пляж"
+    },
+    {
+      "id": "campsite",
+      "label": "Кемпинг"
+    },
+    {
+      "id": "ski-resort",
+      "label": "Горнолыжный курорт"
+    },
+    {
+      "id": "cruise-ship",
+      "label": "Круизный лайнер"
+    },
+    {
+      "id": "aquapark",
+      "label": "Аквапарк"
+    },
+    {
+      "id": "mountain-hut",
+      "label": "Горная хижина"
+    },
+    {
+      "id": "lighthouse",
+      "label": "Маяк"
+    },
+    {
+      "id": "cable-car",
+      "label": "Канатная дорога"
+    },
+    {
+      "id": "cave",
+      "label": "Пещера"
+    },
+    {
+      "id": "desert-oasis",
+      "label": "Оазис в пустыне"
+    },
+    {
+      "id": "waterfall",
+      "label": "Водопад"
+    },
+    {
+      "id": "safari-park",
+      "label": "Сафари-парк"
+    },
+    {
+      "id": "ferry",
+      "label": "Паром"
+    },
+    {
+      "id": "souvenir-shop",
+      "label": "Сувенирная лавка"
+    },
+    {
+      "id": "hostel",
+      "label": "Хостел"
+    },
+    {
+      "id": "observation-deck",
+      "label": "Смотровая площадка"
+    },
+    {
+      "id": "marina",
+      "label": "Яхтенная пристань"
+    },
+    {
+      "id": "hot-springs",
+      "label": "Горячие источники"
+    },
+    {
+      "id": "diving-center",
+      "label": "Дайвинг-центр"
+    },
+    {
+      "id": "tourist-bus",
+      "label": "Экскурсионный автобус"
+    },
+    {
+      "id": "amusement-park",
+      "label": "Парк аттракционов"
+    },
+    {
+      "id": "island",
+      "label": "Необитаемый остров"
+    },
+    {
+      "id": "medieval-castle",
+      "label": "Средневековый замок"
+    }
+  ]
+}

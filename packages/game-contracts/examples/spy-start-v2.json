@@ -1,0 +1,35 @@
+[
+  {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 5,
+    "sessionId": null,
+    "type": "spy.start",
+    "payload": {
+      "discussionMinutes": 5,
+      "packId": "spy-ru-base"
+    }
+  },
+  {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000031",
+    "expectedVersion": 5,
+    "sessionId": null,
+    "type": "spy.start",
+    "payload": {
+      "discussionMinutes": 5,
+      "packId": "spy-ru-travel"
+    }
+  },
+  {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000032",
+    "expectedVersion": 5,
+    "sessionId": null,
+    "type": "spy.start",
+    "payload": {
+      "discussionMinutes": 5,
+      "packId": "spy-ru-unusual"
+    }
+  }
+]

@@ -24,3 +24,26 @@ test('all bundled packs match the contract and have unique identifiers', async (
     assert.ok(pack.items.every((item) => item.label.trim().length > 0));
   }
 });
+
+test('catalog pins every bundled pack and contains no ambiguous locations', async () => {
+  const catalog = await readJson(new URL('../spy-catalog.json', import.meta.url));
+  const catalogSchema = await readJson(
+    new URL('../../game-contracts/schemas/spy-catalog.schema.json', import.meta.url),
+  );
+  assert.ok(new Ajv({ strict: true }).validate(catalogSchema, catalog));
+  const files = (await readdir(directory)).filter((name) => name.endsWith('.json'));
+  assert.deepEqual(catalog.packs.map((p) => `${p.id}.json`).sort(), files.sort());
+  assert.equal(new Set(catalog.packs.map((p) => p.id)).size, catalog.packs.length);
+  const labels = new Set();
+  for (const entry of catalog.packs) {
+    const pack = await readJson(new URL(`${entry.id}.json`, directory));
+    assert.equal(pack.id, entry.id);
+    assert.equal(pack.version, entry.version);
+    assert.equal(pack.locale, catalog.locale);
+    for (const item of pack.items) {
+      const label = item.label.trim().toLocaleLowerCase('ru');
+      assert.ok(!labels.has(label), `duplicate location: ${item.id}`);
+      labels.add(label);
+    }
+  }
+});
