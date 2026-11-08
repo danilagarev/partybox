@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "origin": "https://rooms.example",
+  "roomId": "00000000-0000-4000-8000-000000000001",
+  "token": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "leave": {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 4,
+    "sessionId": "00000000-0000-4000-8000-000000000020",
+    "type": "spy.ready",
+    "payload": {}
+  }
+}

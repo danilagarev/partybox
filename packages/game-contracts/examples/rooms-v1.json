@@ -1,0 +1,68 @@
+{
+  "Enrollment": {
+    "protocolVersion": 1,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "LeaveRoom": {
+    "protocolVersion": 1,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "expectedVersion": 1,
+    "type": "room.leave",
+    "payload": {}
+  },
+  "Snapshot": {
+    "protocolVersion": 1,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        }
+      ]
+    },
+    "privateState": null,
+    "selfId": "00000000-0000-4000-8000-000000000002"
+  },
+  "EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 1,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          }
+        ]
+      },
+      "privateState": null,
+      "selfId": "00000000-0000-4000-8000-000000000002"
+    }
+  },
+  "Ack": {
+    "protocolVersion": 1,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "Error": {
+    "protocolVersion": 1,
+    "code": "ROOM_EXPIRED"
+  }
+}

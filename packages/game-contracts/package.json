@@ -4,9 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "generate": "node tool/generate.mjs && node tool/openapi.mjs && node tool/dart.mjs && node tool/game.mjs"
   },
   "devDependencies": {
-    "ajv": "8.20.0"
+    "ajv": "8.20.0",
+    "json-schema-to-typescript": "16.0.0"
+  },
+  "exports": {
+    "./rooms-v1.schema.json": "./schemas/rooms-v1.schema.json",
+    "./rooms-v1": "./generated/rooms-v1.d.ts",
+    "./rooms-v2.schema.json": "./schemas/rooms-v2.schema.json",
+    "./rooms-v2": "./generated/rooms-v2.d.ts"
   }
 }

@@ -8,10 +8,13 @@ import 'design/night_gallery.dart';
 import 'design/night_theme.dart';
 import 'spy/spy_game_screen.dart';
 import 'storage/spy_setup.dart';
+import 'rooms/room_controller.dart';
+import 'rooms/room_screen.dart';
 
 class PartyBoxApp extends StatelessWidget {
-  const PartyBoxApp({super.key, this.setupStore});
+  const PartyBoxApp({super.key, this.setupStore, this.roomControllerFactory});
   final SpySetupStore? setupStore;
+  final RoomController Function()? roomControllerFactory;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -23,13 +26,17 @@ class PartyBoxApp extends StatelessWidget {
     theme: nightTheme(),
     home: const bool.fromEnvironment('DESIGN_GALLERY') && !kReleaseMode
         ? const NightGallery()
-        : CatalogScreen(setupStore: setupStore),
+        : CatalogScreen(
+            setupStore: setupStore,
+            roomControllerFactory: roomControllerFactory,
+          ),
   );
 }
 
 class CatalogScreen extends StatelessWidget {
-  const CatalogScreen({super.key, this.setupStore});
+  const CatalogScreen({super.key, this.setupStore, this.roomControllerFactory});
   final SpySetupStore? setupStore;
+  final RoomController Function()? roomControllerFactory;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -110,6 +117,38 @@ class CatalogScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              if (roomControllerFactory != null) ...[
+                const SizedBox(height: 20),
+                NightPanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const NightEyebrow('У КАЖДОГО СВОЙ ТЕЛЕФОН'),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Собраться в комнате',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text('Вход по коду. Состав компании — на экране.'),
+                      const SizedBox(height: 20),
+                      NightButton(
+                        label: 'Комната «Шпиона»',
+                        onPressed: () {
+                          if (ModalRoute.of(context)?.isCurrent != true) return;
+                          final controller = roomControllerFactory!();
+                          Navigator.of(context).push<void>(
+                            NightRoute(
+                              builder: (_) =>
+                                  RoomScreen(controller: controller),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               const Text(
                 'Телефон по кругу. Интрига за столом.',

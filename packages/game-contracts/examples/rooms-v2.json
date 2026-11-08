@@ -1,0 +1,117 @@
+{
+  "V2Enrollment": {
+    "protocolVersion": 2,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "GameCommand": {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": "00000000-0000-4000-8000-000000000020",
+    "type": "spy.ready",
+    "payload": {}
+  },
+  "GameSnapshot": {
+    "protocolVersion": 2,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "name": "Игрок 3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "name": "Игрок 4"
+        }
+      ],
+      "game": {
+        "sessionId": "00000000-0000-4000-8000-000000000020",
+        "packId": "spy-ru-base",
+        "packVersion": 1,
+        "phase": "distribution",
+        "readyIds": [],
+        "deadline": null,
+        "result": null
+      }
+    },
+    "privateState": {
+      "role": "civilian",
+      "location": "Учебная локация"
+    },
+    "selfId": "00000000-0000-4000-8000-000000000002"
+  },
+  "GameEnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 2,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "name": "Игрок 4"
+          }
+        ],
+        "game": {
+          "sessionId": "00000000-0000-4000-8000-000000000020",
+          "packId": "spy-ru-base",
+          "packVersion": 1,
+          "phase": "distribution",
+          "readyIds": [],
+          "deadline": null,
+          "result": null
+        }
+      },
+      "privateState": {
+        "role": "civilian",
+        "location": "Учебная локация"
+      },
+      "selfId": "00000000-0000-4000-8000-000000000002"
+    }
+  },
+  "GameAck": {
+    "protocolVersion": 2,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "GameError": {
+    "protocolVersion": 2,
+    "code": "FORBIDDEN"
+  }
+}

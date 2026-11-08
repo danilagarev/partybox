@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://partybox.local/schemas/rooms-v1.json",
+  "title": "RoomsV1",
+  "$defs": {
+    "Enrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "requestId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "retryKey": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+        }
+      },
+      "required": ["protocolVersion", "requestId", "retryKey", "name"]
+    },
+    "CreateRoom": {
+      "$ref": "#/$defs/Enrollment"
+    },
+    "JoinRoom": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Enrollment"
+        }
+      ]
+    },
+    "LeaveRoom": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "expectedVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "const": "room.leave"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {},
+          "required": []
+        }
+      },
+      "required": ["protocolVersion", "commandId", "expectedVersion", "type", "payload"]
+    },
+    "Player": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "roomId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "serverTime": {
+          "type": "string"
+        },
+        "publicState": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "phase": {
+              "const": "lobby"
+            },
+            "pin": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$"
+            },
+            "hostId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "expiresAt": {
+              "type": "string"
+            },
+            "players": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/$defs/Player"
+              }
+            }
+          },
+          "required": ["phase", "pin", "hostId", "expiresAt", "players"]
+        },
+        "privateState": {
+          "type": "null"
+        },
+        "selfId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "roomId",
+        "version",
+        "serverTime",
+        "publicState",
+        "privateState",
+        "selfId"
+      ]
+    },
+    "EnrollmentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "guestToken": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/Snapshot"
+        }
+      },
+      "required": ["guestToken", "snapshot"]
+    },
+    "Ack": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "commandId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "accepted": {
+          "const": true
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["protocolVersion", "commandId", "accepted", "version"]
+    },
+    "Error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "code": {
+          "enum": [
+            "INVALID_REQUEST",
+            "UNAUTHORIZED",
+            "ROOM_UNAVAILABLE",
+            "ROOM_EXPIRED",
+            "ROOM_FULL",
+            "ROOM_CLOSED",
+            "VERSION_CONFLICT",
+            "COMMAND_CONFLICT",
+            "RATE_LIMITED",
+            "SERVICE_UNAVAILABLE",
+            "INTERNAL_ERROR"
+          ]
+        }
+      },
+      "required": ["protocolVersion", "code"]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Enrollment"
+    },
+    {
+      "$ref": "#/$defs/LeaveRoom"
+    },
+    {
+      "$ref": "#/$defs/Snapshot"
+    },
+    {
+      "$ref": "#/$defs/EnrollmentResult"
+    },
+    {
+      "$ref": "#/$defs/Ack"
+    },
+    {
+      "$ref": "#/$defs/Error"
+    }
+  ]
+}

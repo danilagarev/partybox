@@ -1,0 +1,160 @@
+{
+  "vectorVersion": 1,
+  "cases": [
+    {
+      "id": "deadline-civilians",
+      "initial": {
+        "players": [
+          {
+            "id": "p0",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "p1",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "p2",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "p3",
+            "name": "Игрок 4"
+          }
+        ],
+        "location": "Учебная локация",
+        "spyIndex": 1,
+        "durationMs": 180000
+      },
+      "steps": [
+        {
+          "type": "ack",
+          "playerId": "p1",
+          "at": 0,
+          "error": true
+        },
+        {
+          "type": "ack",
+          "playerId": "p0",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p1",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p2",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p3",
+          "at": 0,
+          "phase": "discussion"
+        },
+        {
+          "type": "time",
+          "at": 179999,
+          "phase": "discussion"
+        },
+        {
+          "type": "time",
+          "at": 180000,
+          "phase": "voting"
+        },
+        {
+          "type": "accuse",
+          "playerId": "p1",
+          "at": 180000,
+          "phase": "results",
+          "winner": "civilians"
+        }
+      ]
+    },
+    {
+      "id": "early-spy",
+      "initial": {
+        "players": [
+          {
+            "id": "p0",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "p1",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "p2",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "p3",
+            "name": "Игрок 4"
+          }
+        ],
+        "location": "Учебная локация",
+        "spyIndex": 1,
+        "durationMs": 180000
+      },
+      "steps": [
+        {
+          "type": "vote",
+          "at": 0,
+          "error": true
+        },
+        {
+          "type": "ack",
+          "playerId": "p0",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p1",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p2",
+          "at": 0,
+          "phase": "distribution"
+        },
+        {
+          "type": "ack",
+          "playerId": "p3",
+          "at": 0,
+          "phase": "discussion"
+        },
+        {
+          "type": "vote",
+          "at": 1,
+          "phase": "voting"
+        },
+        {
+          "type": "accuse",
+          "playerId": "outsider",
+          "at": 1,
+          "error": true
+        },
+        {
+          "type": "accuse",
+          "playerId": "p0",
+          "at": 1,
+          "phase": "results",
+          "winner": "spy"
+        },
+        {
+          "type": "vote",
+          "at": 1,
+          "error": true
+        }
+      ]
+    }
+  ]
+}

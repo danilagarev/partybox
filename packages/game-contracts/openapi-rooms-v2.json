@@ -1,0 +1,565 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "PartyBox — сетевая партия", "version": "2.0.0" },
+  "paths": {
+    "/v2/rooms": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/V2Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GameEnrollmentResult" }
+              }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameError" } }
+            }
+          }
+        }
+      }
+    },
+    "/v2/rooms/join/{pin}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pin",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[0-9]{6}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/V2Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GameEnrollmentResult" }
+              }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameError" } }
+            }
+          }
+        }
+      }
+    },
+    "/v2/rooms/{roomId}": {
+      "get": {
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Персональный snapshot",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameSnapshot" } }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameError" } }
+            }
+          }
+        }
+      }
+    },
+    "/v2/rooms/{roomId}/commands": {
+      "post": {
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/GameCommand" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameAck" } }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GameError" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "guestToken": { "type": "http", "scheme": "bearer" } },
+    "schemas": {
+      "Player": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "V2Enrollment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 2 },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "retryKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["protocolVersion", "requestId", "retryKey", "name"]
+      },
+      "GameCommand": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "room.leave" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.start" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "discussionMinutes": { "type": "integer", "minimum": 3, "maximum": 15 },
+                  "packId": { "const": "spy-ru-base" }
+                },
+                "required": ["discussionMinutes", "packId"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.ready" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.vote" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.accuse" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "suspectId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                },
+                "required": ["suspectId"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 2 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.cancel" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          }
+        ]
+      },
+      "GameResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "spyId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "location": { "type": "string", "minLength": 1 },
+          "suspectId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "winner": { "enum": ["spy", "civilians"] }
+        },
+        "required": ["spyId", "location", "suspectId", "winner"]
+      },
+      "GameView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "packId": { "type": "string" },
+          "packVersion": { "type": "integer", "minimum": 1 },
+          "phase": { "enum": ["distribution", "discussion", "voting", "results"] },
+          "readyIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "minItems": 0,
+            "maxItems": 12
+          },
+          "deadline": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+          "result": { "oneOf": [{ "$ref": "#/components/schemas/GameResult" }, { "type": "null" }] }
+        },
+        "required": [
+          "sessionId",
+          "packId",
+          "packVersion",
+          "phase",
+          "readyIds",
+          "deadline",
+          "result"
+        ]
+      },
+      "GameCard": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "role": { "const": "spy" }, "location": { "type": "null" } },
+            "required": ["role", "location"]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": { "const": "civilian" },
+              "location": { "type": "string", "minLength": 1 }
+            },
+            "required": ["role", "location"]
+          }
+        ]
+      },
+      "GameSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 2 },
+          "roomId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "version": { "type": "integer", "minimum": 1 },
+          "serverTime": { "type": "string" },
+          "publicState": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phase": { "const": "lobby" },
+              "pin": { "type": "string", "pattern": "^[0-9]{6}$" },
+              "hostId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expiresAt": { "type": "string" },
+              "players": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "items": { "$ref": "#/components/schemas/Player" }
+              },
+              "game": { "oneOf": [{ "$ref": "#/components/schemas/GameView" }, { "type": "null" }] }
+            },
+            "required": ["phase", "pin", "hostId", "expiresAt", "players", "game"]
+          },
+          "privateState": {
+            "oneOf": [{ "$ref": "#/components/schemas/GameCard" }, { "type": "null" }]
+          },
+          "selfId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "roomId",
+          "version",
+          "serverTime",
+          "publicState",
+          "privateState",
+          "selfId"
+        ]
+      },
+      "GameEnrollmentResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "guestToken": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "snapshot": { "$ref": "#/components/schemas/GameSnapshot" }
+        },
+        "required": ["guestToken", "snapshot"]
+      },
+      "GameAck": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 2 },
+          "commandId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "accepted": { "const": true },
+          "version": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["protocolVersion", "commandId", "accepted", "version"]
+      },
+      "GameError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 2 },
+          "code": {
+            "enum": [
+              "INVALID_REQUEST",
+              "UNAUTHORIZED",
+              "ROOM_UNAVAILABLE",
+              "ROOM_EXPIRED",
+              "ROOM_FULL",
+              "ROOM_CLOSED",
+              "VERSION_CONFLICT",
+              "COMMAND_CONFLICT",
+              "RATE_LIMITED",
+              "SERVICE_UNAVAILABLE",
+              "INTERNAL_ERROR",
+              "FORBIDDEN",
+              "INVALID_PHASE",
+              "ROOM_IN_PROGRESS",
+              "SESSION_CONFLICT",
+              "CLIENT_UPGRADE_REQUIRED"
+            ]
+          }
+        },
+        "required": ["protocolVersion", "code"]
+      }
+    }
+  }
+}

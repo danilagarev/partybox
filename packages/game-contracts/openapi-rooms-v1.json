@@ -1,0 +1,436 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PartyBox — комнаты",
+    "version": "1.0.0",
+    "description": "Только серверное лобби PB-040. Игровые команды ещё не реализованы. JSON ≤ 8 KiB. TLS обязателен вне localhost. Не логировать Authorization, retryKey, guestToken и тела запросов."
+  },
+  "paths": {
+    "/rooms": {
+      "post": {
+        "operationId": "createRoom",
+        "description": "10 запросов/мин/IP. requestId UUID v4 и retryKey из 32 случайных байт base64url сохраняются клиентом до ответа; повторить без изменений при потере ответа. Комната на 24 часа.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Успех",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EnrollmentResult" } }
+            }
+          },
+          "400": {
+            "description": "Некорректный запрос",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "Требуется токен участника",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "Комната недоступна",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Конфликт команды, версии или заполненная комната",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "410": {
+            "description": "Комната закрыта или истекла",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "413": { "description": "JSON больше 8 KiB; стандартный ответ HTTP middleware" },
+          "429": {
+            "description": "Превышен минутный лимит",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "503": {
+            "description": "Сервис комнат недоступен",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/join/{pin}": {
+      "post": {
+        "operationId": "joinRoom",
+        "description": "30 запросов/мин/IP, включая несуществующие PIN. PIN создаёт нового участника, токен восстанавливает прежнего. 1–12 участников в лобби.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pin",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[0-9]{6}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Успех",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EnrollmentResult" } }
+            }
+          },
+          "400": {
+            "description": "Некорректный запрос",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "Требуется токен участника",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "Комната недоступна",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Конфликт команды, версии или заполненная комната",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "410": {
+            "description": "Комната закрыта или истекла",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "413": { "description": "JSON больше 8 KiB; стандартный ответ HTTP middleware" },
+          "429": {
+            "description": "Превышен минутный лимит",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "503": {
+            "description": "Сервис комнат недоступен",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{roomId}": {
+      "get": {
+        "operationId": "roomSnapshot",
+        "description": "120 запросов/мин/IP. Актуальная публичная часть и только собственная личная часть; Cache-Control: no-store.",
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успех",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Snapshot" } }
+            }
+          },
+          "400": {
+            "description": "Некорректный запрос",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "Требуется токен участника",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "Комната недоступна",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Конфликт команды, версии или заполненная комната",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "410": {
+            "description": "Комната закрыта или истекла",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "413": { "description": "JSON больше 8 KiB; стандартный ответ HTTP middleware" },
+          "429": {
+            "description": "Превышен минутный лимит",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "503": {
+            "description": "Сервис комнат недоступен",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{roomId}/commands": {
+      "post": {
+        "operationId": "leaveRoom",
+        "description": "120 запросов/мин/IP. Только room.leave. commandId сохраняется до ack; accepted-результат дедуплицируется до проверки версии. Изменённый payload с тем же ID даёт COMMAND_CONFLICT. Повтор принятого выхода разрешён даже от вышедшего участника, до TTL. Явный выход передаёт ведущего следующему по порядку входа. Отказ не сохраняется как принятый ack.",
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LeaveRoom" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Успех",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ack" } } }
+          },
+          "400": {
+            "description": "Некорректный запрос",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "401": {
+            "description": "Требуется токен участника",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "404": {
+            "description": "Комната недоступна",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "409": {
+            "description": "Конфликт команды, версии или заполненная комната",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "410": {
+            "description": "Комната закрыта или истекла",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "413": { "description": "JSON больше 8 KiB; стандартный ответ HTTP middleware" },
+          "429": {
+            "description": "Превышен минутный лимит",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          },
+          "503": {
+            "description": "Сервис комнат недоступен",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "guestToken": { "type": "http", "scheme": "bearer" } },
+    "schemas": {
+      "Enrollment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 1 },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "retryKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["protocolVersion", "requestId", "retryKey", "name"]
+      },
+      "CreateRoom": { "$ref": "#/components/schemas/Enrollment" },
+      "JoinRoom": { "allOf": [{ "$ref": "#/components/schemas/Enrollment" }] },
+      "LeaveRoom": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 1 },
+          "commandId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "expectedVersion": { "type": "integer", "minimum": 1 },
+          "type": { "const": "room.leave" },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "required": []
+          }
+        },
+        "required": ["protocolVersion", "commandId", "expectedVersion", "type", "payload"]
+      },
+      "Player": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "Snapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 1 },
+          "roomId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "version": { "type": "integer", "minimum": 1 },
+          "serverTime": { "type": "string" },
+          "publicState": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phase": { "const": "lobby" },
+              "pin": { "type": "string", "pattern": "^[0-9]{6}$" },
+              "hostId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expiresAt": { "type": "string" },
+              "players": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "items": { "$ref": "#/components/schemas/Player" }
+              }
+            },
+            "required": ["phase", "pin", "hostId", "expiresAt", "players"]
+          },
+          "privateState": { "type": "null" },
+          "selfId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "roomId",
+          "version",
+          "serverTime",
+          "publicState",
+          "privateState",
+          "selfId"
+        ]
+      },
+      "EnrollmentResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "guestToken": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "snapshot": { "$ref": "#/components/schemas/Snapshot" }
+        },
+        "required": ["guestToken", "snapshot"]
+      },
+      "Ack": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 1 },
+          "commandId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "accepted": { "const": true },
+          "version": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["protocolVersion", "commandId", "accepted", "version"]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 1 },
+          "code": {
+            "enum": [
+              "INVALID_REQUEST",
+              "UNAUTHORIZED",
+              "ROOM_UNAVAILABLE",
+              "ROOM_EXPIRED",
+              "ROOM_FULL",
+              "ROOM_CLOSED",
+              "VERSION_CONFLICT",
+              "COMMAND_CONFLICT",
+              "RATE_LIMITED",
+              "SERVICE_UNAVAILABLE",
+              "INTERNAL_ERROR"
+            ]
+          }
+        },
+        "required": ["protocolVersion", "code"]
+      }
+    }
+  }
+}
