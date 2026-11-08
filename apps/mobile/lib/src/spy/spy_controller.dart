@@ -13,6 +13,8 @@ final class SpyController extends ChangeNotifier {
   SpySession? _session;
   bool _revealed = false;
   bool _foreground = true;
+  String? _viewedPlayerId;
+  int concealEpoch = 0;
 
   SpyPhase? get phase => _session?.phase;
   List<Player> get players => _session?.players ?? const [];
@@ -21,6 +23,10 @@ final class SpyController extends ChangeNotifier {
       phase == SpyPhase.distribution ? players[distributedCount] : null;
   SpyCard? get visibleCard =>
       _revealed && _foreground ? _session?.cardFor(currentPlayer!.id) : null;
+  bool get canHandoff =>
+      _foreground &&
+      currentPlayer != null &&
+      _viewedPlayerId == currentPlayer!.id;
   Map<String, Object?>? get result =>
       _session?.publicView()['result'] as Map<String, Object?>?;
   int get remainingSeconds {
@@ -48,24 +54,28 @@ final class SpyController extends ChangeNotifier {
   void reveal(String playerId) {
     if (!_foreground || currentPlayer?.id != playerId || _revealed) return;
     _revealed = true;
+    _viewedPlayerId = playerId;
     notifyListeners();
   }
 
   void handoff(String playerId) {
-    if (!_foreground || !_revealed || currentPlayer?.id != playerId) return;
+    if (!canHandoff || currentPlayer?.id != playerId) return;
     _revealed = false;
+    _viewedPlayerId = null;
     _session = _session!.acknowledgeRole(playerId, now: _now());
     notifyListeners();
   }
 
   void conceal() {
     _revealed = false;
+    concealEpoch++;
     notifyListeners();
   }
 
   void setForeground(bool foreground) {
     _foreground = foreground;
     _revealed = false;
+    concealEpoch++;
     tick();
   }
 
@@ -90,6 +100,7 @@ final class SpyController extends ChangeNotifier {
     if (phase != SpyPhase.results) return;
     _session = adapter.create(players, _session!.duration);
     _revealed = false;
+    _viewedPlayerId = null;
     notifyListeners();
   }
 }

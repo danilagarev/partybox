@@ -8,6 +8,7 @@ import '../design/night_art.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
 import '../design/night_result_art.dart';
+import '../design/role_peek_card.dart';
 
 import 'local_session_adapter.dart';
 import 'spy_controller.dart';
@@ -211,8 +212,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
 
   void _handoff(String playerId) {
     final controller = _controller!;
-    if (controller.currentPlayer?.id != playerId ||
-        controller.visibleCard == null) {
+    if (controller.currentPlayer?.id != playerId || !controller.canHandoff) {
       return;
     }
     // A second physical tap must not activate the next player's reveal button.
@@ -358,87 +358,59 @@ class _SpyGameScreenState extends State<SpyGameScreen>
           const SizedBox(height: 24),
           _heading(context, 'Передайте телефон: ${player.name}'),
           const SizedBox(height: 24),
-          if (card == null) ...[
-            const NightPanel(
-              child: Column(
-                children: [
-                  NightArt(kind: NightArtKind.seal, height: 150),
-                  Text(
-                    'Ваша роль под защитой',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                  ),
-                  SizedBox(height: 12),
-                  Text(
-                    'Убедитесь, что только вы смотрите на экран.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: NightColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            NightButton(
-              key: const ValueKey('reveal-role'),
-              onPressed: !_canReveal
-                  ? null
-                  : () {
-                      if (_canReveal) controller.reveal(player.id);
-                    },
-              label: 'Показать мою роль',
-            ),
-          ] else ...[
-            NightEntrance(
-              key: ValueKey(('secret', player.id)),
-              child: Semantics(
-                liveRegion: true,
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        NightArt(
-                          kind: card.role == SpyRole.spy
-                              ? NightArtKind.eye
-                              : NightArtKind.constellation,
-                          height: 150,
-                          onColor: NightColors.accent,
-                          color: card.role == SpyRole.spy
-                              ? NightColors.raised
-                              : NightColors.accent,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          card.role == SpyRole.spy
-                              ? 'Вы — шпион'
-                              : 'Вы — мирный игрок',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(color: NightColors.accent),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          card.location ??
-                              'Вы не знаете локацию. Слушайте вопросы и не выдавайте себя.',
-                          textAlign: TextAlign.center,
-                          style: card.location == null
-                              ? Theme.of(context).textTheme.bodyLarge
-                              : Theme.of(context).textTheme.headlineLarge,
-                        ),
-                      ],
+          RolePeekCard(
+            key: ValueKey(('peek', player.id)),
+            revealed: card != null,
+            concealEpoch: controller.concealEpoch,
+            enabled: _canReveal,
+            viewed: controller.canHandoff,
+            onReveal: () {
+              if (_canReveal) controller.reveal(player.id);
+            },
+            onConceal: controller.conceal,
+            onContinue: () => _handoff(player.id),
+            continueLabel: 'Скрыть и передать',
+            closedContinueLabel: 'Передать телефон',
+            secretBuilder: (context) => Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    NightArt(
+                      kind: card!.role == SpyRole.spy
+                          ? NightArtKind.eye
+                          : NightArtKind.constellation,
+                      height: 150,
+                      onColor: NightColors.accent,
+                      color: card.role == SpyRole.spy
+                          ? NightColors.raised
+                          : NightColors.accent,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    Text(
+                      card.role == SpyRole.spy
+                          ? 'Вы — шпион'
+                          : 'Вы — мирный игрок',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: NightColors.accent,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      card.location ??
+                          'Вы не знаете локацию. Слушайте вопросы и не выдавайте себя.',
+                      textAlign: TextAlign.center,
+                      style: card.location == null
+                          ? Theme.of(context).textTheme.bodyLarge
+                          : Theme.of(context).textTheme.headlineLarge,
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            NightButton(
-              key: const ValueKey('handoff-role'),
-              onPressed: () => _handoff(player.id),
-              label: 'Скрыть и передать',
-            ),
-          ],
+          ),
         ];
       case SpyPhase.discussion:
         final seconds = controller.remainingSeconds;

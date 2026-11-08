@@ -4,8 +4,32 @@ import 'package:partybox_mobile/src/spy/local_session_adapter.dart';
 import 'package:partybox_mobile/src/spy/spy_game_screen.dart';
 
 import 'support/local_game_flow.dart';
+import 'support/role_peek_flow.dart';
 
 void main() {
+  testWidgets(
+    'swipe release hides role without advancing; old pointer cannot open the next player',
+    (tester) async {
+      await prepareGame(tester);
+      await showWidget(tester, find.byKey(const ValueKey('role-peek-surface')));
+      final peek = await holdCard(tester);
+      expect(find.byType(Card), findsOneWidget);
+      await peek.up();
+      await tester.pump();
+      expect(find.byType(Card), findsNothing);
+      expect(find.text('Карточка 1 из 4'), findsOneWidget);
+      await tester.pumpAndSettle();
+      final secondPeek = await holdCard(tester, pointer: 2);
+      expect(find.byType(Card), findsOneWidget);
+      await tapVisible(tester, find.text('Скрыть и передать'));
+      await secondPeek.moveBy(const Offset(0, -120));
+      await tester.pump();
+      expect(find.text('Карточка 2 из 4'), findsOneWidget);
+      expect(find.byType(Card), findsNothing);
+      await secondPeek.up();
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('complete local game and replay', playLocalGame);
 
   testWidgets('full cycle fits a small screen with large text', (tester) async {

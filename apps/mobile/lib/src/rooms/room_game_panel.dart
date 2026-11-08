@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
+import '../design/role_peek_card.dart';
 import 'room_controller.dart';
 import '../spy/local_session_adapter.dart';
 import '../spy/spy_question_help.dart';
@@ -166,31 +167,45 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             const SizedBox(height: 12),
             if (game.readyIds.contains(snapshot.selfId))
               const Text('Роль подтверждена. Ждём остальных.')
-            else if (controller.cardVisible) ...[
-              Text(
-                snapshot.card?.role == 'spy' ? 'Вы — шпион' : 'Вы знаете место',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                snapshot.card?.role == 'spy'
-                    ? 'Выясните локацию, не выдавая себя.'
-                    : snapshot.card!.location!,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: NightColors.accent,
+            else
+              RolePeekCard(
+                key: ValueKey(('room-peek', game.sessionId, snapshot.selfId)),
+                revealed: controller.cardVisible,
+                concealEpoch: controller.roleConcealEpoch,
+                enabled: enabled,
+                viewed: controller.roleViewed,
+                onReveal: controller.revealRole,
+                onConceal: controller.hideRole,
+                onContinue: () => controller.play('spy.ready'),
+                continueLabel: 'Скрыть и подтвердить',
+                closedContinueLabel: 'Подтвердить роль',
+                secretBuilder: (context) => Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        snapshot.card?.role == 'spy'
+                            ? 'Вы — шпион'
+                            : 'Вы знаете место',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        snapshot.card?.role == 'spy'
+                            ? 'Выясните локацию, не выдавая себя.'
+                            : snapshot.card!.location!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: NightColors.accent,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              NightButton(
-                label: 'Скрыть и подтвердить',
-                onPressed: enabled ? () => controller.play('spy.ready') : null,
-              ),
-            ] else
-              NightButton(
-                label: 'Показать мою роль',
-                onPressed: enabled ? controller.revealRole : null,
               ),
             const SizedBox(height: 16),
             Text(

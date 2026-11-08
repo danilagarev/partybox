@@ -11,6 +11,7 @@ import 'package:partybox_mobile/src/design/night_theme.dart';
 import 'support.dart';
 import '../support/design_fonts.dart';
 import '../support/local_game_flow.dart';
+import '../support/role_peek_flow.dart';
 
 Map<String, dynamic> fixture() =>
     ((jsonDecode(
@@ -21,6 +22,47 @@ Map<String, dynamic> fixture() =>
             as Map)['GameSnapshot']
         as Map<String, dynamic>);
 void main() {
+  testWidgets(
+    'room peek hides on disconnect; reconnect cannot revive held gesture',
+    (tester) async {
+      final api = FakeRoomApi()..current = RoomSnapshot.parse(fixture());
+      final controller = RoomController(
+        api: api,
+        vault: TestVault()..value = saved(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: RoomScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      await showWidget(tester, find.byKey(const ValueKey('role-peek-surface')));
+      final gesture = await holdCard(tester);
+      expect(find.text('Учебная локация'), findsOneWidget);
+      api.disconnected!();
+      await tester.pump();
+      expect(find.text('Учебная локация'), findsNothing);
+      api.receive!(api.current);
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, -120));
+      await tester.pump();
+      expect(find.text('Учебная локация'), findsNothing);
+      await gesture.up();
+      await tester.pumpAndSettle();
+      final fresh = await holdCard(tester, pointer: 2);
+      expect(find.text('Учебная локация'), findsOneWidget);
+      await fresh.up();
+      await tester.pump();
+      expect(controller.roleViewed, true);
+      expect(find.text('Учебная локация'), findsNothing);
+      await tapVisible(tester, find.text('Подтвердить роль'));
+      expect(api.leaves.single.leave!['type'], 'spy.ready');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('host starts a room with the selected theme', (tester) async {
     final value = fixture();
     (value['publicState'] as Map)['game'] = null;

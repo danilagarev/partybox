@@ -14,6 +14,14 @@ final class RoomController extends ChangeNotifier {
   String? notice;
   bool busy = false, online = false, initialized = false;
   bool cardVisible = false;
+  bool roleViewed = false;
+  int roleConcealEpoch = 0;
+
+  void _concealRole() {
+    cardVisible = false;
+    roleConcealEpoch++;
+  }
+
   Duration _serverOffset = Duration.zero;
   Duration get remaining {
     final end = snapshot?.game?.deadline;
@@ -23,17 +31,20 @@ final class RoomController extends ChangeNotifier {
   }
 
   void hideRole() {
-    cardVisible = false;
+    _concealRole();
     _notify();
   }
 
   void revealRole() {
-    if (!busy &&
+    if (_active &&
+        !hasPending &&
+        !busy &&
         online &&
         snapshot?.game?.phase == 'distribution' &&
         snapshot?.card != null &&
         !snapshot!.game!.readyIds.contains(snapshot!.selfId)) {
       cardVisible = true;
+      roleViewed = true;
       _notify();
     }
   }
@@ -63,7 +74,7 @@ final class RoomController extends ChangeNotifier {
   }
 
   void _stop() {
-    cardVisible = false;
+    _concealRole();
     _watchGeneration++;
     online = false;
     api.stopWatching();
@@ -71,6 +82,7 @@ final class RoomController extends ChangeNotifier {
 
   Future<void> _clear() async {
     _stop();
+    roleViewed = false;
     snapshot = null;
     _clearPending = true;
     try {
@@ -260,7 +272,8 @@ final class RoomController extends ChangeNotifier {
     if (fresh.game?.sessionId != snapshot?.game?.sessionId ||
         fresh.game?.phase != 'distribution' ||
         (fresh.game?.readyIds.contains(fresh.selfId) ?? false)) {
-      cardVisible = false;
+      _concealRole();
+      roleViewed = false;
     }
     snapshot = fresh;
   }
@@ -303,7 +316,7 @@ final class RoomController extends ChangeNotifier {
       (failure) {
         if (_disposed || generation != _watchGeneration) return;
         online = false;
-        cardVisible = false;
+        _concealRole();
         if (failure.terminal) {
           // Notify privacy changes now; serialize credential removal after the pending write/request.
           if (busy) {
@@ -325,7 +338,7 @@ final class RoomController extends ChangeNotifier {
       () {
         if (_disposed || generation != _watchGeneration) return;
         online = false;
-        cardVisible = false;
+        _concealRole();
         _notify();
       },
     );

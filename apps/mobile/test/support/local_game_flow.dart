@@ -25,18 +25,18 @@ Future<void> tapVisible(
   // Wait for deliberately disabled controls (e.g. the handoff tap guard).
   final buttons = find.ancestor(
     of: finder,
-    matching: find.byType(FilledButton),
+    matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
   );
   final nestedButtons = find.descendant(
     of: finder,
-    matching: find.byType(FilledButton),
+    matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
   );
   for (var attempt = 0; attempt < 12; attempt++) {
     final widgets = [
       ...buttons.evaluate(),
       ...nestedButtons.evaluate(),
       ...finder.evaluate(),
-    ].map((e) => e.widget).whereType<FilledButton>();
+    ].map((e) => e.widget).whereType<ButtonStyleButton>();
     if (!widgets.any((button) => button.onPressed == null)) break;
     await tester.pump(const Duration(milliseconds: 50));
   }

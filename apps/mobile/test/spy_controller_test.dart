@@ -26,6 +26,24 @@ void main() {
   });
   tearDown(() => controller.dispose());
 
+  test(
+    'peek may close before handoff; viewing is required again for the next player',
+    () {
+      controller.start(['А', 'Б', 'В', 'Г'], const Duration(minutes: 5));
+      expect(controller.canHandoff, false);
+      controller.reveal('p0');
+      controller.conceal();
+      expect(controller.visibleCard, isNull);
+      expect(controller.distributedCount, 0);
+      expect(controller.canHandoff, true);
+      controller.handoff('p0');
+      expect(controller.distributedCount, 1);
+      expect(controller.canHandoff, false);
+      controller.handoff('p1');
+      expect(controller.distributedCount, 1);
+    },
+  );
+
   void distribute() {
     controller.start([
       'Анна',
