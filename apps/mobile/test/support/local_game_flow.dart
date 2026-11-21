@@ -67,7 +67,7 @@ Future<void> goBack(WidgetTester tester) =>
 Future<void> prepareGame(WidgetTester tester) async {
   rootBundle.clear();
   await tester.pumpWidget(const PartyBoxApp());
-  await tapVisible(tester, find.text('Как играть'));
+  await tapVisible(tester, find.text('Играть в «Шпиона»'));
   await tapVisible(tester, find.text('Собрать компанию'), loadsContent: true);
   for (var i = 0; i < 4; i++) {
     final field = find.byKey(ValueKey('player-name-$i'));
@@ -119,5 +119,5 @@ Future<void> playLocalGame(WidgetTester tester) async {
   await tapVisible(tester, find.text('Завершить'));
   await goBack(tester);
   await tester.pumpAndSettle();
-  expect(find.text('Как играть'), findsOneWidget);
+  expect(find.text('Играть в «Шпиона»'), findsOneWidget);
 }

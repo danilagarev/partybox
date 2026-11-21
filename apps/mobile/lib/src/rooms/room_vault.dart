@@ -15,15 +15,21 @@ final class RoomAccess {
   final String origin;
   final Map<String, dynamic>? enrollment, leave;
   final String? pin, roomId, token;
-  Map<String, dynamic> toJson() => {
-    'schemaVersion': 2,
-    'origin': origin,
-    if (enrollment != null) 'enrollment': enrollment,
-    if (pin != null) 'pin': pin,
-    if (roomId != null) 'roomId': roomId,
-    if (token != null) 'token': token,
-    if (leave != null) 'leave': leave,
-  };
+  Map<String, dynamic> toJson() {
+    if (const {'tolerance.rank', 'tolerance.guess'}.contains(leave?['type'])) {
+      throw const RoomFailure('STORAGE');
+    }
+    return {
+      'schemaVersion': 2,
+      'origin': origin,
+      if (enrollment != null) 'enrollment': enrollment,
+      if (pin != null) 'pin': pin,
+      if (roomId != null) 'roomId': roomId,
+      if (token != null) 'token': token,
+      if (leave != null) 'leave': leave,
+    };
+  }
+
   factory RoomAccess.decode(String value) {
     try {
       final map = jsonDecode(value) as Map<String, dynamic>;
@@ -43,12 +49,12 @@ final class RoomAccess {
       }
       final origin = map['origin'] as String;
       if (map.containsKey('enrollment')) {
-        RoomContract.require(
-          (map['enrollment'] as Map)['protocolVersion'] == 2
-              ? 'V2Enrollment'
-              : 'Enrollment',
-          map['enrollment'],
-        );
+        RoomContract.require(switch ((map['enrollment']
+            as Map)['protocolVersion']) {
+          1 => 'Enrollment',
+          2 => 'V2Enrollment',
+          _ => 'V3Enrollment',
+        }, map['enrollment']);
         if (map.containsKey('roomId') ||
             map.containsKey('token') ||
             map.containsKey('leave') ||
@@ -70,12 +76,17 @@ final class RoomAccess {
         throw const FormatException();
       }
       if (map['leave'] != null) {
-        RoomContract.require(
-          (map['leave'] as Map)['protocolVersion'] == 2
-              ? 'GameCommand'
-              : 'LeaveRoom',
-          map['leave'],
-        );
+        if (const {
+          'tolerance.rank',
+          'tolerance.guess',
+        }.contains((map['leave'] as Map)['type'])) {
+          throw const FormatException();
+        }
+        RoomContract.require(switch ((map['leave'] as Map)['protocolVersion']) {
+          1 => 'LeaveRoom',
+          2 => 'GameCommand',
+          _ => 'V3Command',
+        }, map['leave']);
       }
       return RoomAccess(
         origin: origin,
@@ -107,7 +118,7 @@ final class SecureRoomVault implements RoomVault {
               accessibility: KeychainAccessibility.unlocked_this_device,
             ),
           );
-  static const key = 'vechero.rooms.access.v1';
+  static const key = 'partybox.rooms.access.v1';
   final FlutterSecureStorage _storage;
   Future<void> _pending = Future.value();
   Future<void> _write(Future<void> Function() action) {

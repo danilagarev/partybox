@@ -8,7 +8,14 @@ import 'room_models.dart';
 import 'room_game_panel.dart';
 
 class RoomScreen extends StatefulWidget {
-  const RoomScreen({super.key, required this.controller});
+  const RoomScreen({
+    super.key,
+    required this.controller,
+    this.initialGame,
+    this.initialJoining = false,
+  });
+  final String? initialGame;
+  final bool initialJoining;
   final RoomController controller;
   @override
   State<RoomScreen> createState() => _RoomScreenState();
@@ -24,6 +31,7 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _joining = widget.initialJoining;
     WidgetsBinding.instance.addObserver(this);
     controller.addListener(_changed);
     unawaited(controller.initialize());
@@ -108,7 +116,13 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         if (didPop) controller.hideRole();
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('КОМНАТА «ШПИОНА»')),
+        appBar: AppBar(
+          title: Text(
+            snapshot == null || snapshot.protocolVersion == 3
+                ? 'ИГРЫ В КОМНАТЕ'
+                : 'КОМНАТА «ШПИОНА»',
+          ),
+        ),
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -120,13 +134,23 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 16),
                   Text(
                     snapshot == null
-                        ? 'Соберёмся вместе.'
+                        ? (_joining
+                              ? 'Присоединяйтесь к своим.'
+                              : 'Создадим вашу комнату.')
                         : 'Все свои — здесь.',
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'У каждого своя роль. Обсуждение и голосование — вслух.',
+                  Text(
+                    snapshot == null
+                        ? (_joining
+                              ? 'Введите имя и код от ведущего. Сохранённое место восстановится автоматически.'
+                              : widget.initialGame == 'tolerance'
+                              ? 'Играем в «Шкалу терпения». Создайте комнату, затем пригласите друзей по коду.'
+                              : 'Играем в «Шпиона». Создайте комнату, затем пригласите друзей по коду.')
+                        : snapshot.protocolVersion == 3
+                        ? 'Выберите игру в комнате. Обсуждайте за столом, а тайные ответы отправляйте с телефона.'
+                        : 'У каждого своя роль. Обсуждение и голосование — вслух.',
                     style: TextStyle(color: NightColors.muted),
                   ),
                   const SizedBox(height: 24),
@@ -258,16 +282,19 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   Widget _lobby(RoomSnapshot snapshot) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (snapshot.game == null) ...[
+      if (snapshot.game == null && snapshot.tolerance == null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],
       RoomGamePanel(
-        key: ValueKey(snapshot.game?.sessionId ?? 'lobby'),
+        key: ValueKey(snapshot.sessionId ?? 'lobby'),
         controller: controller,
+        initialGame: !_joining && snapshot.hostId == snapshot.selfId
+            ? widget.initialGame
+            : null,
       ),
       const SizedBox(height: 20),
-      if (snapshot.game != null) ...[
+      if (snapshot.game != null || snapshot.tolerance != null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],

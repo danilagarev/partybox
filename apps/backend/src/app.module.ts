@@ -1,3 +1,4 @@
+import { ToleranceRoomController } from './rooms/tolerance-room-controller.js';
 import { GameRoomController } from './rooms/game-room-controller.js';
 import { RoomRuntime } from './rooms/room-runtime.js';
 import { RoomController } from './rooms/room-controller.js';
@@ -29,7 +30,13 @@ export class AppModule {
   static register(runtime: RoomRuntime) {
     return {
       module: AppModule,
-      controllers: [HealthController, ReadinessController, RoomController, GameRoomController],
+      controllers: [
+        HealthController,
+        ReadinessController,
+        RoomController,
+        GameRoomController,
+        ToleranceRoomController,
+      ],
       providers: [{ provide: RoomRuntime, useValue: runtime }],
     };
   }

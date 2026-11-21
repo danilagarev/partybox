@@ -3,11 +3,13 @@ import '../design/night_components.dart';
 import '../design/night_theme.dart';
 import '../design/role_peek_card.dart';
 import 'room_controller.dart';
+import 'tolerance_panel.dart';
 import '../spy/local_session_adapter.dart';
 import '../spy/spy_question_help.dart';
 
 class RoomGamePanel extends StatefulWidget {
-  const RoomGamePanel({super.key, required this.controller});
+  const RoomGamePanel({super.key, required this.controller, this.initialGame});
+  final String? initialGame;
   final RoomController controller;
   @override
   State<RoomGamePanel> createState() => _RoomGamePanelState();
@@ -15,6 +17,8 @@ class RoomGamePanel extends StatefulWidget {
 
 class _RoomGamePanelState extends State<RoomGamePanel> {
   int _minutes = 5;
+  String _selectedGame = 'spy';
+  bool _chooseNextGame = false;
   String _packId = 'spy-ru-base';
   List<SpyPack>? _packs;
   bool _packLoadFailed = false;
@@ -23,8 +27,17 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
   @override
   void initState() {
     super.initState();
+    _selectedGame = widget.controller.snapshot?.protocolVersion == 3
+        ? widget.initialGame ?? 'spy'
+        : 'spy';
     final game = widget.controller.snapshot?.game;
+    if (game != null && game.phase != 'results') _selectedGame = 'spy';
     if (game != null) _packId = game.packId;
+    // A deliberate catalogue choice can replace a completed game. A generic
+    // return keeps its result, and an active game always remains authoritative.
+    _chooseNextGame =
+        widget.controller.snapshot?.tolerance?.phase == 'finished' &&
+        widget.initialGame == 'spy';
     _loadPacks();
   }
 
@@ -76,11 +89,101 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     final host = snapshot.hostId == snapshot.selfId;
     final enabled =
         !controller.busy && !controller.hasPending && controller.online;
+    final tolerance = snapshot.tolerance;
+    if (tolerance != null && !_chooseNextGame) {
+      return TolerancePanel(
+        key: ValueKey((
+          tolerance.sessionId,
+          tolerance.roundIndex,
+          tolerance.phase,
+        )),
+        controller: controller,
+        onChooseGame: () => setState(() => _chooseNextGame = true),
+      );
+    }
+    final choosing = game == null || game.phase == 'results';
+    final chooser = snapshot.protocolVersion == 3 && choosing
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('Шпион'),
+                  selected: _selectedGame == 'spy',
+                  onSelected: host && enabled
+                      ? (_) => setState(() => _selectedGame = 'spy')
+                      : null,
+                ),
+                ChoiceChip(
+                  label: const Text('Шкала терпения'),
+                  selected: _selectedGame == 'tolerance',
+                  onSelected: host && enabled
+                      ? (_) => setState(() => _selectedGame = 'tolerance')
+                      : null,
+                ),
+              ],
+            ),
+          )
+        : const SizedBox.shrink();
+    if (choosing && _selectedGame == 'tolerance') {
+      return NightPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            chooser,
+            Text(
+              'Как хорошо вы знаете друг друга?',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 16),
+            const Text(toleranceRules),
+            const SizedBox(height: 16),
+            const Text('4–12 игроков · каждый побывает героем · ответы тайные'),
+            const SizedBox(height: 20),
+            if (host)
+              NightButton(
+                label: 'Начать «Шкалу терпения»',
+                onPressed: enabled && snapshot.players.length >= 4
+                    ? () {
+                        setState(() => _chooseNextGame = false);
+                        controller.play('tolerance.start');
+                      }
+                    : null,
+              )
+            else
+              const Text('Ведущий начнёт партию, когда все соберутся.'),
+            if (snapshot.players.length < 4)
+              const Text('Для партии нужны хотя бы четыре участника.'),
+          ],
+        ),
+      );
+    }
     return NightPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          chooser,
           if (game == null || game.phase == 'results') ...[
+            if (snapshot.protocolVersion == 3)
+              const ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text('Как играть в «Шпиона»'),
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'Один из вас — шпион, остальные знают одно место. '
+                      'Посмотрите свою карточку и подтвердите готовность. '
+                      'Задавайте друг другу вопросы о месте, не называя его. '
+                      'Шпион старается не выдать себя. Когда время закончится, '
+                      'проголосуйте вслух: ведущий подтвердит общий выбор. '
+                      'Нашли шпиона — победили остальные. Ошиблись — победил шпион.',
+                    ),
+                  ),
+                ],
+              ),
             if (game?.result != null) ...[
               Text(
                 game!.result!['winner'] == 'civilians'
@@ -211,6 +314,11 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             Text(
               'Готовы ${game.readyIds.length} из ${snapshot.players.length}',
             ),
+            if (snapshot.protocolVersion == 3)
+              Text(
+                'Ждём: ${snapshot.players.where((p) => !game.readyIds.contains(p.id)).map((p) => p.id == snapshot.selfId ? '${p.name} (вы)' : p.name).join(', ')}',
+                style: const TextStyle(color: NightColors.muted),
+              ),
           ] else if (game.phase == 'discussion') ...[
             const NightEyebrow('ОБСУЖДЕНИЕ'),
             const SizedBox(height: 12),

@@ -19,7 +19,7 @@ HTTPS; HTTP разрешён в debug для локальной разработ
 токены не должны уйти на другой origin. Origin сохранён вместе с доступом;
 несовпадение блокирует запросы до явного удаления старого доступа.
 
-SecureRoomVault хранит один JSON под отдельным ключом vechero.rooms.access.v1
+SecureRoomVault хранит один JSON под отдельным ключом partybox.rooms.access.v1
 через flutter_secure_storage 9.2.4: Android EncryptedSharedPreferences/Keystore,
 iOS Keychain с unlocked_this_device. Android autobackup отключён. В браузерном
 превью используется только память, без постоянного browser storage. Сохраняются

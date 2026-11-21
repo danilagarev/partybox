@@ -69,7 +69,8 @@ final class HttpRoomApi implements RoomApi {
       final value = jsonDecode(utf8.decode(bytes));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         if ((RoomContract.accepts('Error', value) ||
-            RoomContract.accepts('GameError', value))) {
+            RoomContract.accepts('GameError', value) ||
+            RoomContract.accepts('V3Error', value))) {
           throw RoomFailure((value as Map)['code'] as String);
         }
         throw const RoomFailure('CONNECTION');
@@ -90,19 +91,14 @@ final class HttpRoomApi implements RoomApi {
   ) async {
     _checkOrigin(request);
     final value = await _request(
-      request.enrollment!['protocolVersion'] == 1
-          ? (request.pin == null ? '/rooms' : '/rooms/join/${request.pin}')
-          : (request.pin == null
-                ? '/v2/rooms'
-                : '/v2/rooms/join/${request.pin}'),
+      '${_prefix(request.enrollment!['protocolVersion'] as int)}/rooms${request.pin == null ? '' : '/join/${request.pin}'}',
       body: request.enrollment,
     );
-    RoomContract.require(
-      request.enrollment!['protocolVersion'] == 1
-          ? 'EnrollmentResult'
-          : 'GameEnrollmentResult',
-      value,
-    );
+    RoomContract.require(switch (request.enrollment!['protocolVersion']) {
+      1 => 'EnrollmentResult',
+      2 => 'GameEnrollmentResult',
+      _ => 'V3EnrollmentResult',
+    }, value);
     final map = value as Map;
     return (
       token: map['guestToken'] as String,
@@ -114,7 +110,7 @@ final class HttpRoomApi implements RoomApi {
   Future<RoomSnapshot> snapshot(RoomAccess access) async {
     _checkOrigin(access);
     return RoomSnapshot.parse(
-      await _request('/v2/rooms/${access.roomId}', token: access.token),
+      await _request('/v3/rooms/${access.roomId}', token: access.token),
     );
   }
 
@@ -122,16 +118,15 @@ final class HttpRoomApi implements RoomApi {
   Future<void> leave(RoomAccess access) async {
     _checkOrigin(access);
     final value = await _request(
-      access.leave!['protocolVersion'] == 1
-          ? '/rooms/${access.roomId}/commands'
-          : '/v2/rooms/${access.roomId}/commands',
+      '${_prefix(access.leave!['protocolVersion'] as int)}/rooms/${access.roomId}/commands',
       body: access.leave,
       token: access.token,
     );
-    RoomContract.require(
-      access.leave!['protocolVersion'] == 1 ? 'Ack' : 'GameAck',
-      value,
-    );
+    RoomContract.require(switch (access.leave!['protocolVersion']) {
+      1 => 'Ack',
+      2 => 'GameAck',
+      _ => 'V3Ack',
+    }, value);
     if ((value as Map)['commandId'] != access.leave!['commandId']) {
       throw const RoomFailure('PROTOCOL');
     }
@@ -158,7 +153,7 @@ final class HttpRoomApi implements RoomApi {
           .setAuth({
             'roomId': access.roomId,
             'guestToken': access.token,
-            'protocolVersion': 2,
+            'protocolVersion': 3,
           })
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
@@ -176,7 +171,8 @@ final class HttpRoomApi implements RoomApi {
       (value) => onError(
         RoomFailure(
           (RoomContract.accepts('Error', value) ||
-                  RoomContract.accepts('GameError', value))
+                  RoomContract.accepts('GameError', value) ||
+                  RoomContract.accepts('V3Error', value))
               ? (value as Map)['code'] as String
               : 'PROTOCOL',
         ),
@@ -205,6 +201,12 @@ final class HttpRoomApi implements RoomApi {
     socket.onDisconnect((_) => onDisconnect());
     socket.connect();
   }
+
+  String _prefix(int version) => switch (version) {
+    1 => '',
+    2 => '/v2',
+    _ => '/v3',
+  };
 
   void _checkOrigin(RoomAccess access) {
     if (access.origin != origin) throw const RoomFailure('SERVER_CHANGED');

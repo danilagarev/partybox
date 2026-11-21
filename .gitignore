@@ -54,6 +54,9 @@ apps/mobile/test/**/failures/
 # Local Android install packages
 *.apk
 output/android/
+/output/play-lan/
+/output/play-internet/
+/.tools/
 
 # VPS runtime secrets and database backups
 /deploy/secrets/

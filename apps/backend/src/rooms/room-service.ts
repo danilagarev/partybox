@@ -1,3 +1,15 @@
+import type { V3Command, V3Snapshot, V3Ack } from '@partybox/game-contracts/rooms-v3';
+import {
+  createTolerance,
+  rankTolerance,
+  guessTolerance,
+  nextTolerance,
+  tolerancePublic,
+  tolerancePrivate,
+  ToleranceRuleError,
+  type ToleranceState,
+} from '../games/tolerance.js';
+import { selectToleranceCards } from '../games/tolerance-content.js';
 import { spyPacks, nextSpyLocation } from '../games/spy-content.js';
 import type { GameCommand, GameAck, GameSnapshot } from '@partybox/game-contracts/rooms-v2';
 import {
@@ -28,6 +40,7 @@ interface Member {
   tokenHash: string;
   left: boolean;
   gameClient?: boolean;
+  toleranceClient?: boolean;
 }
 interface Room {
   id: string;
@@ -39,6 +52,7 @@ interface Room {
   members: Member[];
   game?: { id: string; packId: string; packVersion: number; state: SpyState; readyIds: string[] };
   spyHistory?: Record<string, string[]>;
+  tolerance?: { id: string; state: ToleranceState };
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const ttl = 24 * 60 * 60 * 1000;
@@ -182,9 +196,14 @@ export class RoomService {
         // Joining a PIN never discloses whether an unavailable room existed.
         if (room.closed || this.now().getTime() >= Date.parse(room.expiresAt))
           throw new RoomError('ROOM_UNAVAILABLE', 404);
-        if (room.game && room.game.state.phase !== 'results')
+        if (
+          (room.game && room.game.state.phase !== 'results') ||
+          (room.tolerance && room.tolerance.state.phase !== 'finished')
+        )
           throw new RoomError('ROOM_UNAVAILABLE', 409);
         if (room.members.filter((m) => !m.left).length >= 12) throw new RoomError('ROOM_FULL', 409);
+        // A completed party belongs to its frozen roster; a newcomer starts a fresh lobby.
+        delete room.tolerance;
         room.members.push(member);
         room.version++;
       } else {
@@ -258,6 +277,7 @@ export class RoomService {
       this.active(room);
       if (command.expectedVersion !== room.version) throw new RoomError('VERSION_CONFLICT', 409);
       delete room.game;
+      delete room.tolerance;
       member.left = true;
       const remaining = room.members.filter((m) => !m.left);
       if (!remaining.length) room.closed = true;
@@ -310,6 +330,16 @@ export class RoomService {
     };
   }
   async snapshotGame(roomId: string, token: string): Promise<GameSnapshot> {
+    return this.snapshotBoth(roomId, token, 2) as Promise<GameSnapshot>;
+  }
+  async snapshotV3(roomId: string, token: string): Promise<V3Snapshot> {
+    return this.snapshotBoth(roomId, token, 3) as Promise<V3Snapshot>;
+  }
+  private async snapshotBoth(
+    roomId: string,
+    token: string,
+    protocol: 2 | 3,
+  ): Promise<GameSnapshot | V3Snapshot> {
     let changed = false;
     const snapshot = await this.transaction(async (client) => {
       const room = await this.read(client, roomId);
@@ -317,16 +347,39 @@ export class RoomService {
       this.active(room);
       const advanced = this.advanceGame(room);
       changed = advanced;
-      if (!member.gameClient || advanced) {
+      if (!member.gameClient || (protocol === 3 && !member.toleranceClient) || advanced) {
         member.gameClient = true;
+        if (protocol === 3) member.toleranceClient = true;
         await client.query('UPDATE pb_rooms SET state=$2 WHERE id=$1', [roomId, room]);
       }
-      return this.gameView(room, member);
+      const view = this.gameView(room, member);
+      if (protocol === 2) return view;
+      return {
+        ...view,
+        protocolVersion: 3 as const,
+        publicState: {
+          ...view.publicState,
+          tolerance: room.tolerance
+            ? tolerancePublic(room.tolerance.state, room.tolerance.id)
+            : null,
+        },
+        privateTolerance: room.tolerance ? tolerancePrivate(room.tolerance.state, member.id) : null,
+      };
     });
     if (changed) this.onChanged?.(roomId);
     return snapshot;
   }
   async commandGame(roomId: string, token: string, command: GameCommand): Promise<GameAck> {
+    return this.commandBoth(roomId, token, command) as Promise<GameAck>;
+  }
+  async commandV3(roomId: string, token: string, command: V3Command): Promise<V3Ack> {
+    return this.commandBoth(roomId, token, command) as Promise<V3Ack>;
+  }
+  private async commandBoth(
+    roomId: string,
+    token: string,
+    command: GameCommand | V3Command,
+  ): Promise<GameAck | V3Ack> {
     return this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token, true);
@@ -334,7 +387,7 @@ export class RoomService {
         throw new RoomError('ROOM_EXPIRED', 410);
       const fingerprint = hash(
         JSON.stringify({
-          protocolVersion: 2,
+          protocolVersion: command.protocolVersion,
           commandId: command.commandId,
           expectedVersion: command.expectedVersion,
           sessionId: command.sessionId,
@@ -348,7 +401,7 @@ export class RoomService {
               : command.payload,
         }),
       );
-      const previous = await client.query<{ fingerprint: string; ack: GameAck }>(
+      const previous = await client.query<{ fingerprint: string; ack: GameAck | V3Ack }>(
         'SELECT fingerprint,ack FROM pb_room_commands WHERE room_id=$1 AND player_id=$2 AND command_id=$3',
         [roomId, member.id, command.commandId],
       );
@@ -361,16 +414,58 @@ export class RoomService {
       this.active(room);
       // Persisted deadlines are advanced by snapshots/background polling before further actions.
       if (command.expectedVersion !== room.version) throw new RoomError('VERSION_CONFLICT', 409);
-      if (command.sessionId !== (room.game?.id ?? null))
-        throw new RoomError('SESSION_CONFLICT', 409);
+      const expectedSession =
+        command.protocolVersion === 2 && command.type === 'room.leave'
+          ? (room.game?.id ?? null)
+          : (room.tolerance?.id ?? room.game?.id ?? null);
+      if (command.sessionId !== expectedSession) throw new RoomError('SESSION_CONFLICT', 409);
       try {
         if (command.type === 'room.leave') {
           member.left = true;
           delete room.game;
+          delete room.tolerance;
           const remaining = room.members.filter((m) => !m.left);
           if (!remaining.length) room.closed = true;
           else if (room.hostId === member.id) room.hostId = remaining[0]!.id;
+        } else if (command.type === 'tolerance.start') {
+          if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          if (
+            (room.game && room.game.state.phase !== 'results') ||
+            (room.tolerance && room.tolerance.state.phase !== 'finished')
+          )
+            throw new RoomError('INVALID_PHASE', 409);
+          const players = room.members.filter((m) => !m.left);
+          if (players.length < 4) throw new RoomError('INVALID_PHASE', 409);
+          if (players.some((m) => !m.toleranceClient))
+            throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          room.tolerance = {
+            id: randomUUID(),
+            state: createTolerance(
+              players.map((p) => p.id),
+              selectToleranceCards(players.length, randomInt),
+              players.map(() => randomInt(4)),
+            ),
+          };
+          delete room.game;
+        } else if (
+          command.type === 'tolerance.rank' ||
+          command.type === 'tolerance.guess' ||
+          command.type === 'tolerance.next' ||
+          command.type === 'tolerance.cancel'
+        ) {
+          const game = room.tolerance;
+          if (!game) throw new RoomError('INVALID_PHASE', 409);
+          if (command.type === 'tolerance.rank')
+            game.state = rankTolerance(game.state, member.id, command.payload.order);
+          else if (command.type === 'tolerance.guess')
+            game.state = guessTolerance(game.state, member.id, command.payload.position);
+          else {
+            if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+            if (command.type === 'tolerance.next') game.state = nextTolerance(game.state);
+            else delete room.tolerance;
+          }
         } else if (command.type === 'spy.ready') {
+          if (room.tolerance) throw new RoomError('INVALID_PHASE', 409);
           const game = room.game;
           if (!game || game.state.phase !== 'distribution' || game.readyIds.includes(member.id))
             throw new RoomError('INVALID_PHASE', 409);
@@ -386,7 +481,11 @@ export class RoomService {
             );
         } else {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          if (command.type !== 'spy.start' && room.tolerance)
+            throw new RoomError('INVALID_PHASE', 409);
           if (command.type === 'spy.start') {
+            if (room.tolerance && room.tolerance.state.phase !== 'finished')
+              throw new RoomError('INVALID_PHASE', 409);
             const pack = spyPacks.get(command.payload.packId);
             if (!pack) throw new RoomError('INVALID_REQUEST', 400);
             if (room.game && room.game.state.phase !== 'results')
@@ -403,6 +502,7 @@ export class RoomService {
                 return [k, k === key ? selection.history : (room.spyHistory?.[k] ?? [])];
               }),
             );
+            delete room.tolerance;
             room.game = {
               id: randomUUID(),
               packId: pack.id,
@@ -433,12 +533,17 @@ export class RoomService {
           }
         }
       } catch (error) {
+        if (error instanceof ToleranceRuleError)
+          throw new RoomError(
+            error.code,
+            error.code === 'FORBIDDEN' ? 403 : error.code === 'INVALID_REQUEST' ? 400 : 409,
+          );
         if (error instanceof SpyRuleError) throw new RoomError('INVALID_PHASE', 409);
         throw error;
       }
       room.version++;
-      const ack: GameAck = {
-        protocolVersion: 2,
+      const ack: GameAck | V3Ack = {
+        protocolVersion: command.protocolVersion,
         commandId: command.commandId,
         accepted: true,
         version: room.version,

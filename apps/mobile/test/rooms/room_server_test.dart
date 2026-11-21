@@ -113,10 +113,13 @@ void main() {
           members.where((m) => m.snapshot!.card?.role == 'spy'),
           hasLength(1),
         );
-        for (final member in members.reversed) {
+        for (final member in members) {
           member.revealRole();
           expect(member.cardVisible, true);
-          await member.play('spy.ready');
+        }
+        // Friends confirm at the same time, without extra taps after a race.
+        await Future.wait(members.map((member) => member.play('spy.ready')));
+        for (final member in members) {
           expect(member.cardVisible, false);
           expect(member.error, null);
         }
@@ -141,6 +144,59 @@ void main() {
         );
         expect(host.snapshot!.game!.result!['winner'], 'civilians');
         expect(members.every((m) => m.snapshot!.card == null), true);
+        await host.retry();
+        await host.play('tolerance.start');
+        expect(host.error, null);
+        for (var round = 0; round < members.length; round++) {
+          await until(
+            () => members.every(
+              (m) =>
+                  m.snapshot!.tolerance?.phase == 'ranking' &&
+                  m.snapshot!.tolerance?.roundIndex == round,
+            ),
+          );
+          final game = host.snapshot!.tolerance!;
+          final hero = members.firstWhere(
+            (m) => m.snapshot!.selfId == game.heroId,
+          );
+          final order = game.cards.map((c) => c.id).toList();
+          await hero.retry();
+          await hero.play('tolerance.rank', {'order': order});
+          expect(hero.error, null);
+          await until(
+            () => members.every(
+              (m) => m.snapshot!.tolerance?.phase == 'guessing',
+            ),
+          );
+          for (final member in members.where((m) => m != hero)) {
+            // Refresh the optimistic room version after the preceding vote.
+            await member.retry();
+            await member.play('tolerance.guess', {
+              'position': order.indexOf(game.targetId),
+            });
+            expect(member.error, null);
+          }
+          await until(
+            () =>
+                members.every((m) => m.snapshot!.tolerance?.phase == 'reveal'),
+          );
+          expect(host.snapshot!.tolerance!.result!['order'], order);
+          for (final member in members.where((m) => m != hero)) {
+            expect(member.snapshot!.privateTolerance?.order, null);
+          }
+          await host.retry();
+          await host.play('tolerance.next');
+          expect(host.error, null);
+        }
+        await until(
+          () =>
+              members.every((m) => m.snapshot!.tolerance?.phase == 'finished'),
+        );
+        expect(host.snapshot!.tolerance!.winners, hasLength(4));
+        expect(
+          host.snapshot!.tolerance!.scores.map((s) => s.score),
+          everyElement(3),
+        );
         final next = members[1];
         await host.leave();
         expect(vault.value, null);

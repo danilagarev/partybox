@@ -3,23 +3,61 @@ import 'package:flutter/foundation.dart';
 import 'src/rooms/room_api.dart';
 import 'src/rooms/room_controller.dart';
 import 'src/rooms/room_vault.dart';
+import 'src/rooms/session_room_vault.dart';
+import 'src/design/night_components.dart';
+import 'src/settings/room_server_settings.dart';
+import 'src/settings/room_server_screen.dart';
 
 import 'src/app.dart';
 import 'src/storage/preferences_spy_setup_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  const server = String.fromEnvironment('ROOM_SERVER_URL');
-  final RoomVault vault = kIsWeb ? MemoryRoomVault() : SecureRoomVault();
-  runApp(
-    PartyBoxApp(
-      setupStore: PreferencesSpySetupStore(),
-      roomControllerFactory: server.isEmpty
-          ? null
-          : () => RoomController(
-              api: HttpRoomApi(server, allowInsecure: !kReleaseMode),
-              vault: vault,
-            ),
-    ),
+  runApp(createPartyBoxApp());
+}
+
+Widget createPartyBoxApp() {
+  const configuredServer = String.fromEnvironment('ROOM_SERVER_URL');
+  const browserRooms = bool.fromEnvironment('BROWSER_ROOMS');
+  final defaultServer = kIsWeb && configuredServer == 'same-origin'
+      ? Uri.base.origin
+      : configuredServer;
+  final RoomVault vault = kIsWeb
+      ? (browserRooms && (!kReleaseMode || Uri.base.scheme == 'https')
+            ? SessionRoomVault()
+            : MemoryRoomVault())
+      : SecureRoomVault();
+  final settings = RoomServerSettings(
+    defaultServer: defaultServer,
+    allowInsecure: !kReleaseMode,
+  );
+  final loaded = settings.load();
+
+  Future<void> configureServer(BuildContext context) async {
+    await loaded;
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) return;
+    await Navigator.of(context).push<bool>(
+      NightRoute(builder: (_) => RoomServerScreen(settings: settings)),
+    );
+  }
+
+  Future<RoomController?> resolveController(BuildContext context) async {
+    await loaded;
+    if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
+      return null;
+    }
+    if (settings.origin == null) await configureServer(context);
+    final server = settings.origin;
+    if (!context.mounted || server == null) return null;
+    return RoomController(
+      api: HttpRoomApi(server, allowInsecure: !kReleaseMode),
+      vault: vault,
+    );
+  }
+
+  return PartyBoxApp(
+    setupStore: PreferencesSpySetupStore(),
+    resolveRoomController: resolveController,
+    onConfigureServer: configureServer,
   );
 }

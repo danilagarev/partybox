@@ -1,0 +1,106 @@
+name: Deploy backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Полный SHA проверенного main; пусто = текущий main'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: partybox-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Resolve a successful Checks commit from main
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          sha=${INPUT_SHA:-$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)}
+          [[ $sha =~ ^[a-f0-9]{40}$ ]]
+          checked=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f head_sha="$sha" -f event=push -f status=success -f per_page=100 \
+            --jq '.workflow_runs[] | select(.head_branch == "main" and .conclusion == "success") | .id')
+          test -n "$checked" || { echo 'This SHA needs a successful Checks push on main.' >&2; exit 1; }
+          echo "RELEASE_SHA=$sha" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require main ancestry and compatible deployment layout
+        run: |
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          test -f deploy/production/Caddyfile.example
+          grep -q 'partybox-api:' deploy/production/compose.yaml
+          grep -Fq 'name: ${PARTYBOX_PROXY_NETWORK:-partybox_proxy}' deploy/production/compose.yaml
+          grep -q '^    external: true$' deploy/production/compose.yaml
+          ! grep -q '^[[:space:]]*ports:' deploy/production/compose.yaml
+      - name: Image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-backend" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        id: build
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ env.RELEASE_SHA }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Transfer release and deploy over verified SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          DEPLOY_ROOT: ${{ secrets.DEPLOY_PATH }}
+          IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          [[ $RELEASE_SHA =~ ^[a-f0-9]{40}$ ]]
+          [[ $SSH_HOST =~ ^[a-zA-Z0-9.-]+$ && $SSH_HOST != -* ]]
+          [[ $SSH_USER =~ ^[a-z_][a-z0-9_-]*$ ]]
+          SSH_PORT=${SSH_PORT:-22}
+          [[ $SSH_PORT =~ ^[0-9]{1,5}$ && $SSH_PORT -gt 0 && $SSH_PORT -lt 65536 ]]
+          [[ $DEPLOY_ROOT =~ ^/[a-zA-Z0-9_./-]+$ && $DEPLOY_ROOT != *..* ]]
+          [[ $GHCR_USER =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ $IMAGE =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$ ]]
+          umask 077
+          sshdir=$(mktemp -d)
+          trap 'rm -rf "$sshdir"' EXIT
+          printf '%s\n' "$SSH_KEY" > "$sshdir/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$sshdir/known_hosts"
+          ssh_opts=(-i "$sshdir/key" -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$sshdir/known_hosts")
+          if [[ -n $GHCR_PAT ]]; then
+            printf '%s\n' "$GHCR_PAT" | ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "umask 077; test -s '$DEPLOY_ROOT/.env' && mkdir -p '$DEPLOY_ROOT/docker-auth' && docker --config '$DEPLOY_ROOT/docker-auth' login ghcr.io -u '$GHCR_USER' --password-stdin"
+          fi
+          remote="$DEPLOY_ROOT/releases/$RELEASE_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "umask 077; test -s '$DEPLOY_ROOT/.env' && mkdir -p '$remote'"
+          tar -C deploy/production -cf - compose.yaml release.sh init.sh Caddyfile.example |
+            ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "tar -xf - -C '$remote' && chmod 700 '$remote' '$remote/release.sh'"
+          ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "bash '$remote/release.sh' '$IMAGE'"

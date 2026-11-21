@@ -8,6 +8,10 @@ const schema = await readJson(
   new URL('../../game-contracts/schemas/content-pack.schema.json', import.meta.url),
 );
 const validate = new Ajv({ allErrors: true, strict: true }).compile(schema);
+const toleranceSchema = await readJson(
+  new URL('../../game-contracts/schemas/tolerance-pack.schema.json', import.meta.url),
+);
+const validateTolerance = new Ajv({ allErrors: true, strict: true }).compile(toleranceSchema);
 const directory = new URL('../packs/', import.meta.url);
 
 test('all bundled packs match the contract and have unique identifiers', async () => {
@@ -16,12 +20,13 @@ test('all bundled packs match the contract and have unique identifiers', async (
   const packIds = new Set();
   for (const file of files) {
     const pack = await readJson(new URL(file, directory));
-    assert.ok(validate(pack), `${file}: ${JSON.stringify(validate.errors)}`);
+    const check = pack.gameId === 'tolerance' ? validateTolerance : validate;
+    assert.ok(check(pack), `${file}: ${JSON.stringify(check.errors)}`);
     assert.ok(!packIds.has(pack.id), `duplicate pack id: ${pack.id}`);
     packIds.add(pack.id);
     const itemIds = pack.items.map((item) => item.id);
     assert.equal(new Set(itemIds).size, itemIds.length, `${file}: duplicate item ids`);
-    assert.ok(pack.items.every((item) => item.label.trim().length > 0));
+    assert.ok(pack.items.every((item) => (item.label ?? item.text).trim().length > 0));
   }
 });
 
@@ -31,7 +36,9 @@ test('catalog pins every bundled pack and contains no ambiguous locations', asyn
     new URL('../../game-contracts/schemas/spy-catalog.schema.json', import.meta.url),
   );
   assert.ok(new Ajv({ strict: true }).validate(catalogSchema, catalog));
-  const files = (await readdir(directory)).filter((name) => name.endsWith('.json'));
+  const files = (await readdir(directory)).filter(
+    (name) => name.startsWith('spy-') && name.endsWith('.json'),
+  );
   assert.deepEqual(catalog.packs.map((p) => `${p.id}.json`).sort(), files.sort());
   assert.equal(new Set(catalog.packs.map((p) => p.id)).size, catalog.packs.length);
   const labels = new Set();
@@ -46,4 +53,15 @@ test('catalog pins every bundled pack and contains no ambiguous locations', asyn
       labels.add(label);
     }
   }
+});
+
+test('tolerance deck supports twelve heroes without repeated or blank situations', async () => {
+  const pack = await readJson(new URL('../packs/tolerance-ru-base.json', import.meta.url));
+  assert.ok(validateTolerance(pack));
+  assert.ok(pack.items.length >= 48);
+  assert.equal(
+    new Set(pack.items.map((item) => item.text.trim().toLocaleLowerCase('ru'))).size,
+    pack.items.length,
+  );
+  assert.equal(validateTolerance({ ...pack, schemaVersion: 2 }), false);
 });

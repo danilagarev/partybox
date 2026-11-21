@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'generated/room_schema.dart';
 import 'generated/room_game_schema.dart';
+import 'generated/room_tolerance_schema.dart';
 
 final class RoomFailure implements Exception {
   const RoomFailure(this.code);
@@ -23,7 +24,7 @@ final class RoomFailure implements Exception {
     'SAVED_DATA' =>
       'Сохранённый доступ не удалось прочитать. Попробуйте ещё раз или удалите его с телефона.',
     'SERVER_CHANGED' =>
-      'Сохранённый доступ недоступен в этой сборке. Можно удалить его с телефона.',
+      'Сохранённая комната находится на другом сервере. Вернитесь к прежнему адресу или удалите доступ с телефона.',
     'VERSION_CONFLICT' => 'Состояние комнаты изменилось. Повторите действие.',
     'FORBIDDEN' => 'Это действие доступно ведущему.',
     'INVALID_PHASE' => 'Этап игры уже изменился. Обновите комнату.',
@@ -44,6 +45,9 @@ final class RoomContract {
     final base = jsonDecode(roomSchemaJson) as Map<String, dynamic>;
     (base[r'$defs'] as Map).addAll(
       (jsonDecode(roomGameSchemaJson) as Map)[r'$defs'] as Map,
+    );
+    (base[r'$defs'] as Map).addAll(
+      (jsonDecode(roomToleranceSchemaJson) as Map)[r'$defs'] as Map,
     );
     return base;
   })();
@@ -102,6 +106,8 @@ final class RoomContract {
       return false;
     }
     switch (schema['type']) {
+      case 'boolean':
+        if (value is! bool) return false;
       case 'null':
         if (value != null) return false;
       case 'integer':
@@ -176,10 +182,17 @@ final class RoomSnapshot {
     this.serverTime,
     this.game,
     this.card,
+    this.tolerance,
+    this.privateTolerance,
+    this.protocolVersion,
   );
   factory RoomSnapshot.parse(Object? json) {
     RoomContract.require(
-      json is Map && json['protocolVersion'] == 2 ? 'GameSnapshot' : 'Snapshot',
+      json is Map && json['protocolVersion'] == 3
+          ? 'V3Snapshot'
+          : json is Map && json['protocolVersion'] == 2
+          ? 'GameSnapshot'
+          : 'Snapshot',
       json,
     );
     final map = json as Map;
@@ -230,6 +243,15 @@ final class RoomSnapshot {
         ((cardValue['role'] == 'spy') != (cardValue['location'] == null))) {
       throw const RoomFailure('PROTOCOL');
     }
+    final tolerance = state['tolerance'] as Map<String, dynamic>?;
+    final privateTolerance = map['privateTolerance'] as Map<String, dynamic>?;
+    _validateTolerance(
+      tolerance,
+      privateTolerance,
+      ids,
+      map['selfId'] as String,
+      gameValue != null,
+    );
     return RoomSnapshot._(
       map['roomId'] as String,
       map['version'] as int,
@@ -245,15 +267,123 @@ final class RoomSnapshot {
       map['privateState'] == null
           ? null
           : RoomCard(map['privateState'] as Map<String, dynamic>),
+      tolerance == null ? null : ToleranceGame(tolerance),
+      privateTolerance == null ? null : TolerancePrivate(privateTolerance),
+      map['protocolVersion'] as int,
     );
   }
   final String roomId, selfId, hostId, pin;
-  final int version;
+  final int version, protocolVersion;
   final DateTime expiresAt;
   final List<RoomPlayer> players;
   final DateTime serverTime;
   final RoomGame? game;
   final RoomCard? card;
+  final ToleranceGame? tolerance;
+  final TolerancePrivate? privateTolerance;
+  String? get sessionId => tolerance?.sessionId ?? game?.sessionId;
+
+  static void _validateTolerance(
+    Map<String, dynamic>? value,
+    Map<String, dynamic>? personal,
+    Set<String> players,
+    String self,
+    bool spyPresent,
+  ) {
+    void require(bool valid) {
+      if (!valid) throw const RoomFailure('PROTOCOL');
+    }
+
+    if (value == null) {
+      require(personal == null);
+      return;
+    }
+    require(!spyPresent && players.length >= 4);
+    final cards = (value['cards'] as List).cast<Map<String, dynamic>>();
+    final ids = cards.map((c) => c['id'] as String).toSet();
+    final visible = (value['visibleOrder'] as List).cast<String>();
+    final submitted = (value['submittedIds'] as List).cast<String>();
+    final scores = (value['scores'] as List).cast<Map<String, dynamic>>();
+    final winners = (value['winners'] as List).cast<String>();
+    final hero = value['heroId'] as String;
+    final phase = value['phase'] as String;
+    require(ids.length == 4 && ids.contains(value['targetId']));
+    require(
+      players.contains(hero) && (value['roundIndex'] as int) < players.length,
+    );
+    require(visible.toSet().length == visible.length);
+    require(
+      phase == 'ranking'
+          ? visible.isEmpty
+          : visible.length == 3 &&
+                visible.every(ids.contains) &&
+                !visible.contains(value['targetId']),
+    );
+    require(
+      submitted.toSet().length == submitted.length &&
+          submitted.every((p) => players.contains(p) && p != hero),
+    );
+    require(
+      scores.length == players.length &&
+          scores.map((s) => s['playerId']).toSet().length == players.length &&
+          scores.every(
+            (s) =>
+                players.contains(s['playerId']) &&
+                (s['score'] as int) <= players.length - 1,
+          ),
+    );
+    require(
+      winners.toSet().length == winners.length &&
+          winners.every(players.contains),
+    );
+    require(phase == 'finished' ? winners.isNotEmpty : winners.isEmpty);
+    final result = value['result'] as Map?;
+    require((phase == 'reveal' || phase == 'finished') == (result != null));
+    if (result != null) {
+      final order = (result['order'] as List).cast<String>();
+      final guesses = (result['guesses'] as List).cast<Map<String, dynamic>>();
+      require(
+        order.length == 4 &&
+            order.toSet().length == 4 &&
+            order.every(ids.contains),
+      );
+      require(
+        order.where((id) => id != value['targetId']).toList().join(',') ==
+            visible.join(','),
+      );
+      require(
+        guesses.length == players.length - 1 &&
+            guesses.map((g) => g['playerId']).toSet().length == guesses.length,
+      );
+      require(
+        guesses.every(
+          (g) =>
+              players.contains(g['playerId']) &&
+              g['playerId'] != hero &&
+              g['correct'] ==
+                  (g['position'] == order.indexOf(value['targetId'] as String)),
+        ),
+      );
+      require(submitted.length == players.length - 1);
+    }
+    if (personal != null) {
+      final order = (personal['order'] as List?)?.cast<String>();
+      final guess = personal['guess'] as int?;
+      require(
+        order == null ||
+            self == hero &&
+                order.length == 4 &&
+                order.toSet().length == 4 &&
+                order.every(ids.contains),
+      );
+      require(
+        guess == null ||
+            self != hero && phase != 'ranking' && submitted.contains(self),
+      );
+      require(self != hero || guess == null);
+      require(phase != 'ranking' || order == null && guess == null);
+    }
+  }
 }
 
 final class RoomPlayer {
@@ -301,4 +431,61 @@ final class RoomCard {
   final String? location;
   @override
   String toString() => 'RoomCard(<redacted>)';
+}
+
+final class ToleranceGame {
+  ToleranceGame(Map<String, dynamic> value)
+    : sessionId = value['sessionId'] as String,
+      phase = value['phase'] as String,
+      roundIndex = value['roundIndex'] as int,
+      heroId = value['heroId'] as String,
+      targetId = value['targetId'] as String,
+      cards = List.unmodifiable(
+        (value['cards'] as List).map(
+          (c) => ToleranceCard(c as Map<String, dynamic>),
+        ),
+      ),
+      visibleOrder = List<String>.unmodifiable(value['visibleOrder'] as List),
+      submittedIds = List<String>.unmodifiable(value['submittedIds'] as List),
+      scores = List.unmodifiable(
+        (value['scores'] as List).map(
+          (s) => ToleranceScore(s as Map<String, dynamic>),
+        ),
+      ),
+      result = value['result'] as Map<String, dynamic>?,
+      winners = List<String>.unmodifiable(value['winners'] as List);
+  final String sessionId, phase, heroId, targetId;
+  final int roundIndex;
+  final List<ToleranceCard> cards;
+  final List<String> visibleOrder, submittedIds, winners;
+  final List<ToleranceScore> scores;
+  final Map<String, dynamic>? result;
+  String text(String id) => cards.firstWhere((c) => c.id == id).text;
+}
+
+final class ToleranceCard {
+  ToleranceCard(Map<String, dynamic> value)
+    : id = value['id'] as String,
+      text = value['text'] as String;
+  final String id, text;
+}
+
+final class ToleranceScore {
+  ToleranceScore(Map<String, dynamic> value)
+    : playerId = value['playerId'] as String,
+      score = value['score'] as int;
+  final String playerId;
+  final int score;
+}
+
+final class TolerancePrivate {
+  TolerancePrivate(Map<String, dynamic> value)
+    : order = value['order'] == null
+          ? null
+          : List<String>.unmodifiable(value['order'] as List),
+      guess = value['guess'] as int?;
+  final List<String>? order;
+  final int? guess;
+  @override
+  String toString() => 'TolerancePrivate(<redacted>)';
 }

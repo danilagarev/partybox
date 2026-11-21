@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'design/night_art.dart';
+import 'catalog/game_card.dart';
 import 'design/night_components.dart';
 import 'design/night_gallery.dart';
 import 'design/night_theme.dart';
@@ -12,9 +12,17 @@ import 'rooms/room_controller.dart';
 import 'rooms/room_screen.dart';
 
 class PartyBoxApp extends StatelessWidget {
-  const PartyBoxApp({super.key, this.setupStore, this.roomControllerFactory});
+  const PartyBoxApp({
+    super.key,
+    this.setupStore,
+    this.roomControllerFactory,
+    this.resolveRoomController,
+    this.onConfigureServer,
+  });
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
+  final Future<RoomController?> Function(BuildContext)? resolveRoomController;
+  final Future<void> Function(BuildContext)? onConfigureServer;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -29,14 +37,80 @@ class PartyBoxApp extends StatelessWidget {
         : CatalogScreen(
             setupStore: setupStore,
             roomControllerFactory: roomControllerFactory,
+            resolveRoomController: resolveRoomController,
+            onConfigureServer: onConfigureServer,
           ),
   );
 }
 
-class CatalogScreen extends StatelessWidget {
-  const CatalogScreen({super.key, this.setupStore, this.roomControllerFactory});
+class CatalogScreen extends StatefulWidget {
+  const CatalogScreen({
+    super.key,
+    this.setupStore,
+    this.roomControllerFactory,
+    this.resolveRoomController,
+    this.onConfigureServer,
+  });
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
+  final Future<RoomController?> Function(BuildContext)? resolveRoomController;
+  final Future<void> Function(BuildContext)? onConfigureServer;
+
+  @override
+  State<CatalogScreen> createState() => _CatalogScreenState();
+}
+
+class _CatalogScreenState extends State<CatalogScreen> {
+  // A connection resolver may await storage or configuration before pushing a
+  // route. Keep one navigation intent across all entry points during that gap.
+  bool _openingConnection = false;
+
+  Future<void> _configureServer(BuildContext context) async {
+    if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
+    _openingConnection = true;
+    try {
+      await widget.onConfigureServer?.call(context);
+    } finally {
+      _openingConnection = false;
+    }
+  }
+
+  void _showDetails(BuildContext context, WidgetBuilder builder) {
+    if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
+    Navigator.of(context).push<void>(NightRoute(builder: builder));
+  }
+
+  Future<void> _openRoom(
+    BuildContext context, {
+    String? game,
+    bool joining = false,
+  }) async {
+    if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
+    _openingConnection = true;
+    try {
+      final controller =
+          widget.roomControllerFactory?.call() ??
+          await widget.resolveRoomController?.call(context);
+      if (!mounted ||
+          !context.mounted ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        controller?.dispose();
+        return;
+      }
+      if (controller == null) return;
+      await Navigator.of(context).push<void>(
+        NightRoute(
+          builder: (_) => RoomScreen(
+            controller: controller,
+            initialGame: game,
+            initialJoining: joining,
+          ),
+        ),
+      );
+    } finally {
+      _openingConnection = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -45,113 +119,73 @@ class CatalogScreen extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: ListView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             children: [
+              const NightEyebrow('ВЕЧЕРО · ИГРЫ ДЛЯ КОМПАНИИ'),
               const SizedBox(height: 12),
-              const Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                spacing: 24,
-                runSpacing: 8,
-                children: [
-                  NightEyebrow('ВЕЧЕРО', color: NightColors.text),
-                  NightEyebrow('ОДИН ТЕЛЕФОН'),
-                ],
-              ),
-              const SizedBox(height: 36),
               NightEntrance(
-                child: Text.rich(
-                  TextSpan(
-                    text: 'Хороший вечер.\n',
-                    children: const [
-                      TextSpan(
-                        text: 'Плохое алиби.',
-                        style: TextStyle(color: NightColors.accent),
-                      ),
-                    ],
+                child: Text(
+                  'Вечер начинается\nс вашей компании.',
+                  style: Theme.of(context).textTheme.headlineLarge,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Выберите, во что сыграем.',
+                style: TextStyle(color: NightColors.muted),
+              ),
+              const SizedBox(height: 24),
+              CatalogGameCard(
+                title: 'Шпион',
+                genre: 'ДЕДУКЦИЯ',
+                tolerance: false,
+                description: 'Все знают место. Один делает вид.',
+                metadata: '4–12 игроков · от 5 минут',
+                mode: 'Один телефон или у каждого свой',
+                action: 'Играть в «Шпиона»',
+                onPressed: () => _showDetails(
+                  context,
+                  (detailsContext) => SpyRulesScreen(
+                    setupStore: widget.setupStore,
+                    onOpenRoom: () => _openRoom(detailsContext, game: 'spy'),
                   ),
-                  style: Theme.of(context).textTheme.displaySmall,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Соберите компанию.\nОстальное — за нами.',
-                style: TextStyle(color: NightColors.muted),
-              ),
-              const SizedBox(height: 28),
-              NightPanel(
-                accent: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const NightEyebrow('ДЕДУКЦИЯ / 01', color: NightColors.ink),
-                    const NightArt(color: NightColors.accent),
-                    Text(
-                      'Шпион',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        fontSize: 48,
-                        color: NightColors.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Все знают место.\nОдин делает вид.'),
-                    const SizedBox(height: 20),
-                    const Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        NightBadge('4–12 игроков', dark: true),
-                        NightBadge('от 5 минут', dark: true),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    NightButton(
-                      dark: true,
-                      label: 'Как играть',
-                      onPressed: () => Navigator.of(context).push<void>(
-                        NightRoute(
-                          builder: (_) =>
-                              SpyRulesScreen(setupStore: setupStore),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (roomControllerFactory != null) ...[
-                const SizedBox(height: 20),
-                NightPanel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const NightEyebrow('У КАЖДОГО СВОЙ ТЕЛЕФОН'),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Собраться в комнате',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Вход по коду. Состав компании — на экране.'),
-                      const SizedBox(height: 20),
-                      NightButton(
-                        label: 'Комната «Шпиона»',
-                        onPressed: () {
-                          if (ModalRoute.of(context)?.isCurrent != true) return;
-                          final controller = roomControllerFactory!();
-                          Navigator.of(context).push<void>(
-                            NightRoute(
-                              builder: (_) =>
-                                  RoomScreen(controller: controller),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
+              CatalogGameCard(
+                title: 'Шкала терпения',
+                genre: 'УЗНАЙТЕ ДРУГ ДРУГА',
+                tolerance: true,
+                description: 'Что вас бесит? Проверьте, кто угадает.',
+                metadata: '4–12 игроков · по раунду на каждого',
+                mode: 'У каждого свой телефон',
+                action: 'Играть в «Шкалу»',
+                onPressed: () => _showDetails(
+                  context,
+                  (detailsContext) => ToleranceRulesScreen(
+                    onOpenRoom: () =>
+                        _openRoom(detailsContext, game: 'tolerance'),
                   ),
                 ),
-              ],
+              ),
               const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => _openRoom(context, joining: true),
+                icon: const Icon(Icons.meeting_room_outlined),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Войти / вернуться в комнату'),
+                ),
+              ),
+              if (widget.onConfigureServer != null)
+                TextButton.icon(
+                  onPressed: () => _configureServer(context),
+                  icon: const Icon(Icons.tune, size: 18),
+                  label: const Text('Подключение комнат'),
+                ),
+              const SizedBox(height: 8),
               const Text(
-                'Телефон по кругу. Интрига за столом.',
+                'Уже играете с друзьями? Введите код или продолжите с сохранённого места.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12, color: NightColors.muted),
               ),
@@ -164,8 +198,9 @@ class CatalogScreen extends StatelessWidget {
 }
 
 class SpyRulesScreen extends StatelessWidget {
-  const SpyRulesScreen({super.key, this.setupStore});
+  const SpyRulesScreen({super.key, this.setupStore, this.onOpenRoom});
   final SpySetupStore? setupStore;
+  final VoidCallback? onOpenRoom;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -205,6 +240,12 @@ class SpyRulesScreen extends StatelessWidget {
                     'Проголосуйте вслух. Нашли шпиона — выиграли. Ошиблись — победил он.',
               ),
               const SizedBox(height: 24),
+              const NightEyebrow('КАК БУДЕТЕ ИГРАТЬ?'),
+              const SizedBox(height: 12),
+              const Text(
+                'Один телефон — без интернета. Передавайте его по кругу.',
+              ),
+              const SizedBox(height: 12),
               NightButton(
                 label: 'Собрать компанию',
                 onPressed: () => Navigator.of(context).push<void>(
@@ -212,6 +253,83 @@ class SpyRulesScreen extends StatelessWidget {
                     builder: (_) => SpyGameScreen(setupStore: setupStore),
                   ),
                 ),
+              ),
+              if (onOpenRoom != null) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'У каждого свой телефон — роли на личных экранах, вход по коду.',
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: onOpenRoom,
+                  child: const Text('Создать комнату «Шпиона»'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class ToleranceRulesScreen extends StatelessWidget {
+  const ToleranceRulesScreen({super.key, required this.onOpenRoom});
+  final VoidCallback onOpenRoom;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('ШКАЛА ТЕРПЕНИЯ')),
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const NightEyebrow('НАСКОЛЬКО ХОРОШО ВЫ ЗНАКОМЫ?'),
+              const SizedBox(height: 16),
+              Text(
+                'У каждого\nсвой предел.',
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              const SizedBox(height: 24),
+              const NightRule(
+                number: '01',
+                title: 'Один — герой раунда',
+                text:
+                    'Герой тайно расставляет четыре неприятности от «переживу» до «вечер испорчен».',
+              ),
+              const SizedBox(height: 12),
+              const NightRule(
+                number: '02',
+                title: 'Остальные угадывают',
+                text:
+                    'Видите три карточки в порядке героя и четвёртую отдельно. Угадайте её место и тайно отправьте ответ.',
+              ),
+              const SizedBox(height: 12),
+              const NightRule(
+                number: '03',
+                title: 'Сравните и обсудите',
+                text:
+                    'За точную догадку — очко. Обсудите результат и передайте очередь: каждый побывает героем.',
+              ),
+              const SizedBox(height: 24),
+              const NightPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    NightEyebrow('У КАЖДОГО СВОЙ ТЕЛЕФОН'),
+                    SizedBox(height: 12),
+                    Text(
+                      'Создайте комнату и назовите друзьям код. Нужно от 4 до 12 игроков; каждый побывает героем.',
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              NightButton(
+                label: 'Создать комнату «Шкалы»',
+                onPressed: onOpenRoom,
               ),
             ],
           ),

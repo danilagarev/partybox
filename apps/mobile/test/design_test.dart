@@ -45,7 +45,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await capture('catalog');
-    await tapVisible(tester, find.text('Как играть'));
+    await tapVisible(tester, find.text('Играть в «Шпиона»'));
     await capture('rules');
     await tester.pumpWidget(
       RepaintBoundary(
@@ -253,11 +253,11 @@ void main() {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
     await tester.pumpWidget(const PartyBoxApp());
-    await tapVisible(tester, find.text('Как играть'));
+    await tapVisible(tester, find.text('Играть в «Шпиона»'));
     expect(find.text('Один из вас не в курсе.'), findsOneWidget);
     await tester.dragFrom(const Offset(1, 300), const Offset(700, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Как играть'), findsOneWidget);
+    expect(find.text('Играть в «Шпиона»'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     debugDefaultTargetPlatformOverride = null;
   });

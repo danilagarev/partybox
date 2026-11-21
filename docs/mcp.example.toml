@@ -1,0 +1,4 @@
+# Пример для локального Codex config.toml; не загружается автоматически.
+# Публичная официальная документация OpenAI, без ключа и доступа к проекту.
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"

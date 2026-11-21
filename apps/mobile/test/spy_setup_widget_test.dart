@@ -327,7 +327,7 @@ void main() {
         ).toJson(),
       );
     await tester.pumpWidget(PartyBoxApp(setupStore: store));
-    await tapVisible(tester, find.text('Как играть'));
+    await tapVisible(tester, find.text('Играть в «Шпиона»'));
     await tapVisible(tester, find.text('Собрать компанию'), loadsContent: true);
     expect(
       tester

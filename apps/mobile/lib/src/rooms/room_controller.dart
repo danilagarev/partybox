@@ -14,11 +14,13 @@ final class RoomController extends ChangeNotifier {
   String? notice;
   bool busy = false, online = false, initialized = false;
   bool cardVisible = false;
+  bool toleranceVisible = false;
   bool roleViewed = false;
   int roleConcealEpoch = 0;
 
   void _concealRole() {
     cardVisible = false;
+    toleranceVisible = false;
     roleConcealEpoch++;
   }
 
@@ -33,6 +35,17 @@ final class RoomController extends ChangeNotifier {
   void hideRole() {
     _concealRole();
     _notify();
+  }
+
+  void revealTolerance() {
+    if (_active &&
+        !hasPending &&
+        !busy &&
+        online &&
+        snapshot?.tolerance != null) {
+      toleranceVisible = true;
+      _notify();
+    }
   }
 
   void revealRole() {
@@ -158,12 +171,12 @@ final class RoomController extends ChangeNotifier {
   Future<void> enroll(String name, {String? pin}) => _run(() async {
     if (!canEnroll) return;
     final request = <String, dynamic>{
-      'protocolVersion': 2,
+      'protocolVersion': 3,
       'requestId': roomCommandId(),
       'retryKey': randomRoomKey(),
       'name': name.trim(),
     };
-    if (!RoomContract.accepts('V2Enrollment', request) ||
+    if (!RoomContract.accepts('V3Enrollment', request) ||
         (pin != null && !RegExp(r'^\d{6}$').hasMatch(pin))) {
       throw const RoomFailure('INVALID_REQUEST');
     }
@@ -175,7 +188,7 @@ final class RoomController extends ChangeNotifier {
     return _run(_recover);
   }
 
-  Future<void> _recover() async {
+  Future<void> _recover({bool reconnectOnRejection = true}) async {
     if (_clearPending) {
       await _clear();
       return;
@@ -231,7 +244,7 @@ final class RoomController extends ChangeNotifier {
         await _save(restored);
         _access = restored;
         _accept(fresh);
-        _watch();
+        if (reconnectOnRejection) _watch();
         rethrow;
       }
       if (_disposed) return;
@@ -269,9 +282,13 @@ final class RoomController extends ChangeNotifier {
       return;
     }
     _serverOffset = fresh.serverTime.difference(DateTime.now());
-    if (fresh.game?.sessionId != snapshot?.game?.sessionId ||
-        fresh.game?.phase != 'distribution' ||
-        (fresh.game?.readyIds.contains(fresh.selfId) ?? false)) {
+    if (fresh.tolerance != null
+        ? fresh.tolerance?.sessionId != snapshot?.tolerance?.sessionId ||
+              fresh.tolerance?.roundIndex != snapshot?.tolerance?.roundIndex ||
+              fresh.tolerance?.phase != snapshot?.tolerance?.phase
+        : fresh.game?.sessionId != snapshot?.game?.sessionId ||
+              fresh.game?.phase != 'distribution' ||
+              (fresh.game?.readyIds.contains(fresh.selfId) ?? false)) {
       _concealRole();
       roleViewed = false;
     }
@@ -354,8 +371,8 @@ final class RoomController extends ChangeNotifier {
       roomId: access.roomId,
       token: access.token,
       leave: {
-        'protocolVersion': 2,
-        'sessionId': current.game?.sessionId,
+        'protocolVersion': current.protocolVersion == 3 ? 3 : 2,
+        'sessionId': current.sessionId,
         'commandId': roomCommandId(),
         'expectedVersion': current.version,
         'type': 'room.leave',
@@ -367,24 +384,101 @@ final class RoomController extends ChangeNotifier {
   Future<void> play(String type, [Map<String, dynamic> payload = const {}]) =>
       _run(() async {
         final access = _access;
-        final current = snapshot;
-        if (access == null || current == null || hasPending) return;
+        final initial = snapshot;
+        if (access == null || initial == null || hasPending) return;
+        RoomSnapshot current = initial;
+        final sessionId = current.sessionId;
         _stop();
-        _access = RoomAccess(
-          origin: access.origin,
-          roomId: access.roomId,
-          token: access.token,
-          leave: {
-            'protocolVersion': 2,
-            'commandId': roomCommandId(),
-            'expectedVersion': current.version,
-            'sessionId': current.game?.sessionId,
-            'type': type,
-            'payload': payload,
-          },
-        );
-        await _recover();
+        if (const {'tolerance.rank', 'tolerance.guess'}.contains(type)) {
+          await _sendSecret(access, current, type, payload);
+          return;
+        }
+        for (var attempt = 0; ; attempt++) {
+          _stop();
+          _access = RoomAccess(
+            origin: access.origin,
+            roomId: access.roomId,
+            token: access.token,
+            leave: {
+              'protocolVersion': current.protocolVersion == 3 ? 3 : 2,
+              'commandId': roomCommandId(),
+              'expectedVersion': current.version,
+              'sessionId': current.sessionId,
+              'type': type,
+              'payload': payload,
+            },
+          );
+          try {
+            await _recover(reconnectOnRejection: type != 'spy.ready');
+            return;
+          } on RoomFailure catch (failure) {
+            final fresh = snapshot;
+            // Independent confirmations can race. Only a definite version
+            // rejection permits a new ID; uncertain requests keep their ID.
+            if (type != 'spy.ready' ||
+                failure.code != 'VERSION_CONFLICT' ||
+                fresh == null ||
+                fresh.sessionId != sessionId) {
+              if (type == 'spy.ready' && !hasPending) _watch();
+              rethrow;
+            }
+            if (fresh.game?.readyIds.contains(fresh.selfId) ?? false) {
+              _watch();
+              return;
+            }
+            if (!_active ||
+                _disposed ||
+                fresh.game?.phase != 'distribution' ||
+                attempt >= fresh.players.length - 1) {
+              _watch();
+              rethrow;
+            }
+            current = fresh;
+          }
+        }
       });
+  // Secret decisions stay in memory. After an uncertain response, read the
+  // authoritative personal view; a retry requires another explicit user action.
+  Future<void> _sendSecret(
+    RoomAccess access,
+    RoomSnapshot current,
+    String type,
+    Map<String, dynamic> payload,
+  ) async {
+    final request = RoomAccess(
+      origin: access.origin,
+      roomId: access.roomId,
+      token: access.token,
+      leave: {
+        'protocolVersion': 3,
+        'commandId': roomCommandId(),
+        'expectedVersion': current.version,
+        'sessionId': current.sessionId,
+        'type': type,
+        'payload': payload,
+      },
+    );
+    RoomFailure? failure;
+    try {
+      await api.command(request);
+    } on RoomFailure catch (e) {
+      if (e.terminal) rethrow;
+      failure = e;
+    } catch (_) {
+      failure = const RoomFailure('CONNECTION');
+    }
+    if (_disposed) return;
+    final fresh = await api.snapshot(access);
+    if (_disposed) return;
+    _accept(fresh);
+    _watch();
+    if (failure != null) {
+      notice =
+          'Проверили состояние на сервере. Если выбор не принят, отправьте его ещё раз.';
+      if (failure.code != 'CONNECTION') throw failure;
+    }
+  }
+
   Future<void> forget() => _run(() async {
     await _clear();
     notice = 'Доступ удалён с этого телефона.';

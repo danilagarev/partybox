@@ -1,0 +1,62 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+x-backend: &backend
+  image: ${BACKEND_IMAGE:?Set immutable BACKEND_IMAGE}
+  user: '${PARTYBOX_UID:?Run init.sh}:${PARTYBOX_GID:?Run init.sh}'
+  environment:
+    DATABASE_PASSWORD_FILE: /run/secrets/database_password
+    ROOM_TOKEN_SECRET_FILE: /run/secrets/room_token_secret
+    TRUST_PROXY_HOPS: '1'
+  secrets: [database_password, room_token_secret]
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  stop_grace_period: 20s
+  networks: [database]
+  logging: *logging
+services:
+  postgres:
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_USER: partybox
+      POSTGRES_DB: partybox
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_password]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [database]
+    restart: unless-stopped
+    mem_limit: ${PARTYBOX_DB_MEMORY:-256m}
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U partybox -d partybox']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *backend
+    command: [migrate]
+    restart: 'no'
+    mem_limit: ${PARTYBOX_API_MEMORY:-384m}
+  partybox-api:
+    <<: *backend
+    networks: [database, frontend]
+    restart: unless-stopped
+    mem_limit: ${PARTYBOX_API_MEMORY:-384m}
+secrets:
+  database_password:
+    file: ../../secrets/database_password
+  room_token_secret:
+    file: ../../secrets/room_token_secret
+networks:
+  database:
+    internal: true
+  frontend:
+    external: true
+    name: ${PARTYBOX_PROXY_NETWORK:-partybox_proxy}
+volumes:
+  postgres_data:

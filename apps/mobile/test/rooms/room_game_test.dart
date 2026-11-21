@@ -23,6 +23,57 @@ Map<String, dynamic> fixture() =>
         as Map<String, dynamic>);
 void main() {
   testWidgets(
+    'catalogue choice replaces finished Spy but preserves active Spy',
+    (tester) async {
+      for (final finished in [true, false]) {
+        final value = fixture();
+        value['protocolVersion'] = 3;
+        value['privateTolerance'] = null;
+        final state = value['publicState'] as Map<String, dynamic>;
+        state['tolerance'] = null;
+        final game = state['game'] as Map<String, dynamic>;
+        if (finished) {
+          game['phase'] = 'results';
+          game['readyIds'] = [
+            for (final p in state['players'] as List) (p as Map)['id'],
+          ];
+          game['deadline'] = '2026-11-08T12:03:00.000Z';
+          game['result'] = {
+            'spyId': selfId,
+            'suspectId': selfId,
+            'location': 'Учебная локация',
+            'winner': 'civilians',
+          };
+          value['privateState'] = null;
+        }
+        final api = FakeRoomApi()..current = RoomSnapshot.parse(value);
+        final controller = RoomController(
+          api: api,
+          vault: TestVault()..value = saved(),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: nightTheme(),
+            home: RoomScreen(controller: controller, initialGame: 'tolerance'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await settleRoomContent(tester);
+        expect(api.enrollments, isEmpty);
+        if (finished) {
+          expect(find.text('Начать «Шкалу терпения»'), findsOneWidget);
+        } else {
+          expect(find.text('Начать «Шкалу терпения»'), findsNothing);
+          expect(
+            find.byKey(const ValueKey('role-peek-surface')),
+            findsOneWidget,
+          );
+        }
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+  testWidgets(
     'room peek hides on disconnect; reconnect cannot revive held gesture',
     (tester) async {
       final api = FakeRoomApi()..current = RoomSnapshot.parse(fixture());

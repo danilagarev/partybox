@@ -5,7 +5,7 @@ import 'spy_setup.dart';
 final class PreferencesSpySetupStore implements SpySetupStore {
   PreferencesSpySetupStore({SharedPreferencesAsync? preferences})
     : _preferences = preferences ?? SharedPreferencesAsync();
-  static const key = 'vechero.spy.setup';
+  static const key = 'partybox.spy.setup';
   final SharedPreferencesAsync _preferences;
 
   Future<void> _pending = Future<void>.value();

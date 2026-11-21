@@ -17,6 +17,7 @@ dependencies:
   http: 1.6.0
   socket_io_client: 3.1.5
   flutter_secure_storage: 9.2.4
+  web: 1.1.1
 dev_dependencies:
   shared_preferences_platform_interface: 2.4.2
   flutter_test:

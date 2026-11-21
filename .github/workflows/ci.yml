@@ -41,6 +41,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: bash -n deploy/production/init.sh deploy/production/release.sh
+      - run: node --test deploy/production/test-release.mjs
 
   flutter:
     runs-on: ubuntu-latest
@@ -81,3 +83,4 @@ jobs:
       - run: node deploy/smoke.mjs
         env:
           FLUTTER_BIN: flutter
+      - run: node deploy/production/test-smoke.mjs

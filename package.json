@@ -13,12 +13,18 @@
     "packages/game-content"
   ],
   "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "context": "node scripts/project-context.mjs",
+    "context:check": "node scripts/project-context.mjs --check",
+    "play:lan": "node scripts/play.mjs lan",
+    "play:internet": "node scripts/play.mjs internet",
+    "test:tools": "node --test scripts/test/*.test.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "check": "npm run format:check && npm run typecheck && npm test",
+    "check": "npm run context:check && npm run format:check && npm run test:tools && npm run typecheck && npm test",
     "dev:backend": "npm run dev --workspace @partybox/backend"
   },
   "devDependencies": {

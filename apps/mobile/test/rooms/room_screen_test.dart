@@ -58,10 +58,12 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Комната «Шпиона»'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Войти / вернуться в комнату'),
+      200,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Комната «Шпиона»'));
-    await tester.tap(find.text('Комната «Шпиона»'));
+    await tester.tap(find.text('Войти / вернуться в комнату'));
     await tester.pumpAndSettle();
     expect(factories, 1);
     await tester.tap(find.text('Войти по коду'));
@@ -77,6 +79,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(vault.value!.token, testToken);
     expect(api.leaves, isEmpty);
+    await tester.ensureVisible(find.text('Войти / вернуться в комнату'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Войти / вернуться в комнату'));
+    await tester.pumpAndSettle();
+    expect(factories, 2);
+    expect(api.enrollments, hasLength(1));
+    expect(find.text('001 234'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
   testWidgets('small screen, 12 long names and large text do not overflow', (
     tester,
@@ -102,10 +112,20 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await settleRoomContent(tester);
     await tester.scrollUntilVisible(find.text('Выйти из комнаты'), 300);
-    await tester.pumpAndSettle();
+    for (
+      var i = 0;
+      i < 40 && find.text('Выйти из комнаты').hitTestable().evaluate().isEmpty;
+      i++
+    ) {
+      await tester.drag(find.byType(ListView).first, const Offset(0, -200));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Выйти из комнаты').hitTestable(), findsOneWidget);
     await tester.tap(find.text('Выйти из комнаты'));
     await tester.pumpAndSettle();
+    expect(find.text('Выйти из комнаты?'), findsOneWidget);
     expect(tester.takeException(), null);
   });
   testWidgets('room lobby design', (tester) async {

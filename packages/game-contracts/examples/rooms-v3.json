@@ -1,0 +1,159 @@
+{
+  "V3Enrollment": {
+    "protocolVersion": 3,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "V3Command": {
+    "protocolVersion": 3,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": null,
+    "type": "tolerance.start",
+    "payload": {}
+  },
+  "V3Snapshot": {
+    "protocolVersion": 3,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "name": "Игрок 3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "name": "Игрок 4"
+        }
+      ],
+      "game": null,
+      "tolerance": {
+        "sessionId": "00000000-0000-4000-8000-000000000021",
+        "phase": "ranking",
+        "roundIndex": 0,
+        "heroId": "00000000-0000-4000-8000-000000000002",
+        "cards": [
+          {
+            "id": "tolerance-01",
+            "text": "Голосовое сообщение на семь минут"
+          },
+          {
+            "id": "tolerance-02",
+            "text": "Наушники разрядились посреди дороги"
+          },
+          {
+            "id": "tolerance-03",
+            "text": "Наступить в лужу и промочить носок"
+          },
+          {
+            "id": "tolerance-04",
+            "text": "Случайно открыть рекламу вместо кнопки пропуска"
+          }
+        ],
+        "visibleOrder": [],
+        "targetId": "tolerance-03",
+        "submittedIds": [],
+        "scores": [
+          {
+            "playerId": "00000000-0000-4000-8000-000000000002",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000010",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000011",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000012",
+            "score": 0
+          }
+        ],
+        "result": null,
+        "winners": []
+      }
+    },
+    "privateState": null,
+    "selfId": "00000000-0000-4000-8000-000000000002",
+    "privateTolerance": {
+      "order": null,
+      "guess": null
+    }
+  },
+  "V3EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 3,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "name": "Игрок 4"
+          }
+        ],
+        "game": {
+          "sessionId": "00000000-0000-4000-8000-000000000020",
+          "packId": "spy-ru-base",
+          "packVersion": 1,
+          "phase": "distribution",
+          "readyIds": [],
+          "deadline": null,
+          "result": null
+        },
+        "tolerance": null
+      },
+      "privateState": {
+        "role": "civilian",
+        "location": "Учебная локация"
+      },
+      "selfId": "00000000-0000-4000-8000-000000000002",
+      "privateTolerance": null
+    }
+  },
+  "V3Ack": {
+    "protocolVersion": 3,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "V3Error": {
+    "protocolVersion": 3,
+    "code": "FORBIDDEN"
+  }
+}

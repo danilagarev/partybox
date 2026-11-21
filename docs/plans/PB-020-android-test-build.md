@@ -29,7 +29,7 @@
 
 ## Передача работы
 
-2026-11-08 сборка завершена: `output/android/vechero-0.1.0-1-3e9a780-test.apk`,
+2026-11-08 сборка завершена: `output/android/partybox-0.1.0-1-3e9a780-test.apk`,
 48 744 377 байт. SHA-256 и build-info.json рядом с APK; ключ не передаётся.
 Подпись v2, manifest, 16 KiB zip alignment, три ABI и bundled content/fonts проверены.
 Код приложения не изменялся. 2026-11-08 пользователь подтвердил успешную
