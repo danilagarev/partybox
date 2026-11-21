@@ -77,7 +77,17 @@ class _TolerancePanelState extends State<TolerancePanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const NightEyebrow('ШКАЛА ТЕРПЕНИЯ'),
+          const NightEyebrow('ШКАЛА ТЕРПЕНИЯ', color: NightColors.lilac),
+          const SizedBox(height: 16),
+          NightStageProgress(
+            labels: const ['Тайная шкала', 'Догадки', 'Открытие', 'Итоги'],
+            current: switch (game.phase) {
+              'ranking' => 0,
+              'guessing' => 1,
+              'reveal' => 2,
+              _ => 3,
+            },
+          ),
           const SizedBox(height: 12),
           Text(
             game.phase == 'finished'
@@ -110,8 +120,9 @@ class _TolerancePanelState extends State<TolerancePanel> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          '${index + 1}. ${game.text(id)}',
+                        _scaleCard(
+                          index,
+                          game.text(id),
                           key: ValueKey('rank-card-$id'),
                         ),
                         Wrap(
@@ -166,7 +177,7 @@ class _TolerancePanelState extends State<TolerancePanel> {
             for (final (index, id) in game.visibleOrder.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Text('${index + 1}. ${game.text(id)}'),
+                child: _scaleCard(index, game.text(id)),
               ),
             const Divider(),
             Text(
@@ -239,11 +250,10 @@ class _TolerancePanelState extends State<TolerancePanel> {
                   in (game.result!['order'] as List).cast<String>().indexed)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(
-                    '${index + 1}. ${game.text(id)}',
-                    style: TextStyle(
-                      color: id == game.targetId ? NightColors.accent : null,
-                    ),
+                  child: _scaleCard(
+                    index,
+                    game.text(id),
+                    highlighted: id == game.targetId,
                   ),
                 ),
               const Text('Догадки игроков'),
@@ -315,6 +325,41 @@ class _TolerancePanelState extends State<TolerancePanel> {
       ),
     );
   }
+
+  Widget _scaleCard(
+    int index,
+    String text, {
+    Key? key,
+    bool highlighted = false,
+  }) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: NightColors.background,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: highlighted ? NightColors.lilac : NightColors.divider,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (highlighted)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 6),
+            child: Text(
+              'КАРТОЧКА ДЛЯ ДОГАДКИ',
+              style: TextStyle(
+                color: NightColors.lilac,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        Text('${index + 1}. $text', key: key),
+      ],
+    ),
+  );
 
   void _move(List<String> current, int from, int delta) {
     final next = List<String>.of(current);

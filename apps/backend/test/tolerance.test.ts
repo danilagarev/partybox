@@ -9,12 +9,23 @@ import {
   tolerancePrivate,
   ToleranceRuleError,
 } from '../src/games/tolerance.js';
-import { selectToleranceCards } from '../src/games/tolerance-content.js';
+import { selectToleranceCards, toleranceCards } from '../src/games/tolerance-content.js';
 const players = ['a', 'b', 'c', 'd'];
 const cards = Array.from({ length: 16 }, (_, i) => ({ id: `card-${i}`, text: `Ситуация ${i}` }));
 const initial = () => createTolerance(players, cards, [2, 0, 1, 3]);
 const rejects = (fn: () => unknown, code: string) =>
   assert.throws(fn, (e) => e instanceof ToleranceRuleError && e.code === code);
+
+test('large content pool uses unique v3-compatible handles without losing source text', () => {
+  let turn = 0;
+  const deck = selectToleranceCards(12, (length) => (++turn * 73) % length);
+  const texts = new Set(deck.map((card) => card.text));
+  assert.equal(texts.size, 48);
+  assert.ok(deck.every((card) => /^tolerance-[0-9]{2}$/.test(card.id)));
+  assert.equal(new Set(deck.map((card) => card.id)).size, 48);
+  assert.ok(toleranceCards.some((card) => /[0-9]{3}$/.test(card.id) && texts.has(card.text)));
+  assert.ok(deck.every((card) => toleranceCards.some((source) => source.text === card.text)));
+});
 
 test('tolerance secret ordering and simultaneous guesses stay private until every listener answered', () => {
   const first = initial();

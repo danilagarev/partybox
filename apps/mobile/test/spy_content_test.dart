@@ -28,8 +28,10 @@ void main() {
       final seen = <String, Set<String>>{for (final p in packs) p.id: {}};
       final last = <String, String>{};
       for (var cycle = 0; cycle < 3; cycle++) {
-        for (var i = 0; i < 24; i++) {
+        final rounds = packs.map((pack) => pack.locations.length).reduce(max);
+        for (var i = 0; i < rounds; i++) {
           for (final pack in packs) {
+            if (i >= pack.locations.length) continue;
             adapter.selectPack(pack.id);
             final selected = location(
               adapter.create(players, const Duration(minutes: 5)),

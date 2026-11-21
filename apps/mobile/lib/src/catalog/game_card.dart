@@ -23,61 +23,95 @@ class CatalogGameCard extends StatelessWidget {
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => NightPanel(
-    padding: 20,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  NightEyebrow(genre),
-                  const SizedBox(height: 6),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            ExcludeSemantics(
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: tolerance ? NightColors.raised : NightColors.accent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: tolerance
-                    ? CustomPaint(painter: _ToleranceMark())
-                    : const NightArt(height: 64),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(description),
-        const SizedBox(height: 10),
-        Text(
-          metadata,
-          style: const TextStyle(fontSize: 12, color: NightColors.muted),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          mode,
-          style: const TextStyle(fontSize: 12, color: NightColors.muted),
-        ),
-        const SizedBox(height: 16),
-        NightButton(label: action, onPressed: onPressed),
-      ],
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: tolerance
+            ? const [Color(0xFF303A39), Color(0xFF202C2A)]
+            : const [Color(0xFF344733), Color(0xFF202C2A)],
+      ),
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(color: NightColors.divider),
     ),
+    child: Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    NightEyebrow(
+                      genre,
+                      color: tolerance ? NightColors.lilac : NightColors.accent,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              ExcludeSemantics(
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: tolerance ? NightColors.raised : NightColors.accent,
+                    borderRadius: BorderRadius.circular(23),
+                    border: tolerance
+                        ? Border.all(
+                            color: NightColors.lilac.withValues(alpha: .45),
+                          )
+                        : null,
+                  ),
+                  child: tolerance
+                      ? CustomPaint(painter: _ToleranceMark())
+                      : const NightArt(height: 68),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(description, style: const TextStyle(color: NightColors.text)),
+          const SizedBox(height: 16),
+          _detail(Icons.people_outline_rounded, metadata),
+          const SizedBox(height: 6),
+          _detail(
+            tolerance ? Icons.devices_rounded : Icons.phonelink_ring_rounded,
+            mode,
+          ),
+          const SizedBox(height: 18),
+          NightButton(label: action, onPressed: onPressed),
+        ],
+      ),
+    ),
+  );
+
+  Widget _detail(IconData icon, String text) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ExcludeSemantics(child: Icon(icon, size: 16, color: NightColors.muted)),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.5,
+            color: NightColors.muted,
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -102,14 +136,14 @@ class _ToleranceMark extends CustomPainter {
       math.pi,
       math.pi * .7,
       false,
-      stroke..color = NightColors.accent,
+      stroke..color = NightColors.lilac,
     );
     canvas.drawLine(
       Offset.zero,
       const Offset(12, -17),
       stroke..color = NightColors.text,
     );
-    canvas.drawCircle(Offset.zero, 4, Paint()..color = NightColors.accent);
+    canvas.drawCircle(Offset.zero, 4, Paint()..color = NightColors.lilac);
     canvas.drawLine(
       const Offset(-16, 10),
       const Offset(16, 10),

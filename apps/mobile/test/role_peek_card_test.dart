@@ -64,6 +64,157 @@ void main() {
   }
 
   testWidgets(
+    'drag exposes only the lifted band without changing card geometry',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(const PeekHarness());
+        await tester.pumpAndSettle();
+        final surface = find.byKey(const ValueKey('role-peek-surface'));
+        final before = tester.getRect(surface);
+        final gesture = await holdCard(tester);
+        final frame = tester.getRect(surface);
+        final cover = tester.getRect(
+          find.byKey(const ValueKey('role-peek-cover-face')),
+        );
+        final clip = tester
+            .widget<ClipRect>(find.byKey(const ValueKey('role-peek-window')))
+            .clipper!
+            .getClip(frame.size);
+        expect(
+          frame,
+          before,
+          reason: 'Secret content cannot expand the surface',
+        );
+        // holdCard moves 24 px to claim the gesture, then another 90 px.
+        expect(before.top - cover.top, closeTo(114, 2));
+        expect(clip.height, closeTo(114, 2));
+        expect(clip.top, greaterThan(frame.height / 2));
+        expect(
+          tester.getSemantics(find.byType(RolePeekCard)).toStringDeep(),
+          isNot(contains('Тестовый секрет')),
+          reason: 'Partial drags do not announce a whole role aloud',
+        );
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(
+          tester.getRect(find.byKey(const ValueKey('role-peek-cover-face'))),
+          cover,
+          reason: 'Crossing the threshold must not make the cover fly away',
+        );
+        await gesture.moveBy(const Offset(0, -50));
+        await tester.pump();
+        final lifted = tester
+            .widget<ClipRect>(find.byKey(const ValueKey('role-peek-window')))
+            .clipper!
+            .getClip(frame.size);
+        expect(lifted.height, greaterThan(clip.height));
+        expect(lifted.height, lessThan(frame.height));
+        await gesture.up();
+        await tester.pump();
+        hidden(tester);
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
+
+  testWidgets(
+    'bottom-scrolled 320x640 card stays under the finger while peeking and releasing',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final semantics = tester.ensureSemantics();
+      try {
+        for (final reduced in [false, true]) {
+          for (final textScale in [1.0, 2.0]) {
+            final scroll = ScrollController();
+            var revealed = false;
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: nightTheme(),
+                home: MediaQuery(
+                  data: MediaQueryData(
+                    disableAnimations: reduced,
+                    textScaler: TextScaler.linear(textScale),
+                  ),
+                  child: Scaffold(
+                    body: StatefulBuilder(
+                      builder: (context, setState) => SingleChildScrollView(
+                        controller: scroll,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 300),
+                              RolePeekCard(
+                                revealed: revealed,
+                                enabled: true,
+                                viewed: true,
+                                onReveal: () => setState(() => revealed = true),
+                                onConceal: () =>
+                                    setState(() => revealed = false),
+                                onContinue: () {},
+                                continueLabel: 'Скрыть и передать',
+                                closedContinueLabel: 'Передать телефон',
+                                secretBuilder: (_) =>
+                                    const Text('Тестовый секрет'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+            await tester.pumpAndSettle();
+            expect(scroll.position.maxScrollExtent, greaterThan(0));
+            scroll.jumpTo(scroll.position.maxScrollExtent);
+            await tester.pumpAndSettle();
+            final surface = find.byKey(const ValueKey('role-peek-surface'));
+            final before = tester.getRect(surface);
+            final bottomOffset = scroll.offset;
+            final visibleSurface = before.intersect(
+              const Rect.fromLTWH(0, 0, 320, 640),
+            );
+            expect(visibleSurface.isEmpty, isFalse);
+            // Large text may place the full card center above the viewport.
+            // Start near the bottom of its actually visible portion instead.
+            final gesture = await tester.startGesture(
+              visibleSurface.bottomCenter - const Offset(0, 8),
+            );
+            await gesture.moveBy(const Offset(0, -24));
+            await tester.pump();
+            await gesture.moveBy(const Offset(0, -90));
+            await tester.pump(const Duration(milliseconds: 150));
+            expect(find.text('Тестовый секрет'), findsOneWidget);
+            expect(
+              tester.getRect(surface),
+              before,
+              reason:
+                  'Changing footer copy or controls must not clamp the scroll position',
+            );
+            expect(scroll.offset, bottomOffset);
+            await gesture.up();
+            await tester.pumpAndSettle();
+            hidden(tester);
+            expect(tester.getRect(surface), before);
+            expect(scroll.offset, bottomOffset);
+            expect(tester.takeException(), isNull);
+            await tester.pumpWidget(const SizedBox.shrink());
+            scroll.dispose();
+          }
+        }
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
+
+  testWidgets(
     'concealment before the first revealed frame still invalidates a held gesture',
     (tester) async {
       final key = GlobalKey<PeekHarnessState>();

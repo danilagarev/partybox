@@ -42,11 +42,13 @@ test('catalog pins every bundled pack and contains no ambiguous locations', asyn
   assert.deepEqual(catalog.packs.map((p) => `${p.id}.json`).sort(), files.sort());
   assert.equal(new Set(catalog.packs.map((p) => p.id)).size, catalog.packs.length);
   const labels = new Set();
+  assert.equal(catalog.packs.length, 3);
   for (const entry of catalog.packs) {
     const pack = await readJson(new URL(`${entry.id}.json`, directory));
     assert.equal(pack.id, entry.id);
     assert.equal(pack.version, entry.version);
     assert.equal(pack.locale, catalog.locale);
+    assert.equal(pack.items.length, 60, `${entry.id}: release deck needs 60 locations`);
     for (const item of pack.items) {
       const label = item.label.trim().toLocaleLowerCase('ru');
       assert.ok(!labels.has(label), `duplicate location: ${item.id}`);
@@ -58,10 +60,30 @@ test('catalog pins every bundled pack and contains no ambiguous locations', asyn
 test('tolerance deck supports twelve heroes without repeated or blank situations', async () => {
   const pack = await readJson(new URL('../packs/tolerance-ru-base.json', import.meta.url));
   assert.ok(validateTolerance(pack));
-  assert.ok(pack.items.length >= 48);
+  assert.equal(pack.items.length, 220);
   assert.equal(
     new Set(pack.items.map((item) => item.text.trim().toLocaleLowerCase('ru'))).size,
     pack.items.length,
   );
   assert.equal(validateTolerance({ ...pack, schemaVersion: 2 }), false);
+});
+
+test('tolerance source schema accepts larger decks without changing legacy ids', async () => {
+  const pack = await readJson(new URL('../packs/tolerance-ru-base.json', import.meta.url));
+  const source = (count) => ({
+    ...pack,
+    items: Array.from({ length: count }, (_, index) => ({
+      id: `tolerance-${String(index + 1).padStart(2, '0')}`,
+      text: `Ситуация ${index + 1}`,
+    })),
+  });
+  assert.ok(validateTolerance(source(48)), 'legacy minimum deck remains valid');
+  assert.ok(validateTolerance(source(240)), 'expanded source deck is valid');
+  assert.equal(validateTolerance(source(241)), false);
+  assert.equal(validateTolerance(source(47)), false);
+  for (const id of ['tolerance-1', 'tolerance-1000', 'tolerance-01x']) {
+    const invalid = source(48);
+    invalid.items[0].id = id;
+    assert.equal(validateTolerance(invalid), false, `invalid source id: ${id}`);
+  }
 });

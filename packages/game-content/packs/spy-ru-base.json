@@ -3,7 +3,7 @@
   "id": "spy-ru-base",
   "gameId": "spy",
   "locale": "ru",
-  "version": 2,
+  "version": 3,
   "title": "Знакомые места",
   "items": [
     {
@@ -27,16 +27,8 @@
       "label": "Ресторан"
     },
     {
-      "id": "camp",
-      "label": "Туристический лагерь"
-    },
-    {
       "id": "theater",
       "label": "Театр"
-    },
-    {
-      "id": "space-station",
-      "label": "Космическая станция"
     },
     {
       "id": "bakery",
@@ -101,6 +93,158 @@
     {
       "id": "garage",
       "label": "Автосервис"
+    },
+    {
+      "id": "bus-stop",
+      "label": "Автобусная остановка"
+    },
+    {
+      "id": "city-park",
+      "label": "Городской парк"
+    },
+    {
+      "id": "laundry",
+      "label": "Прачечная самообслуживания"
+    },
+    {
+      "id": "pharmacy",
+      "label": "Аптека"
+    },
+    {
+      "id": "bank",
+      "label": "Банк"
+    },
+    {
+      "id": "fire-station",
+      "label": "Пожарная часть"
+    },
+    {
+      "id": "police-station",
+      "label": "Полицейский участок"
+    },
+    {
+      "id": "office",
+      "label": "Офис"
+    },
+    {
+      "id": "kindergarten",
+      "label": "Детский сад"
+    },
+    {
+      "id": "courthouse",
+      "label": "Зал суда"
+    },
+    {
+      "id": "wedding-office",
+      "label": "ЗАГС"
+    },
+    {
+      "id": "pet-shop",
+      "label": "Зоомагазин"
+    },
+    {
+      "id": "veterinary-clinic",
+      "label": "Ветеринарная клиника"
+    },
+    {
+      "id": "shoe-repair",
+      "label": "Мастерская ремонта обуви"
+    },
+    {
+      "id": "tailor",
+      "label": "Ателье"
+    },
+    {
+      "id": "printing-shop",
+      "label": "Типография"
+    },
+    {
+      "id": "radio-studio",
+      "label": "Радиостудия"
+    },
+    {
+      "id": "television-studio",
+      "label": "Телестудия"
+    },
+    {
+      "id": "photo-studio",
+      "label": "Фотостудия"
+    },
+    {
+      "id": "recording-studio",
+      "label": "Студия звукозаписи"
+    },
+    {
+      "id": "bowling",
+      "label": "Боулинг"
+    },
+    {
+      "id": "ice-rink",
+      "label": "Каток"
+    },
+    {
+      "id": "skatepark",
+      "label": "Скейт-парк"
+    },
+    {
+      "id": "climbing-gym",
+      "label": "Скалодром"
+    },
+    {
+      "id": "chess-club",
+      "label": "Шахматный клуб"
+    },
+    {
+      "id": "dance-school",
+      "label": "Танцевальная школа"
+    },
+    {
+      "id": "driving-school",
+      "label": "Автошкола"
+    },
+    {
+      "id": "greenhouse",
+      "label": "Теплица"
+    },
+    {
+      "id": "construction-site",
+      "label": "Стройплощадка"
+    },
+    {
+      "id": "furniture-shop",
+      "label": "Мебельный магазин"
+    },
+    {
+      "id": "gas-station",
+      "label": "Автозаправка"
+    },
+    {
+      "id": "warehouse",
+      "label": "Склад"
+    },
+    {
+      "id": "recycling-center",
+      "label": "Пункт приёма вторсырья"
+    },
+    {
+      "id": "cafeteria",
+      "label": "Столовая"
+    },
+    {
+      "id": "subway-car",
+      "label": "Вагон метро"
+    },
+    {
+      "id": "train-station",
+      "label": "Железнодорожный вокзал"
+    },
+    {
+      "id": "apartment-kitchen",
+      "label": "Кухня в квартире"
+    },
+    {
+      "id": "apartment-stairwell",
+      "label": "Подъезд жилого дома"
     }
   ]
 }

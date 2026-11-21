@@ -133,8 +133,8 @@ NDK 28.2.13676358, CMake 3.22.1 и совместимый JDK (для этой �
 После подготовки SDK и зависимостей:
 
 ```sh
-cd apps/mobile
-flutter build apk --release
+source .tools/android-toolchain/env.sh # если используется локальный SDK репозитория
+FLUTTER_BIN="$PWD/.tools/flutter/bin/flutter" scripts/build-android-release.sh test-release 6 --universal
 ```
 
 Для переключения с тестов/debug на release не добавляйте `--no-pub`:
@@ -142,10 +142,10 @@ flutter build apk --release
 из-за чего там может остаться dev-плагин integration_test без release-класса.
 GeneratedPluginRegistrant обновляется Flutter, вручную его не исправлять.
 
-Результат: `build/app/outputs/flutter-apk/app-release.apk`. Без `--split-per-abi`
-собирается один APK для всех включённых архитектур. Текущая release-конфигурация
-использует debug-подпись: это оптимизированная тестовая сборка для телефона,
-store-подпись ещё не настроена. Для обновления поверх установленной версии нужны
+Результат: `output/android/test-release-6/`: три APK по ABI и универсальный.
+Wrapper явно разрешает прежнюю debug-подпись только для проверочной release-сборки.
+Обычный release требует настоящий store keystore и `android/key.properties`;
+без них сборка APK/AAB отказывает, а не подставляет тестовую подпись. Для обновления поверх установленной версии нужны
 тот же app ID и тот же ключ; не удаляйте локальный debug.keystore между сборками.
 Ключи в Git/каталог передачи APK не копировать. `local.properties` также игнорируется.
 
@@ -242,15 +242,16 @@ flutter run --dart-define=ROOM_SERVER_URL=http://10.0.2.2:3000
 
 `10.0.2.2` — адрес хоста для Android Emulator. Для физического Android в debug
 использовать доступный LAN IP компьютера и `HOST=0.0.0.0` у backend. Отдельный
-ввод адреса в приложении не нужен. В release указывать настоящий HTTPS origin:
+ввод адреса в приложении не нужен. Для своего сервера build URL можно переопределить:
 
 ```sh
 flutter build apk --release --dart-define=ROOM_SERVER_URL=https://your-room-server.example
 ```
 
-Заменить пример своим сервером. Адрес должен быть origin без пути, query,
-userInfo и токенов; редиректы не поддерживаются. Без ROOM_SERVER_URL каталог
-остаётся локальным. В этом репозитории публичный сервер ещё не развёрнут.
+Без ROOM_SERVER_URL приложение использует https://partybox.sorima.tech.
+Свой адрес можно передать define или сохранить в «Подключение комнат»;
+сохранённое пользователем значение имеет приоритет. Адрес должен быть origin
+без пути, query, userInfo и токенов; редиректы не поддерживаются.
 HTTP разрешён только в debug Android; release и iOS ATS не ослаблены.
 Для iOS нужен доступный HTTPS backend и обычная сборка на macOS/Xcode.
 
@@ -314,7 +315,7 @@ generated-файл вручную не редактировать. Общие п
 Контракты: `rooms-v2.schema.json`, `examples/rooms-v2.json`, `openapi-rooms-v2.json`.
 Общие векторы: `packages/game-contracts/vectors/spy-v1.json`, запускаются в Node
 и чистом Dart. Все generated TS/Dart/OpenAPI-файлы обновляет общая generate-команда.
-Публичный backend здесь не развёрнут; сборка без ROOM_SERVER_URL остаётся локальной.
+Публичный backend: https://partybox.sorima.tech; это адрес приложения по умолчанию.
 
 ## HTTPS и проверка развёртывания
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>PartyBox — карточки для компании</title>
+  <rect width="1024" height="1024" fill="#141B1C"/>
+  <circle cx="512" cy="512" r="386" fill="#202C2A"/>
+  <rect x="248" y="254" width="390" height="514" rx="68" fill="#D6C4F5" transform="rotate(-17 443 511)"/>
+  <rect x="332" y="238" width="390" height="530" rx="68" fill="#141B1C" stroke="#141B1C" stroke-width="28" transform="rotate(12 527 503)"/>
+  <g transform="rotate(12 527 503)">
+    <rect x="332" y="238" width="390" height="530" rx="68" fill="#B7E77C"/>
+    <circle cx="397" cy="308" r="16" fill="#182323"/>
+    <circle cx="657" cy="698" r="16" fill="#182323"/>
+    <path d="M527 362 C547 449 560 465 637 503 C560 526 547 547 527 644 C505 547 490 526 417 503 C490 465 505 449 527 362Z" fill="#182323"/>
+  </g>
+</svg>

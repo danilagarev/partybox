@@ -292,7 +292,28 @@ class _SpyGameScreenState extends State<SpyGameScreen>
                   )),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: _content(context),
+                    children: [
+                      if (_controller != null) ...[
+                        NightStageProgress(
+                          labels: const [
+                            'Подготовка',
+                            'Роли',
+                            'Обсуждение',
+                            'Голосование',
+                            'Итоги',
+                          ],
+                          current: switch (_controller!.phase) {
+                            null => 0,
+                            SpyPhase.distribution => 1,
+                            SpyPhase.discussion => 2,
+                            SpyPhase.voting => 3,
+                            SpyPhase.results => 4,
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      ..._content(context),
+                    ],
                   ),
                 ),
               ],
@@ -371,44 +392,14 @@ class _SpyGameScreenState extends State<SpyGameScreen>
             onContinue: () => _handoff(player.id),
             continueLabel: 'Скрыть и передать',
             closedContinueLabel: 'Передать телефон',
-            secretBuilder: (context) => Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    NightArt(
-                      kind: card!.role == SpyRole.spy
-                          ? NightArtKind.eye
-                          : NightArtKind.constellation,
-                      height: 150,
-                      onColor: NightColors.accent,
-                      color: card.role == SpyRole.spy
-                          ? NightColors.raised
-                          : NightColors.accent,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      card.role == SpyRole.spy
-                          ? 'Вы — шпион'
-                          : 'Вы — мирный игрок',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: NightColors.accent,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      card.location ??
-                          'Вы не знаете локацию. Слушайте вопросы и не выдавайте себя.',
-                      textAlign: TextAlign.center,
-                      style: card.location == null
-                          ? Theme.of(context).textTheme.bodyLarge
-                          : Theme.of(context).textTheme.headlineLarge,
-                    ),
-                  ],
-                ),
-              ),
+            secretBuilder: (context) => RoleSecretFace(
+              title: card!.role == SpyRole.spy
+                  ? 'Вы — шпион'
+                  : 'Вы — мирный игрок',
+              message:
+                  card.location ??
+                  'Вы не знаете локацию. Слушайте вопросы и не выдавайте себя.',
+              isSpy: card.role == SpyRole.spy,
             ),
           ),
         ];

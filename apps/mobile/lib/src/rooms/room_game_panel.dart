@@ -222,9 +222,9 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                 ),
                 const SizedBox(height: 12),
                 Text(_packs!.firstWhere((p) => p.id == _packId).description),
-                Text(
-                  _packs!.firstWhere((p) => p.id == _packId).rotationLabel,
-                  style: const TextStyle(color: NightColors.muted),
+                const Text(
+                  'Без повторов до конца набора',
+                  style: TextStyle(color: NightColors.muted),
                 ),
                 const SizedBox(height: 16),
               ] else if (_packLoadFailed)
@@ -282,32 +282,14 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                 onContinue: () => controller.play('spy.ready'),
                 continueLabel: 'Скрыть и подтвердить',
                 closedContinueLabel: 'Подтвердить роль',
-                secretBuilder: (context) => Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        snapshot.card?.role == 'spy'
-                            ? 'Вы — шпион'
-                            : 'Вы знаете место',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        snapshot.card?.role == 'spy'
-                            ? 'Выясните локацию, не выдавая себя.'
-                            : snapshot.card!.location!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: NightColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
+                secretBuilder: (context) => RoleSecretFace(
+                  title: snapshot.card?.role == 'spy'
+                      ? 'Вы — шпион'
+                      : 'Вы знаете место',
+                  message: snapshot.card?.role == 'spy'
+                      ? 'Выясните локацию, не выдавая себя.'
+                      : snapshot.card!.location!,
+                  isSpy: snapshot.card?.role == 'spy',
                 ),
               ),
             const SizedBox(height: 16),

@@ -169,7 +169,7 @@ void main() {
   });
 
   testWidgets(
-    'unconfigured app opens server setup and preserves tolerance selection',
+    'fresh app opens the selected game on the production server without setup',
     (tester) async {
       FlutterSecureStorage.setMockInitialValues({});
       tester.view.physicalSize = const Size(390, 844);
@@ -177,6 +177,38 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(application.createPartyBoxApp());
+      await tester.pumpAndSettle();
+      await showControl(tester, find.text('Играть в «Шкалу»'));
+      await tester.tap(find.text('Играть в «Шкалу»'));
+      await tester.pumpAndSettle();
+      await showControl(tester, find.text('Создать комнату «Шкалы»'));
+      await tester.tap(find.text('Создать комнату «Шкалы»'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RoomServerScreen), findsNothing);
+      final room = tester.widget<RoomScreen>(find.byType(RoomScreen));
+      expect(room.initialGame, 'tolerance');
+      expect(room.controller.api.origin, 'https://partybox.sorima.tech');
+      expect(find.text('Создать комнату'), findsOneWidget);
+      expect(
+        await SharedPreferencesAsync().getString(RoomServerSettings.key),
+        null,
+      );
+      expect(tester.takeException(), null);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'unconfigured app opens server setup and preserves tolerance selection',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        application.createPartyBoxApp(configuredServer: ''),
+      );
       await tester.pumpAndSettle();
       await showControl(tester, find.text('Играть в «Шкалу»'));
       await tester.tap(find.text('Играть в «Шкалу»'));

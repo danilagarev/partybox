@@ -56,7 +56,8 @@ test(
       );
       assert.equal((await service.snapshotGame(id, host.guestToken)).version, before.version);
       const seen = new Map([...spyPacks.keys()].map((key) => [key, new Set<string>()]));
-      for (let i = 0; i < 25; i++) {
+      const rounds = Math.max(...[...spyPacks.values()].map((pack) => pack.items.length)) + 1;
+      for (let i = 0; i < rounds; i++) {
         for (const pack of spyPacks.values()) {
           const start = await command('spy.start', { packId: pack.id, discussionMinutes: 5 });
           const ack = await service.commandGame(id, host.guestToken, start);

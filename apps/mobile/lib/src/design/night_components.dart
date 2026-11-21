@@ -19,7 +19,7 @@ class NightPanel extends StatelessWidget {
     decoration: BoxDecoration(
       color: accent ? NightColors.accent : NightColors.surface,
       borderRadius: BorderRadius.circular(28),
-      border: accent ? null : Border.all(color: NightColors.border),
+      border: accent ? null : Border.all(color: NightColors.divider),
     ),
     child: Padding(
       padding: EdgeInsets.all(padding),
@@ -219,21 +219,100 @@ class NightRule extends StatelessWidget {
   final String title;
   final String text;
   @override
-  Widget build(BuildContext context) => NightPanel(
-    padding: 18,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ExcludeSemantics(
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: NightColors.raised,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: NightColors.accent,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  height: 1.3,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(text, style: const TextStyle(color: NightColors.muted)),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Public phase guidance only; never contains a private role or answer.
+class NightStageProgress extends StatelessWidget {
+  const NightStageProgress({
+    super.key,
+    required this.labels,
+    required this.current,
+  });
+  final List<String> labels;
+  final int current;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Этап ${current + 1} из ${labels.length}: ${labels[current]}',
+    excludeSemantics: true,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: i == labels.length - 1 ? 0 : 6,
+                  ),
+                  child: Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: i <= current
+                          ? NightColors.accent
+                          : NightColors.raised,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Text(
-          '$number · $title',
+          '${current + 1} / ${labels.length} · ${labels[current]}',
           style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: NightColors.accent,
+            fontSize: 12,
+            color: NightColors.muted,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(text, style: const TextStyle(color: NightColors.muted)),
       ],
     ),
   );

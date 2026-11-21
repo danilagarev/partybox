@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:partybox_mobile/src/design/role_peek_card.dart';
 import 'package:partybox_mobile/src/spy/local_session_adapter.dart';
 import 'package:partybox_mobile/src/spy/spy_game_screen.dart';
 
@@ -13,19 +14,19 @@ void main() {
       await prepareGame(tester);
       await showWidget(tester, find.byKey(const ValueKey('role-peek-surface')));
       final peek = await holdCard(tester);
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(RoleSecretFace), findsOneWidget);
       await peek.up();
       await tester.pump();
-      expect(find.byType(Card), findsNothing);
+      expect(find.byType(RoleSecretFace), findsNothing);
       expect(find.text('Карточка 1 из 4'), findsOneWidget);
       await tester.pumpAndSettle();
       final secondPeek = await holdCard(tester, pointer: 2);
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(RoleSecretFace), findsOneWidget);
       await tapVisible(tester, find.text('Скрыть и передать'));
       await secondPeek.moveBy(const Offset(0, -120));
       await tester.pump();
       expect(find.text('Карточка 2 из 4'), findsOneWidget);
-      expect(find.byType(Card), findsNothing);
+      expect(find.byType(RoleSecretFace), findsNothing);
       await secondPeek.up();
       await tester.pumpWidget(const SizedBox());
     },
@@ -97,7 +98,7 @@ void main() {
     await tapVisible(tester, find.text('Показать мою роль'));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
-    expect(find.byType(Card), findsNothing);
+    expect(find.byType(RoleSecretFace), findsNothing);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
@@ -110,13 +111,13 @@ void main() {
     await tester.tap(handoff);
     await tester.pumpAndSettle();
     expect(find.text('Карточка 2 из 4'), findsOneWidget);
-    expect(find.byType(Card), findsNothing);
+    expect(find.byType(RoleSecretFace), findsNothing);
     await tapVisible(tester, find.text('Показать мою роль'));
     await goBack(tester);
     await tester.pumpAndSettle();
     await tapVisible(tester, find.text('Продолжить игру'));
     expect(find.text('Карточка 2 из 4'), findsOneWidget);
-    expect(find.byType(Card), findsNothing);
+    expect(find.byType(RoleSecretFace), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

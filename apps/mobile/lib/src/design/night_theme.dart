@@ -10,6 +10,8 @@ abstract final class NightColors {
   static const text = Color(0xFFF3EFE7);
   static const muted = Color(0xFFB5C2BA);
   static const border = Color(0xFF66806D);
+  static const divider = Color(0xFF40524A);
+  static const lilac = Color(0xFFD6C4F5);
   static const error = Color(0xFFFFB4AB);
 }
 
@@ -68,6 +70,19 @@ ThemeData nightTheme() {
             fontWeight: FontWeight.w800,
             letterSpacing: -.8,
           ),
+          headlineSmall: const TextStyle(
+            fontFamily: 'Manrope',
+            fontSize: 25,
+            height: 1.16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.6,
+          ),
+          titleLarge: const TextStyle(
+            fontFamily: 'Manrope',
+            fontSize: 20,
+            height: 1.3,
+            fontWeight: FontWeight.w700,
+          ),
           bodyLarge: const TextStyle(
             fontFamily: 'Manrope',
             fontSize: 16,
@@ -98,13 +113,22 @@ ThemeData nightTheme() {
         letterSpacing: 1.5,
       ),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(48, 56),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        side: const BorderSide(color: NightColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    ),
+    dividerTheme: const DividerThemeData(color: NightColors.divider, space: 32),
     cardTheme: CardThemeData(
       elevation: 0,
       margin: EdgeInsets.zero,
       color: NightColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(28),
-        side: const BorderSide(color: NightColors.border),
+        side: const BorderSide(color: NightColors.divider),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(

@@ -16,8 +16,12 @@ void main() {
   runApp(createPartyBoxApp());
 }
 
-Widget createPartyBoxApp() {
-  const configuredServer = String.fromEnvironment('ROOM_SERVER_URL');
+Widget createPartyBoxApp({
+  String configuredServer = const String.fromEnvironment(
+    'ROOM_SERVER_URL',
+    defaultValue: 'https://partybox.sorima.tech',
+  ),
+}) {
   const browserRooms = bool.fromEnvironment('BROWSER_ROOMS');
   final defaultServer = kIsWeb && configuredServer == 'same-origin'
       ? Uri.base.origin

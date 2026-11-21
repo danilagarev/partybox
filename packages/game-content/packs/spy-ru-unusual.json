@@ -3,7 +3,7 @@
   "id": "spy-ru-unusual",
   "gameId": "spy",
   "locale": "ru",
-  "version": 1,
+  "version": 2,
   "title": "За гранью обычного",
   "items": [
     {
@@ -101,6 +101,150 @@
     {
       "id": "mermaid-market",
       "label": "Рынок русалок"
+    },
+    {
+      "id": "space-station",
+      "label": "Космическая станция"
+    },
+    {
+      "id": "mars-colony",
+      "label": "Марсианская колония"
+    },
+    {
+      "id": "asteroid-mine",
+      "label": "Шахта на астероиде"
+    },
+    {
+      "id": "alien-embassy",
+      "label": "Посольство инопланетян"
+    },
+    {
+      "id": "spaceship-bridge",
+      "label": "Капитанский мостик звездолёта"
+    },
+    {
+      "id": "teleport-terminal",
+      "label": "Терминал телепортации"
+    },
+    {
+      "id": "orbital-elevator",
+      "label": "Космический лифт"
+    },
+    {
+      "id": "comet-observatory",
+      "label": "Обсерватория на комете"
+    },
+    {
+      "id": "zero-gravity-arena",
+      "label": "Арена в невесомости"
+    },
+    {
+      "id": "interplanetary-customs",
+      "label": "Межпланетная таможня"
+    },
+    {
+      "id": "memory-archive",
+      "label": "Архив воспоминаний"
+    },
+    {
+      "id": "dream-cinema",
+      "label": "Кинотеатр сновидений"
+    },
+    {
+      "id": "weather-workshop",
+      "label": "Мастерская погоды"
+    },
+    {
+      "id": "rainbow-bridge",
+      "label": "Мост из радуги"
+    },
+    {
+      "id": "witch-hut",
+      "label": "Избушка ведьмы"
+    },
+    {
+      "id": "alchemy-workshop",
+      "label": "Мастерская алхимика"
+    },
+    {
+      "id": "magic-mirror-hall",
+      "label": "Зал волшебных зеркал"
+    },
+    {
+      "id": "enchanted-forest",
+      "label": "Заколдованный лес"
+    },
+    {
+      "id": "talking-tree",
+      "label": "Дупло говорящего дерева"
+    },
+    {
+      "id": "fairy-garden",
+      "label": "Сад фей"
+    },
+    {
+      "id": "gnome-forge",
+      "label": "Кузница гномов"
+    },
+    {
+      "id": "phoenix-nest",
+      "label": "Гнездо феникса"
+    },
+    {
+      "id": "ice-queen-palace",
+      "label": "Дворец ледяной королевы"
+    },
+    {
+      "id": "candy-town",
+      "label": "Пряничный город"
+    },
+    {
+      "id": "book-world",
+      "label": "Город внутри книги"
+    },
+    {
+      "id": "chess-kingdom",
+      "label": "Шахматное королевство"
+    },
+    {
+      "id": "upside-down-house",
+      "label": "Перевёрнутый дом"
+    },
+    {
+      "id": "bottle-port",
+      "label": "Порт внутри бутылки"
+    },
+    {
+      "id": "clockwork-city",
+      "label": "Город часовых механизмов"
+    },
+    {
+      "id": "living-library",
+      "label": "Библиотека живых книг"
+    },
+    {
+      "id": "invisible-zoo",
+      "label": "Зоопарк невидимых зверей"
+    },
+    {
+      "id": "cloud-harbor",
+      "label": "Причал для облаков"
+    },
+    {
+      "id": "wish-fountain",
+      "label": "Фонтан исполнения желаний"
+    },
+    {
+      "id": "lost-socks-office",
+      "label": "Бюро пропавших носков"
+    },
+    {
+      "id": "miniature-village",
+      "label": "Деревня под увеличительным стеклом"
+    },
+    {
+      "id": "snow-globe",
+      "label": "Город в снежном шаре"
     }
   ]
 }

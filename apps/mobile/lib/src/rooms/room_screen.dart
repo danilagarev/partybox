@@ -301,7 +301,9 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       Semantics(
         liveRegion: true,
         child: Text(
-          controller.online ? 'Состав обновляется' : 'Восстанавливаем связь…',
+          controller.online
+              ? 'В сети · изменения видны всем'
+              : 'Восстанавливаем связь…',
           style: const TextStyle(color: NightColors.muted),
         ),
       ),
@@ -319,9 +321,26 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${index + 1}'.padLeft(2, '0'),
-                  style: const TextStyle(color: NightColors.accent),
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: player.id == snapshot.selfId
+                        ? NightColors.accent
+                        : NightColors.raised,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${index + 1}'.padLeft(2, '0'),
+                    style: TextStyle(
+                      color: player.id == snapshot.selfId
+                          ? NightColors.ink
+                          : NightColors.muted,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

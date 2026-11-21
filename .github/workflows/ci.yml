@@ -41,8 +41,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - run: bash -n deploy/production/init.sh deploy/production/release.sh
+      - run: bash -n deploy/production/init.sh deploy/production/release.sh deploy/ingress/switch-to-caddy.sh
       - run: node --test deploy/production/test-release.mjs
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s deploy/ingress -p 'test_*.py'
 
   flutter:
     runs-on: ubuntu-latest

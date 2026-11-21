@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:partybox_mobile/src/design/role_peek_card.dart';
 import 'package:partybox_mobile/src/design/night_components.dart';
 import 'package:partybox_mobile/src/design/night_theme.dart';
 import 'package:partybox_mobile/src/spy/local_session_adapter.dart';
@@ -105,14 +106,14 @@ void main() {
       await tester.tapAt(point);
       await tester.pumpAndSettle();
       expect(
-        find.byType(Card),
+        find.byType(RoleSecretFace),
         findsNothing,
         reason: 'A second physical tap must not reveal the next role',
       );
       expect(find.text('Карточка 2 из 4'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 500));
       await tapVisible(tester, find.text('Показать мою роль'));
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(RoleSecretFace), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }

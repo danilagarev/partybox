@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:partybox_mobile/src/design/role_peek_card.dart';
 import 'package:partybox_mobile/src/app.dart';
 
 Future<void> showWidget(WidgetTester tester, Finder finder) async {
@@ -87,14 +88,14 @@ Future<void> playLocalGame(WidgetTester tester) async {
     expect(find.text('Вы — шпион'), findsNothing);
     expect(find.text('Вы — мирный игрок'), findsNothing);
     await tapVisible(tester, find.text('Показать мою роль'));
-    await showWidget(tester, find.byType(Card));
+    await showWidget(tester, find.byType(RoleSecretFace));
     if (find.text('Вы — шпион').evaluate().isNotEmpty) {
       spies++;
     } else {
-      final card = tester.widget<Column>(
-        find.descendant(of: find.byType(Card), matching: find.byType(Column)),
-      );
-      locations.add((card.children.last as Text).data!);
+      final face = tester.widget<RoleSecretFace>(find.byType(RoleSecretFace));
+      expect(face.title, 'Вы — мирный игрок');
+      expect(face.isSpy, isFalse);
+      locations.add(face.message);
     }
     await tapVisible(tester, find.text('Скрыть и передать'));
   }

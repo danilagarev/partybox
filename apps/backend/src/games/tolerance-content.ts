@@ -22,5 +22,10 @@ export function selectToleranceCards(count: number, choose: (length: number) => 
     const j = choose(i + 1);
     [cards[i], cards[j]] = [cards[j]!, cards[i]!];
   }
-  return cards.slice(0, count * 4);
+  // Source IDs describe an expanding content pool. Wire v3 IDs remain opaque,
+  // session-scoped two-digit handles so already installed clients keep working.
+  return cards.slice(0, count * 4).map((card, index) => ({
+    id: `tolerance-${String(index + 1).padStart(2, '0')}`,
+    text: card.text,
+  }));
 }

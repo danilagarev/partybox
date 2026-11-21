@@ -61,3 +61,6 @@ output/android/
 # VPS runtime secrets and database backups
 /deploy/secrets/
 /deploy/backups/
+
+# Python migration tooling
+__pycache__/

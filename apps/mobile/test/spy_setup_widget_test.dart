@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:partybox_mobile/src/design/role_peek_card.dart';
 import 'package:partybox_mobile/src/app.dart';
 import 'package:partybox_mobile/src/design/night_theme.dart';
 import 'package:partybox_mobile/src/spy/local_session_adapter.dart';
@@ -231,7 +232,7 @@ void main() {
       await tester.pumpWidget(screen(store));
       await tester.pumpAndSettle();
       expect(find.text('Кто играет?'), findsOneWidget);
-      expect(find.byType(Card), findsNothing);
+      expect(find.byType(RoleSecretFace), findsNothing);
       expect(
         tester
             .widget<TextFormField>(find.byKey(const ValueKey('player-name-0')))

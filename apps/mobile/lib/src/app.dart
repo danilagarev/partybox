@@ -26,7 +26,7 @@ class PartyBoxApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'Вечеро',
+    title: 'PartyBox',
     locale: const Locale('ru'),
     supportedLocales: const [Locale('ru')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -121,20 +121,33 @@ class _CatalogScreenState extends State<CatalogScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             children: [
-              const NightEyebrow('ВЕЧЕРО · ИГРЫ ДЛЯ КОМПАНИИ'),
+              const NightEyebrow('PARTYBOX · ИГРЫ ДЛЯ КОМПАНИИ'),
               const SizedBox(height: 12),
               NightEntrance(
                 child: Text(
-                  'Вечер начинается\nс вашей компании.',
-                  style: Theme.of(context).textTheme.headlineLarge,
+                  'Вечер, который\nсближает.',
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
               const SizedBox(height: 10),
               const Text(
-                'Выберите, во что сыграем.',
+                'Две игры, чтобы стать ближе.',
                 style: TextStyle(color: NightColors.muted),
               ),
               const SizedBox(height: 24),
+              const Wrap(
+                spacing: 20,
+                runSpacing: 6,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  NightEyebrow('ВЫБЕРИТЕ ИГРУ'),
+                  Text(
+                    '4–12 человек',
+                    style: TextStyle(fontSize: 12, color: NightColors.muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               CatalogGameCard(
                 title: 'Шпион',
                 genre: 'ДЕДУКЦИЯ',
@@ -156,7 +169,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 title: 'Шкала терпения',
                 genre: 'УЗНАЙТЕ ДРУГ ДРУГА',
                 tolerance: true,
-                description: 'Что вас бесит? Проверьте, кто угадает.',
+                description: 'У всех свой предел. Угадайте, где чужой.',
                 metadata: '4–12 игроков · по раунду на каждого',
                 mode: 'У каждого свой телефон',
                 action: 'Играть в «Шкалу»',
@@ -240,10 +253,11 @@ class SpyRulesScreen extends StatelessWidget {
                     'Проголосуйте вслух. Нашли шпиона — выиграли. Ошиблись — победил он.',
               ),
               const SizedBox(height: 24),
+              const Divider(),
               const NightEyebrow('КАК БУДЕТЕ ИГРАТЬ?'),
               const SizedBox(height: 12),
               const Text(
-                'Один телефон — без интернета. Передавайте его по кругу.',
+                'За одним столом · без интернета. Нужен только один телефон.',
               ),
               const SizedBox(height: 12),
               NightButton(

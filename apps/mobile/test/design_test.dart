@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:partybox_mobile/src/design/role_peek_card.dart';
 import 'package:partybox_mobile/src/app.dart';
 import 'package:partybox_mobile/src/design/night_components.dart';
 import 'package:partybox_mobile/src/design/night_art.dart';
@@ -140,10 +141,10 @@ void main() {
       await showWidget(tester, reveal);
       await tester.tap(reveal);
       await tester.pump(const Duration(milliseconds: 40));
-      expect(find.byType(Card), findsOneWidget);
+      expect(find.byType(RoleSecretFace), findsOneWidget);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
-      expect(find.byType(Card), findsNothing);
+      expect(find.byType(RoleSecretFace), findsNothing);
       expect(find.text('Музей'), findsNothing);
       final semantics = tester
           .getSemantics(find.byType(SpyGameScreen))

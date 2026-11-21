@@ -3,7 +3,7 @@
   "id": "spy-ru-travel",
   "gameId": "spy",
   "locale": "ru",
-  "version": 1,
+  "version": 2,
   "title": "Вокруг света",
   "items": [
     {
@@ -101,6 +101,150 @@
     {
       "id": "medieval-castle",
       "label": "Средневековый замок"
+    },
+    {
+      "id": "hiking-trail",
+      "label": "Туристическая тропа"
+    },
+    {
+      "id": "mountain-pass",
+      "label": "Горный перевал"
+    },
+    {
+      "id": "rope-bridge",
+      "label": "Подвесной мост над ущельем"
+    },
+    {
+      "id": "rafting-boat",
+      "label": "Плот для сплава"
+    },
+    {
+      "id": "kayak",
+      "label": "Байдарка"
+    },
+    {
+      "id": "balloon-basket",
+      "label": "Корзина воздушного шара"
+    },
+    {
+      "id": "camel-caravan",
+      "label": "Караван в пустыне"
+    },
+    {
+      "id": "airplane-cabin",
+      "label": "Салон пассажирского самолёта"
+    },
+    {
+      "id": "border-checkpoint",
+      "label": "Пограничный пункт"
+    },
+    {
+      "id": "travel-agency",
+      "label": "Туристическое агентство"
+    },
+    {
+      "id": "rental-car-office",
+      "label": "Прокат автомобилей"
+    },
+    {
+      "id": "luggage-storage",
+      "label": "Камера хранения багажа"
+    },
+    {
+      "id": "street-food-stall",
+      "label": "Лавка уличной еды"
+    },
+    {
+      "id": "tea-plantation",
+      "label": "Чайная плантация"
+    },
+    {
+      "id": "olive-grove",
+      "label": "Оливковая роща"
+    },
+    {
+      "id": "rice-terraces",
+      "label": "Рисовые террасы"
+    },
+    {
+      "id": "lavender-field",
+      "label": "Лавандовое поле"
+    },
+    {
+      "id": "coral-reef",
+      "label": "Коралловый риф"
+    },
+    {
+      "id": "mangrove-forest",
+      "label": "Мангровый лес"
+    },
+    {
+      "id": "salt-lake",
+      "label": "Солёное озеро"
+    },
+    {
+      "id": "glacier",
+      "label": "Ледник"
+    },
+    {
+      "id": "geyser-valley",
+      "label": "Долина гейзеров"
+    },
+    {
+      "id": "sand-dunes",
+      "label": "Песчаные дюны"
+    },
+    {
+      "id": "bamboo-grove",
+      "label": "Бамбуковая роща"
+    },
+    {
+      "id": "fjord",
+      "label": "Фьорд"
+    },
+    {
+      "id": "canyon",
+      "label": "Каньон"
+    },
+    {
+      "id": "ancient-ruins",
+      "label": "Руины древнего города"
+    },
+    {
+      "id": "archaeological-dig",
+      "label": "Археологические раскопки"
+    },
+    {
+      "id": "mountain-monastery",
+      "label": "Горный монастырь"
+    },
+    {
+      "id": "rock-temple",
+      "label": "Храм в скале"
+    },
+    {
+      "id": "windmill",
+      "label": "Ветряная мельница"
+    },
+    {
+      "id": "canal-gondola",
+      "label": "Гондола на городском канале"
+    },
+    {
+      "id": "floating-village",
+      "label": "Деревня на воде"
+    },
+    {
+      "id": "nomad-yurt",
+      "label": "Юрта кочевников"
+    },
+    {
+      "id": "ice-hotel",
+      "label": "Ледяной отель"
+    },
+    {
+      "id": "ranger-lodge",
+      "label": "Домик смотрителя заповедника"
     }
   ]
 }

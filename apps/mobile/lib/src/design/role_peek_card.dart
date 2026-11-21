@@ -36,6 +36,7 @@ class _RolePeekCardState extends State<RolePeekCard>
     with WidgetsBindingObserver {
   static const _threshold = 72.0;
   final _pointers = <int>{};
+  final _frameKey = GlobalKey();
   bool _dragging = false, _blocked = false, _foreground = true;
   double _lift = 0;
 
@@ -142,13 +143,20 @@ class _RolePeekCardState extends State<RolePeekCard>
             onVerticalDragUpdate: gestureEnabled
                 ? (event) {
                     if (!mounted || !_dragging || _blocked) return;
+                    final frame = _frameKey.currentContext?.findRenderObject();
+                    final height = frame is RenderBox
+                        ? frame.size.height
+                        : 320.0;
                     setState(
-                      () => _lift = (_lift - event.delta.dy).clamp(0, 140),
+                      () => _lift = (_lift - event.delta.dy).clamp(
+                        0,
+                        height * .72,
+                      ),
                     );
                     if (_lift >= _threshold && !widget.revealed) {
                       HapticFeedback.selectionClick();
                       widget.onReveal();
-                    } else if (_lift < _threshold && widget.revealed) {
+                    } else if (_lift == 0 && widget.revealed) {
                       _endPeek();
                     }
                   }
@@ -156,32 +164,82 @@ class _RolePeekCardState extends State<RolePeekCard>
             onVerticalDragEnd: gestureEnabled ? (_) => _endPeek() : null,
             onVerticalDragCancel: gestureEnabled ? _endPeek : null,
             child: ClipRRect(
+              key: _frameKey,
               borderRadius: BorderRadius.circular(28),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Only public content is measured while concealed. This grows
-                  // naturally with text scale and never lays out a hidden role.
+                  // Public cover alone sizes the surface. The secret is always
+                  // positioned, so opening it never expands or moves the card.
                   Opacity(opacity: 0, child: ExcludeSemantics(child: _cover())),
-                  if (visible)
-                    Semantics(
-                      liveRegion: true,
-                      child: widget.secretBuilder(context),
-                    ),
                   Positioned.fill(
-                    child: IgnorePointer(
-                      child: ExcludeSemantics(
-                        child: AnimatedSlide(
-                          offset: visible
-                              ? const Offset(0, -1.02)
-                              : Offset(0, -_lift / 320),
-                          duration: reduced || (_dragging && !visible)
-                              ? Duration.zero
-                              : NightMotion.quick,
-                          curve: NightMotion.curve,
-                          child: _cover(),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: NightColors.raised,
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                  ),
+                  if (visible)
+                    Positioned.fill(
+                      child: ClipRect(
+                        key: const ValueKey('role-peek-window'),
+                        clipper: _PeekWindow(_dragging ? _lift : null),
+                        child: ExcludeSemantics(
+                          // A partial drag must not announce the whole secret.
+                          // The explicit button remains the screen reader path.
+                          excluding: _dragging,
+                          child: Semantics(
+                            liveRegion: !_dragging,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) =>
+                                  SingleChildScrollView(
+                                    reverse: true,
+                                    physics: _dragging
+                                        ? const NeverScrollableScrollPhysics()
+                                        : const ClampingScrollPhysics(),
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        minHeight: constraints.maxHeight,
+                                      ),
+                                      child: Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: widget.secretBuilder(context),
+                                      ),
+                                    ),
+                                  ),
+                            ),
+                          ),
                         ),
                       ),
+                    ),
+                  Positioned.fill(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final offset = visible && !_dragging
+                            ? -constraints.maxHeight * 1.02
+                            : -_lift;
+                        return IgnorePointer(
+                          child: ExcludeSemantics(
+                            child: AnimatedContainer(
+                              key: const ValueKey('role-peek-cover'),
+                              transform: Matrix4.translationValues(
+                                0,
+                                offset,
+                                0,
+                              ),
+                              duration: reduced || _dragging
+                                  ? Duration.zero
+                                  : NightMotion.quick,
+                              curve: Curves.easeOutCubic,
+                              child: KeyedSubtree(
+                                key: const ValueKey('role-peek-cover-face'),
+                                child: _cover(),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -192,26 +250,47 @@ class _RolePeekCardState extends State<RolePeekCard>
         const SizedBox(height: 12),
         Semantics(
           liveRegion: true,
-          child: Text(
-            visible && _dragging
-                ? 'Отпустите, чтобы скрыть роль.'
-                : 'Убедитесь, что только вы смотрите на экран.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: NightColors.muted),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Preserve the public hint's height during a drag. Otherwise a
+              // bottom-scrolled page clamps its offset and moves the card.
+              Visibility(
+                visible: !(visible && _dragging),
+                maintainState: true,
+                maintainAnimation: true,
+                maintainSize: true,
+                child: const Text(
+                  'Убедитесь, что только вы смотрите на экран.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: NightColors.muted),
+                ),
+              ),
+              if (visible && _dragging)
+                const Text(
+                  'Отпустите, чтобы скрыть роль.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: NightColors.muted),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 8),
-        if (!visible)
-          TextButton(
-            key: const ValueKey('reveal-role'),
-            onPressed: canReveal ? widget.onReveal : null,
-            child: const Text('Показать мою роль'),
-          )
-        else if (!_dragging)
-          TextButton(
-            onPressed: widget.onConceal,
-            child: const Text('Скрыть роль'),
+        Visibility(
+          visible: !_dragging,
+          maintainState: true,
+          maintainAnimation: true,
+          maintainSize: true,
+          child: TextButton(
+            key: visible ? null : const ValueKey('reveal-role'),
+            onPressed: canReveal
+                ? (visible ? widget.onConceal : widget.onReveal)
+                : null,
+            child: Text(
+              visible && !_dragging ? 'Скрыть роль' : 'Показать мою роль',
+            ),
           ),
+        ),
         if (widget.viewed) ...[
           const SizedBox(height: 12),
           NightButton(
@@ -231,7 +310,7 @@ class _RolePeekCardState extends State<RolePeekCard>
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          NightArt(kind: NightArtKind.seal, height: 72),
+          NightArt(kind: NightArtKind.seal, height: 56),
           SizedBox(height: 16),
           Text(
             'Ваша роль под защитой',
@@ -245,12 +324,79 @@ class _RolePeekCardState extends State<RolePeekCard>
             size: 32,
           ),
           Text(
-            'Потяните вверх и удерживайте',
+            'Поднимите обложку и удерживайте',
             textAlign: TextAlign.center,
             style: TextStyle(color: NightColors.muted),
           ),
         ],
       ),
+    ),
+  );
+}
+
+/// The uncovered band grows exactly by the finger distance. No reveal tween
+/// can expose more than the user lifted, including at the threshold.
+class _PeekWindow extends CustomClipper<Rect> {
+  const _PeekWindow(this.lift);
+  final double? lift;
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(
+    0,
+    lift == null ? 0 : size.height - lift!.clamp(0, size.height),
+    size.width,
+    size.height,
+  );
+  @override
+  bool shouldReclip(_PeekWindow oldClipper) => oldClipper.lift != lift;
+}
+
+/// Compact private content: the important text sits near the lower edge,
+/// underneath the physical cover, rather than becoming a full-screen poster.
+class RoleSecretFace extends StatelessWidget {
+  const RoleSecretFace({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.isSpy,
+  });
+  final String title, message;
+  final bool isSpy;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExcludeSemantics(
+          child: Icon(
+            isSpy ? Icons.visibility_outlined : Icons.place_outlined,
+            size: 24,
+            color: NightColors.accent,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: NightColors.muted,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: NightColors.text,
+            fontSize: isSpy ? 16 : 23,
+            height: 1.3,
+            fontWeight: isSpy ? FontWeight.w500 : FontWeight.w800,
+          ),
+        ),
+      ],
     ),
   );
 }
