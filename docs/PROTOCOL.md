@@ -157,3 +157,42 @@ type, payload. sessionId указывает текущую игру либо nul
 SessionRoomVault хранит только доступ и разрешённую retry-метаинформацию в
 sessionStorage; секретные действия новой игры, роли и snapshot туда не пишутся.
 Подробнее — [ADR 0008](adr/0008-browser-play.md).
+
+## PB-048 — «Что объединяет?», протокол v4
+
+Источник: `packages/game-contracts/schemas/rooms-v4.schema.json`, примеры
+`examples/rooms-v4.json`, generated TS/Dart/OpenAPI. Endpoint-префикс `/v4/rooms`,
+Socket.IO auth protocolVersion=4. v1/v2/v3 продолжают работать. Новая игра требует
+v4 у всех активных участников; у «Шпиона»/«Шкалы» прежние минимумы версий сохранены.
+
+Snapshot v4 добавляет `publicState.clues` и верхний `privateClues`. Игра содержит
+sessionId, phase(playing/reveal/finished), roundIndex0..4, roundCount5,
+clueIndex0..3, только открытые clues, solvedIds, attemptedIds текущей подсказки,
+scores, result и winners. Другие игровые поля null. В playing result=null,
+privateClues содержит только собственный последний answer/clueIndex/correct/points.
+В reveal/finished privateClues=null, result раскрывает canonical answer и ответы
+всех участников, включая null у неответивших. Неоткрытые подсказки не отправляются.
+
+- `clues.start {}` — ведущий, 1–12 участников, пять неповторяющихся заданий.
+- `clues.answer {answer,clueIndex}` — один ответ на открытый уровень, 1–120 символов;
+  неверный ответ можно повторить после следующей подсказки. Верный фиксирует очки.
+- `clues.hint {}` — ведущий открывает следующую подсказку; на последней явно
+  завершает раунд. UI требует подтверждения преждевременного раскрытия.
+- `clues.next {}` — ведущий переводит reveal в новое задание или finished.
+- `clues.cancel {}` — ведущий возвращает всех в лобби.
+
+Сохраняются checks actor/token, expectedVersion, sessionId, phase и атомарный ack.
+Повтор принятого commandId не начисляет очки повторно. Дополнительно payload
+clueIndex запрещает засчитать ответ за уже сменившуюся подсказку. Клиент не пишет
+answer в persisted pending-команду: после неопределённой сети читает состояние.
+Достоверный VERSION_CONFLICT допускает ограниченный повтор только той же попытки
+в той же сессии/задании/подсказке. Фон/disconnect удаляют черновик с экрана.
+
+Выход через старый протокол тоже отменяет активную новую игру. Вход после итогов
+очищает завершённую партию перед изменением состава. Content/version выбранных
+заданий сохраняются внутри JSONB комнаты; миграция таблиц не требуется.
+
+Чтобы компания за одним Wi-Fi не блокировала сама себя, v4 использует отдельные
+IP-бакеты720/мин для HTTP snapshot и command плюс120/мин на каждого guest.
+Socket v4:360/мин на IP плюс60/мин на проверенного гостя. Create10/join30 и
+прежние лимиты1/2/3 сохранены. В БД находятся только HMAC-ключи и счётчики.

@@ -39,6 +39,10 @@ def export(path, size):
 
 export(HERE / 'partybox-icon-1024.png', 1024)
 export(HERE / 'partybox-icon-512.png', 512)
+web_icons = MOBILE / 'web/icons'
+web_icons.mkdir(parents=True, exist_ok=True)
+for size in [192, 512]:
+    export(web_icons / f'Icon-{size}.png', size)
 for density, size in [('mdpi', 48), ('hdpi', 72), ('xhdpi', 96), ('xxhdpi', 144), ('xxxhdpi', 192)]:
     export(MOBILE / f'android/app/src/main/res/mipmap-{density}/ic_launcher.png', size)
 icons = MOBILE / 'ios/Runner/Assets.xcassets/AppIcon.appiconset'

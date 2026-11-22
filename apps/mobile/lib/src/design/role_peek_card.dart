@@ -20,6 +20,10 @@ class RolePeekCard extends StatefulWidget {
     required this.closedContinueLabel,
     required this.secretBuilder,
     this.concealEpoch = 0,
+    this.compact = false,
+    this.surfaceHeight,
+    this.showSafetyHint = true,
+    this.showContinue = true,
   });
 
   final bool revealed, enabled, viewed;
@@ -27,6 +31,8 @@ class RolePeekCard extends StatefulWidget {
   final String continueLabel, closedContinueLabel;
   final WidgetBuilder secretBuilder;
   final int concealEpoch;
+  final bool compact, showSafetyHint, showContinue;
+  final double? surfaceHeight;
 
   @override
   State<RolePeekCard> createState() => _RolePeekCardState();
@@ -247,35 +253,37 @@ class _RolePeekCardState extends State<RolePeekCard>
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Semantics(
-          liveRegion: true,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Preserve the public hint's height during a drag. Otherwise a
-              // bottom-scrolled page clamps its offset and moves the card.
-              Visibility(
-                visible: !(visible && _dragging),
-                maintainState: true,
-                maintainAnimation: true,
-                maintainSize: true,
-                child: const Text(
-                  'Убедитесь, что только вы смотрите на экран.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: NightColors.muted),
+        if (widget.showSafetyHint) ...[
+          const SizedBox(height: 12),
+          Semantics(
+            liveRegion: true,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Preserve the public hint's height during a drag. Otherwise a
+                // bottom-scrolled page clamps its offset and moves the card.
+                Visibility(
+                  visible: !(visible && _dragging),
+                  maintainState: true,
+                  maintainAnimation: true,
+                  maintainSize: true,
+                  child: const Text(
+                    'Убедитесь, что только вы смотрите на экран.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: NightColors.muted),
+                  ),
                 ),
-              ),
-              if (visible && _dragging)
-                const Text(
-                  'Отпустите, чтобы скрыть роль.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: NightColors.muted),
-                ),
-            ],
+                if (visible && _dragging)
+                  const Text(
+                    'Отпустите, чтобы скрыть роль.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: NightColors.muted),
+                  ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+        ],
+        SizedBox(height: widget.compact ? 4 : 8),
         Visibility(
           visible: !_dragging,
           maintainState: true,
@@ -291,7 +299,7 @@ class _RolePeekCardState extends State<RolePeekCard>
             ),
           ),
         ),
-        if (widget.viewed) ...[
+        if (widget.showContinue && widget.viewed) ...[
           const SizedBox(height: 12),
           NightButton(
             key: const ValueKey('handoff-role'),
@@ -303,35 +311,55 @@ class _RolePeekCardState extends State<RolePeekCard>
     );
   }
 
-  Widget _cover() => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 320),
-    child: NightPanel(
+  Widget _cover() {
+    final content = NightPanel(
+      padding: widget.compact ? 16 : 24,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          NightArt(kind: NightArtKind.seal, height: 56),
-          SizedBox(height: 16),
+          if (!widget.compact) ...[
+            NightArt(kind: NightArtKind.seal, height: 56),
+            const SizedBox(height: 16),
+          ],
           Text(
             'Ваша роль под защитой',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              fontSize: widget.compact ? 21 : 24,
+              height: widget.compact ? 1.2 : null,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: widget.compact ? 10 : 16),
           Icon(
             Icons.keyboard_double_arrow_up_rounded,
             color: NightColors.accent,
-            size: 32,
+            size: widget.compact ? 28 : 32,
           ),
           Text(
             'Поднимите обложку и удерживайте',
             textAlign: TextAlign.center,
-            style: TextStyle(color: NightColors.muted),
+            style: TextStyle(
+              color: NightColors.muted,
+              fontSize: widget.compact ? 14 : null,
+              height: widget.compact ? 1.35 : null,
+            ),
           ),
         ],
       ),
-    ),
-  );
+    );
+    if (widget.surfaceHeight != null) {
+      return SizedBox(
+        height: widget.surfaceHeight!.clamp(176.0, 480.0),
+        child: content,
+      );
+    }
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: widget.compact ? 208 : 320),
+      child: content,
+    );
+  }
 }
 
 /// The uncovered band grows exactly by the finger distance. No reveal tween

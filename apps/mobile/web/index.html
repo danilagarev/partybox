@@ -3,13 +3,64 @@
   <head>
     <base href="$FLUTTER_BASE_HREF" />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#141b1c" />
-    <meta name="description" content="Вечеро — локальное превью мобильной игры" />
-    <link rel="icon" href="data:," />
-    <title>Вечеро — Полночный клуб</title>
+    <meta
+      name="description"
+      content="PartyBox — Шпион, Шкала терпения и Что объединяет? Играйте одному или с друзьями."
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+    <link rel="icon" type="image/png" href="icons/Icon-192.png" />
+    <title>PartyBox — игры для компании</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #141b1c;
+        color: #f3efe7;
+        font-family: system-ui, sans-serif;
+      }
+      #partybox-loading {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 16px;
+        padding: 32px;
+        text-align: center;
+      }
+      #partybox-loading strong {
+        font-size: 32px;
+      }
+      #partybox-loading p {
+        margin: 0;
+        color: #b5c2ba;
+        line-height: 1.5;
+      }
+      #partybox-retry {
+        border: 0;
+        border-radius: 18px;
+        padding: 16px 24px;
+        background: #b7e77c;
+        color: #182323;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body style="background: #141b1c">
+    <div id="partybox-loading" role="status" aria-live="polite">
+      <strong>PartyBox</strong>
+      <p id="partybox-loading-message">Готовим игры. Первый запуск может занять немного времени.</p>
+      <button id="partybox-retry" hidden type="button" onclick="location.reload()">
+        Попробовать снова
+      </button>
+    </div>
+    <noscript>Для игры включите JavaScript в браузере.</noscript>
     <script src="flutter_bootstrap.js" async></script>
   </body>
 </html>

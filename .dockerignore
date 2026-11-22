@@ -24,3 +24,5 @@
 !deploy/
 !deploy/Dockerfile
 !deploy/entrypoint.mjs
+!deploy/web/
+!deploy/web/**

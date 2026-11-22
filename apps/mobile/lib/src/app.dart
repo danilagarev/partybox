@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'catalog/game_card.dart';
+import 'clues/clues_game_screen.dart';
 import 'design/night_components.dart';
 import 'design/night_gallery.dart';
 import 'design/night_theme.dart';
@@ -18,7 +20,9 @@ class PartyBoxApp extends StatelessWidget {
     this.roomControllerFactory,
     this.resolveRoomController,
     this.onConfigureServer,
+    this.initialRoomPin,
   });
+  final String? initialRoomPin;
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
   final Future<RoomController?> Function(BuildContext)? resolveRoomController;
@@ -27,6 +31,7 @@ class PartyBoxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'PartyBox',
+    initialRoute: '/',
     locale: const Locale('ru'),
     supportedLocales: const [Locale('ru')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -39,6 +44,7 @@ class PartyBoxApp extends StatelessWidget {
             roomControllerFactory: roomControllerFactory,
             resolveRoomController: resolveRoomController,
             onConfigureServer: onConfigureServer,
+            initialRoomPin: initialRoomPin,
           ),
   );
 }
@@ -50,7 +56,9 @@ class CatalogScreen extends StatefulWidget {
     this.roomControllerFactory,
     this.resolveRoomController,
     this.onConfigureServer,
+    this.initialRoomPin,
   });
+  final String? initialRoomPin;
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
   final Future<RoomController?> Function(BuildContext)? resolveRoomController;
@@ -64,6 +72,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
   // A connection resolver may await storage or configuration before pushing a
   // route. Keep one navigation intent across all entry points during that gap.
   bool _openingConnection = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final pin = widget.initialRoomPin;
+    if (pin != null && RegExp(r'^\d{6}$').hasMatch(pin)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_openRoom(context, joining: true, pin: pin));
+      });
+    }
+  }
 
   Future<void> _configureServer(BuildContext context) async {
     if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
@@ -84,6 +103,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
     BuildContext context, {
     String? game,
     bool joining = false,
+    String? pin,
   }) async {
     if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
     _openingConnection = true;
@@ -104,6 +124,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             controller: controller,
             initialGame: game,
             initialJoining: joining,
+            initialPin: pin,
           ),
         ),
       );
@@ -131,7 +152,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Две игры, чтобы стать ближе.',
+                'Три игры. Для себя и своей компании.',
                 style: TextStyle(color: NightColors.muted),
               ),
               const SizedBox(height: 24),
@@ -142,7 +163,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 children: [
                   NightEyebrow('ВЫБЕРИТЕ ИГРУ'),
                   Text(
-                    '4–12 человек',
+                    '1–12 человек',
                     style: TextStyle(fontSize: 12, color: NightColors.muted),
                   ),
                 ],
@@ -178,6 +199,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   (detailsContext) => ToleranceRulesScreen(
                     onOpenRoom: () =>
                         _openRoom(detailsContext, game: 'tolerance'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              CatalogGameCard(
+                title: 'Что объединяет?',
+                genre: 'ПОДСКАЗКИ И ДОГАДКИ',
+                tolerance: false,
+                clues: true,
+                description: 'Четыре подсказки. Один общий ответ.',
+                metadata: '1–12 игроков · пять заданий',
+                mode: 'Одному без сети или с друзьями в комнате',
+                action: 'Играть в «Что объединяет?»',
+                onPressed: () => _showDetails(
+                  context,
+                  (detailsContext) => CluesRulesScreen(
+                    onOpenRoom: () => _openRoom(detailsContext, game: 'clues'),
                   ),
                 ),
               ),

@@ -6,6 +6,7 @@ import '../design/night_theme.dart';
 import 'room_controller.dart';
 import 'room_models.dart';
 import 'room_game_panel.dart';
+import 'room_invitation.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({
@@ -13,9 +14,11 @@ class RoomScreen extends StatefulWidget {
     required this.controller,
     this.initialGame,
     this.initialJoining = false,
+    this.initialPin,
   });
   final String? initialGame;
   final bool initialJoining;
+  final String? initialPin;
   final RoomController controller;
   @override
   State<RoomScreen> createState() => _RoomScreenState();
@@ -24,14 +27,18 @@ class RoomScreen extends StatefulWidget {
 class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController(), _pin = TextEditingController();
-  bool _joining = false;
+  bool _joining = false, _ignoreInvitation = false;
   Timer? _ticker;
   bool _foreground = true;
   RoomController get controller => widget.controller;
   @override
   void initState() {
     super.initState();
-    _joining = widget.initialJoining;
+    _joining = widget.initialJoining || widget.initialPin != null;
+    if (widget.initialPin != null &&
+        RegExp(r'^\d{6}$').hasMatch(widget.initialPin!)) {
+      _pin.text = widget.initialPin!;
+    }
     WidgetsBinding.instance.addObserver(this);
     controller.addListener(_changed);
     unawaited(controller.initialize());
@@ -111,110 +118,275 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final snapshot = controller.snapshot;
+    final invitationConflict =
+        snapshot != null &&
+        !_ignoreInvitation &&
+        widget.initialPin != null &&
+        widget.initialPin != snapshot.pin;
+    final active =
+        snapshot != null &&
+        (snapshot.game != null && snapshot.game!.phase != 'results' ||
+            snapshot.tolerance != null &&
+                snapshot.tolerance!.phase != 'finished' ||
+            snapshot.clues != null && snapshot.clues!.phase != 'finished');
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) controller.hideRole();
       },
       child: Scaffold(
         appBar: AppBar(
+          actions: [
+            if (active)
+              IconButton(
+                tooltip: 'Комната и участники',
+                onPressed: () => _showRoomInfo(snapshot),
+                icon: const Icon(Icons.groups_outlined),
+              ),
+          ],
           title: Text(
-            snapshot == null || snapshot.protocolVersion == 3
+            snapshot == null || snapshot.protocolVersion >= 3
                 ? 'ИГРЫ В КОМНАТЕ'
                 : 'КОМНАТА «ШПИОНА»',
           ),
         ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  const NightEyebrow('У КАЖДОГО СВОЙ ТЕЛЕФОН'),
-                  const SizedBox(height: 16),
-                  Text(
-                    snapshot == null
-                        ? (_joining
-                              ? 'Присоединяйтесь к своим.'
-                              : 'Создадим вашу комнату.')
-                        : 'Все свои — здесь.',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    snapshot == null
-                        ? (_joining
-                              ? 'Введите имя и код от ведущего. Сохранённое место восстановится автоматически.'
-                              : widget.initialGame == 'tolerance'
-                              ? 'Играем в «Шкалу терпения». Создайте комнату, затем пригласите друзей по коду.'
-                              : 'Играем в «Шпиона». Создайте комнату, затем пригласите друзей по коду.')
-                        : snapshot.protocolVersion == 3
-                        ? 'Выберите игру в комнате. Обсуждайте за столом, а тайные ответы отправляйте с телефона.'
-                        : 'У каждого своя роль. Обсуждение и голосование — вслух.',
-                    style: TextStyle(color: NightColors.muted),
-                  ),
-                  const SizedBox(height: 24),
-                  if (snapshot != null)
-                    NightEntrance(
-                      key: ValueKey(snapshot.roomId),
-                      child: _lobby(snapshot),
-                    )
-                  else if (controller.canEnroll)
-                    _enrollment(),
-                  if (controller.busy)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Semantics(
-                        liveRegion: true,
-                        label: 'Подключаемся',
-                        child: LinearProgressIndicator(),
-                      ),
-                    ),
-                  if (controller.error != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Semantics(
-                        liveRegion: true,
-                        child: Text(
-                          controller.error!.message,
-                          style: const TextStyle(color: NightColors.error),
+        body: invitationConflict
+            ? _invitationConflict(snapshot)
+            : active
+            ? _activeGame(snapshot)
+            : SafeArea(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 560),
+                    child: ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        const NightEyebrow('У КАЖДОГО СВОЙ ТЕЛЕФОН'),
+                        const SizedBox(height: 16),
+                        Text(
+                          snapshot == null
+                              ? (_joining
+                                    ? 'Присоединяйтесь к своим.'
+                                    : 'Создадим вашу комнату.')
+                              : 'Все свои — здесь.',
+                          style: Theme.of(context).textTheme.headlineLarge,
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        Text(
+                          snapshot == null
+                              ? (_joining
+                                    ? (widget.initialPin != null
+                                          ? 'Код из приглашения уже заполнен. Введите своё имя, чтобы присоединиться.'
+                                          : 'Введите имя и код от ведущего. Сохранённое место восстановится автоматически.')
+                                    : widget.initialGame == 'clues'
+                                    ? 'Играем в «Что объединяет?». Можно начать одному или пригласить друзей по коду.'
+                                    : widget.initialGame == 'tolerance'
+                                    ? 'Играем в «Шкалу терпения». Создайте комнату, затем пригласите друзей по коду.'
+                                    : 'Играем в «Шпиона». Создайте комнату, затем пригласите друзей по коду.')
+                              : snapshot.protocolVersion >= 3
+                              ? 'Выберите игру в комнате. Обсуждайте за столом, а тайные ответы отправляйте с телефона.'
+                              : 'У каждого своя роль. Обсуждение и голосование — вслух.',
+                          style: TextStyle(color: NightColors.muted),
+                        ),
+                        const SizedBox(height: 24),
+                        if (snapshot != null)
+                          NightEntrance(
+                            key: ValueKey(snapshot.roomId),
+                            child: _lobby(snapshot),
+                          )
+                        else if (controller.canEnroll)
+                          _enrollment(),
+                        if (controller.busy)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Semantics(
+                              liveRegion: true,
+                              label: 'Подключаемся',
+                              child: LinearProgressIndicator(),
+                            ),
+                          ),
+                        if (controller.error != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Semantics(
+                              liveRegion: true,
+                              child: Text(
+                                controller.error!.message,
+                                style: const TextStyle(
+                                  color: NightColors.error,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (controller.notice != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Semantics(
+                              liveRegion: true,
+                              child: Text(controller.notice!),
+                            ),
+                          ),
+                        if (!controller.busy &&
+                            (controller.error != null || controller.hasPending))
+                          NightButton(
+                            label: 'Повторить',
+                            onPressed: controller.retry,
+                          ),
+                        if (!controller.busy &&
+                            controller.canForget &&
+                            (controller.hasPending || snapshot == null))
+                          TextButton(
+                            onPressed: () => _confirm(true),
+                            child: const Text('Удалить доступ с телефона'),
+                          ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Возврат в каталог сохраняет место в комнате.',
+                          style: TextStyle(
+                            color: NightColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                  if (controller.notice != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Semantics(
-                        liveRegion: true,
-                        child: Text(controller.notice!),
-                      ),
-                    ),
-                  if (!controller.busy &&
-                      (controller.error != null || controller.hasPending))
-                    NightButton(
-                      label: 'Повторить',
-                      onPressed: controller.retry,
-                    ),
-                  if (!controller.busy &&
-                      controller.canForget &&
-                      (controller.hasPending || snapshot == null))
-                    TextButton(
-                      onPressed: () => _confirm(true),
-                      child: const Text('Удалить доступ с телефона'),
-                    ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Возврат в каталог сохраняет место в комнате.',
-                    style: TextStyle(color: NightColors.muted, fontSize: 12),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
+
+  Future<void> _showInvitation(RoomSnapshot snapshot) async {
+    controller.hideRole();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => RoomInvitationDialog(
+        invitation: RoomInvitation.create(controller.api.origin, snapshot.pin),
+      ),
+    );
+  }
+
+  Widget _invitationConflict(RoomSnapshot snapshot) => SafeArea(
+    child: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'У вас уже есть другая комната',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Сохранено место в комнате ${snapshot.pin}. Приглашение ведёт в ${widget.initialPin}. Чтобы присоединиться, сначала выйдите из текущей комнаты. Активная партия будет отменена.',
+              ),
+              const SizedBox(height: 24),
+              NightButton(
+                label: 'Остаться в текущей',
+                onPressed: () => setState(() => _ignoreInvitation = true),
+              ),
+              TextButton(
+                onPressed: controller.busy ? null : () => _confirm(false),
+                child: const Text('Выйти и открыть приглашение'),
+              ),
+              if (controller.error != null)
+                Text(
+                  controller.error!.message,
+                  style: const TextStyle(color: NightColors.error),
+                ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Future<void> _showRoomInfo(RoomSnapshot snapshot) async {
+    controller.hideRole();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Комната ${snapshot.pin}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final player in snapshot.players)
+                Text(
+                  '${player.name}${player.id == snapshot.hostId ? ' · ведущий' : ''}',
+                ),
+              const SizedBox(height: 16),
+              Text(controller.online ? 'В сети' : 'Восстанавливаем связь…'),
+              const SizedBox(height: 12),
+              const Text(
+                'Приглашать новых участников можно в лобби и между партиями.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('К игре'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _confirm(false);
+            },
+            child: const Text('Выйти из комнаты'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _activeGame(RoomSnapshot snapshot) => SafeArea(
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact =
+                snapshot.game != null &&
+                MediaQuery.textScalerOf(context).scale(16) <= 22 &&
+                constraints.maxHeight >= 420;
+            final panel = RoomGamePanel(
+              key: ValueKey(snapshot.sessionId ?? 'lobby'),
+              controller: controller,
+              compactSpy: compact,
+            );
+            if (compact) {
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: panel,
+              );
+            }
+            return ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                panel,
+                if (controller.error != null)
+                  Text(
+                    controller.error!.message,
+                    style: const TextStyle(color: NightColors.error),
+                  ),
+                if (!controller.online || controller.hasPending)
+                  TextButton(
+                    onPressed: controller.busy ? null : controller.retry,
+                    child: const Text('Восстановить связь'),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    ),
+  );
 
   Widget _enrollment() => Form(
     key: _form,
@@ -282,7 +454,9 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
   Widget _lobby(RoomSnapshot snapshot) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (snapshot.game == null && snapshot.tolerance == null) ...[
+      if (snapshot.game == null &&
+          snapshot.tolerance == null &&
+          snapshot.clues == null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],
@@ -294,7 +468,9 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
             : null,
       ),
       const SizedBox(height: 20),
-      if (snapshot.game != null || snapshot.tolerance != null) ...[
+      if (snapshot.game != null ||
+          snapshot.tolerance != null ||
+          snapshot.clues != null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],
@@ -400,6 +576,12 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 12),
         const Text('Назовите код друзьям. Комната открыта 24 часа с создания.'),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () => _showInvitation(snapshot),
+          icon: const Icon(Icons.qr_code_2),
+          label: const Text('Пригласить друзей'),
+        ),
       ],
     ),
   );

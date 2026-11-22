@@ -64,3 +64,10 @@ output/android/
 
 # Python migration tooling
 __pycache__/
+
+# Reproducible web bundle; published through the verified CI artifact.
+/output/web-release/
+/deploy/web/*
+!/deploy/web/.gitkeep
+
+/output/web-preview-pb048/

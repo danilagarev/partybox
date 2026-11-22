@@ -1,0 +1,148 @@
+{
+  "V4Enrollment": {
+    "protocolVersion": 4,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "V4Command": {
+    "protocolVersion": 4,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": null,
+    "type": "clues.start",
+    "payload": {}
+  },
+  "V4Snapshot": {
+    "protocolVersion": 4,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "name": "Игрок 3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "name": "Игрок 4"
+        }
+      ],
+      "game": null,
+      "tolerance": null,
+      "clues": {
+        "sessionId": "00000000-0000-4000-8000-000000000048",
+        "phase": "playing",
+        "roundIndex": 0,
+        "roundCount": 5,
+        "clueIndex": 0,
+        "clues": ["Здесь встречаются люди из разных стран."],
+        "solvedIds": [],
+        "attemptedIds": [],
+        "scores": [
+          {
+            "playerId": "00000000-0000-4000-8000-000000000002",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000010",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000011",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000012",
+            "score": 0
+          }
+        ],
+        "result": null,
+        "winners": []
+      }
+    },
+    "privateState": null,
+    "selfId": "00000000-0000-4000-8000-000000000002",
+    "privateTolerance": null,
+    "privateClues": {
+      "answer": null,
+      "clueIndex": null,
+      "correct": false,
+      "points": 0
+    }
+  },
+  "V4EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 4,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "name": "Игрок 4"
+          }
+        ],
+        "game": {
+          "sessionId": "00000000-0000-4000-8000-000000000020",
+          "packId": "spy-ru-base",
+          "packVersion": 1,
+          "phase": "distribution",
+          "readyIds": [],
+          "deadline": null,
+          "result": null
+        },
+        "tolerance": null,
+        "clues": null
+      },
+      "privateState": {
+        "role": "civilian",
+        "location": "Учебная локация"
+      },
+      "selfId": "00000000-0000-4000-8000-000000000002",
+      "privateTolerance": null,
+      "privateClues": null
+    }
+  },
+  "V4Ack": {
+    "protocolVersion": 4,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "V4Error": {
+    "protocolVersion": 4,
+    "code": "FORBIDDEN"
+  }
+}

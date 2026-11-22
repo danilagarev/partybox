@@ -135,6 +135,14 @@ try {
   compose(['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'partybox-api']);
   await ready();
   assert.equal(JSON.parse(probe('health')).status, 'ok');
+  if (process.env.REQUIRE_WEB_BUNDLE === 'true') {
+    assert.match(probe(''), /PartyBox/);
+    assert.match(probe('', ['-I']), /content-type: text\/html/i);
+    assert.match(probe('flutter_bootstrap.js', ['-I']), /cache-control: no-store/i);
+    assert.match(probe('canvaskit/canvaskit.wasm', ['-I']), /content-type: application\/wasm/i);
+    assert.match(probe('manifest.json'), /PartyBox/);
+  }
+
   const enrollment = JSON.parse(
     probe('v3/rooms', [
       '-H',

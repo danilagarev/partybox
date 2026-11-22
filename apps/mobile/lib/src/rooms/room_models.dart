@@ -3,6 +3,7 @@ import 'dart:math';
 import 'generated/room_schema.dart';
 import 'generated/room_game_schema.dart';
 import 'generated/room_tolerance_schema.dart';
+import 'generated/room_clues_schema.dart';
 
 final class RoomFailure implements Exception {
   const RoomFailure(this.code);
@@ -49,6 +50,9 @@ final class RoomContract {
     (base[r'$defs'] as Map).addAll(
       (jsonDecode(roomToleranceSchemaJson) as Map)[r'$defs'] as Map,
     );
+    (base[r'$defs'] as Map).addAll(
+      (jsonDecode(roomCluesSchemaJson) as Map)[r'$defs'] as Map,
+    );
     return base;
   })();
   static bool accepts(String definition, Object? value) =>
@@ -81,6 +85,7 @@ final class RoomContract {
       'items',
       'minItems',
       'maxItems',
+      'uniqueItems',
     };
     if (schema.keys.any((key) => !supported.contains(key))) return false;
     if (schema.containsKey('oneOf') &&
@@ -155,6 +160,11 @@ final class RoomContract {
           }
         }
       case 'array':
+        if (value is List &&
+            schema['uniqueItems'] == true &&
+            value.toSet().length != value.length) {
+          return false;
+        }
         if (value is! List ||
             value.length < (schema['minItems'] as int? ?? 0) ||
             value.length > (schema['maxItems'] as int? ?? 1 << 30)) {
@@ -185,10 +195,14 @@ final class RoomSnapshot {
     this.tolerance,
     this.privateTolerance,
     this.protocolVersion,
+    this.clues,
+    this.privateClues,
   );
   factory RoomSnapshot.parse(Object? json) {
     RoomContract.require(
-      json is Map && json['protocolVersion'] == 3
+      json is Map && json['protocolVersion'] == 4
+          ? 'V4Snapshot'
+          : json is Map && json['protocolVersion'] == 3
           ? 'V3Snapshot'
           : json is Map && json['protocolVersion'] == 2
           ? 'GameSnapshot'
@@ -252,6 +266,15 @@ final class RoomSnapshot {
       map['selfId'] as String,
       gameValue != null,
     );
+    final clues = state['clues'] as Map<String, dynamic>?;
+    final privateClues = map['privateClues'] as Map<String, dynamic>?;
+    _validateClues(
+      clues,
+      privateClues,
+      ids,
+      map['selfId'] as String,
+      gameValue != null || tolerance != null,
+    );
     return RoomSnapshot._(
       map['roomId'] as String,
       map['version'] as int,
@@ -270,6 +293,8 @@ final class RoomSnapshot {
       tolerance == null ? null : ToleranceGame(tolerance),
       privateTolerance == null ? null : TolerancePrivate(privateTolerance),
       map['protocolVersion'] as int,
+      clues == null ? null : CluesGame(clues),
+      privateClues == null ? null : CluesPrivate(privateClues),
     );
   }
   final String roomId, selfId, hostId, pin;
@@ -281,7 +306,91 @@ final class RoomSnapshot {
   final RoomCard? card;
   final ToleranceGame? tolerance;
   final TolerancePrivate? privateTolerance;
-  String? get sessionId => tolerance?.sessionId ?? game?.sessionId;
+  final CluesGame? clues;
+  final CluesPrivate? privateClues;
+  String? get sessionId =>
+      clues?.sessionId ?? tolerance?.sessionId ?? game?.sessionId;
+
+  static void _validateClues(
+    Map<String, dynamic>? value,
+    Map<String, dynamic>? personal,
+    Set<String> players,
+    String self,
+    bool otherGame,
+  ) {
+    void require(bool condition) {
+      if (!condition) throw const RoomFailure('PROTOCOL');
+    }
+
+    if (value == null) {
+      require(personal == null);
+      return;
+    }
+    require(!otherGame);
+    final phase = value['phase'] as String;
+    require(phase == 'playing' ? personal != null : personal == null);
+    final clueIndex = value['clueIndex'] as int;
+    require((value['clues'] as List).length == clueIndex + 1);
+    final solved = (value['solvedIds'] as List).cast<String>();
+    final attempted = (value['attemptedIds'] as List).cast<String>();
+    final winners = (value['winners'] as List).cast<String>();
+    for (final ids in [solved, attempted, winners]) {
+      require(ids.toSet().length == ids.length && ids.every(players.contains));
+    }
+    final scores = (value['scores'] as List).cast<Map<String, dynamic>>();
+    require(
+      scores.length == players.length &&
+          scores.map((s) => s['playerId']).toSet().containsAll(players) &&
+          scores.map((s) => s['playerId']).toSet().length == players.length,
+    );
+    require((phase == 'finished') == winners.isNotEmpty);
+    if (phase == 'finished') {
+      require(value['roundIndex'] == 4);
+      final best = scores.map((s) => s['score'] as int).reduce(max);
+      require(
+        winners.toSet().containsAll(
+              scores
+                  .where((s) => s['score'] == best)
+                  .map((s) => s['playerId'] as String),
+            ) &&
+            winners.every(
+              (id) =>
+                  scores.any((s) => s['playerId'] == id && s['score'] == best),
+            ),
+      );
+    }
+    final result = value['result'] as Map?;
+    require((phase != 'playing') == (result != null));
+    if (personal != null) {
+      final answer = personal['answer'] as String?;
+      final ownClue = personal['clueIndex'] as int?;
+      final correct = personal['correct'] as bool;
+      final points = personal['points'] as int;
+      require((answer == null) == (ownClue == null));
+      require(ownClue == null || ownClue <= clueIndex);
+      require(correct == solved.contains(self));
+      require(correct ? answer != null && points == 4 - ownClue! : points == 0);
+      if (ownClue == clueIndex && answer != null) {
+        require(attempted.contains(self));
+      }
+    }
+    if (result != null) {
+      final answers = (result['answers'] as List).cast<Map<String, dynamic>>();
+      require(
+        answers.length == players.length &&
+            answers.map((a) => a['playerId']).toSet().length ==
+                players.length &&
+            answers.every(
+              (a) =>
+                  players.contains(a['playerId']) &&
+                  a['correct'] == solved.contains(a['playerId']) &&
+                  (a['correct'] == true
+                      ? a['answer'] != null && (a['points'] as int) > 0
+                      : a['points'] == 0),
+            ),
+      );
+    }
+  }
 
   static void _validateTolerance(
     Map<String, dynamic>? value,
@@ -488,4 +597,42 @@ final class TolerancePrivate {
   final int? guess;
   @override
   String toString() => 'TolerancePrivate(<redacted>)';
+}
+
+final class CluesGame {
+  CluesGame(Map<String, dynamic> value)
+    : sessionId = value['sessionId'] as String,
+      phase = value['phase'] as String,
+      roundIndex = value['roundIndex'] as int,
+      roundCount = value['roundCount'] as int,
+      clueIndex = value['clueIndex'] as int,
+      clues = List<String>.unmodifiable(value['clues'] as List),
+      solvedIds = List<String>.unmodifiable(value['solvedIds'] as List),
+      attemptedIds = List<String>.unmodifiable(value['attemptedIds'] as List),
+      scores = List<ToleranceScore>.unmodifiable(
+        (value['scores'] as List).map(
+          (s) => ToleranceScore(s as Map<String, dynamic>),
+        ),
+      ),
+      result = value['result'] as Map<String, dynamic>?,
+      winners = List<String>.unmodifiable(value['winners'] as List);
+  final String sessionId, phase;
+  final int roundIndex, roundCount, clueIndex;
+  final List<String> clues, solvedIds, attemptedIds, winners;
+  final List<ToleranceScore> scores;
+  final Map<String, dynamic>? result;
+}
+
+final class CluesPrivate {
+  CluesPrivate(Map<String, dynamic> value)
+    : answer = value['answer'] as String?,
+      clueIndex = value['clueIndex'] as int?,
+      correct = value['correct'] as bool,
+      points = value['points'] as int;
+  final String? answer;
+  final int? clueIndex;
+  final bool correct;
+  final int points;
+  @override
+  String toString() => 'CluesPrivate(<redacted>)';
 }

@@ -4,12 +4,19 @@ import '../design/night_theme.dart';
 import '../design/role_peek_card.dart';
 import 'room_controller.dart';
 import 'tolerance_panel.dart';
+import 'clues_panel.dart';
 import '../spy/local_session_adapter.dart';
 import '../spy/spy_question_help.dart';
 
 class RoomGamePanel extends StatefulWidget {
-  const RoomGamePanel({super.key, required this.controller, this.initialGame});
+  const RoomGamePanel({
+    super.key,
+    required this.controller,
+    this.initialGame,
+    this.compactSpy = false,
+  });
   final String? initialGame;
+  final bool compactSpy;
   final RoomController controller;
   @override
   State<RoomGamePanel> createState() => _RoomGamePanelState();
@@ -27,7 +34,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
   @override
   void initState() {
     super.initState();
-    _selectedGame = widget.controller.snapshot?.protocolVersion == 3
+    _selectedGame = (widget.controller.snapshot?.protocolVersion ?? 0) >= 3
         ? widget.initialGame ?? 'spy'
         : 'spy';
     final game = widget.controller.snapshot?.game;
@@ -36,8 +43,12 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     // A deliberate catalogue choice can replace a completed game. A generic
     // return keeps its result, and an active game always remains authoritative.
     _chooseNextGame =
-        widget.controller.snapshot?.tolerance?.phase == 'finished' &&
-        widget.initialGame == 'spy';
+        (widget.controller.snapshot?.tolerance?.phase == 'finished' &&
+            widget.initialGame != null &&
+            widget.initialGame != 'tolerance') ||
+        (widget.controller.snapshot?.clues?.phase == 'finished' &&
+            widget.initialGame != null &&
+            widget.initialGame != 'clues');
     _loadPacks();
   }
 
@@ -89,6 +100,17 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     final host = snapshot.hostId == snapshot.selfId;
     final enabled =
         !controller.busy && !controller.hasPending && controller.online;
+    final clues = snapshot.clues;
+    if (clues != null && !_chooseNextGame) {
+      return CluesPanel(
+        key: ValueKey((clues.sessionId, clues.roundIndex)),
+        controller: controller,
+        onChooseGame: () => setState(() => _chooseNextGame = true),
+      );
+    }
+    if (widget.compactSpy && game != null && game.phase != 'results') {
+      return _compactSpy(context);
+    }
     final tolerance = snapshot.tolerance;
     if (tolerance != null && !_chooseNextGame) {
       return TolerancePanel(
@@ -102,7 +124,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
       );
     }
     final choosing = game == null || game.phase == 'results';
-    final chooser = snapshot.protocolVersion == 3 && choosing
+    final chooser = snapshot.protocolVersion >= 3 && choosing
         ? Padding(
             padding: const EdgeInsets.only(bottom: 20),
             child: Wrap(
@@ -116,6 +138,14 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                       ? (_) => setState(() => _selectedGame = 'spy')
                       : null,
                 ),
+                if (snapshot.protocolVersion >= 4)
+                  ChoiceChip(
+                    label: const Text('Что объединяет?'),
+                    selected: _selectedGame == 'clues',
+                    onSelected: host && enabled
+                        ? (_) => setState(() => _selectedGame = 'clues')
+                        : null,
+                  ),
                 ChoiceChip(
                   label: const Text('Шкала терпения'),
                   selected: _selectedGame == 'tolerance',
@@ -127,6 +157,41 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             ),
           )
         : const SizedBox.shrink();
+    if (choosing && _selectedGame == 'clues') {
+      return NightPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            chooser,
+            Text(
+              'Разные намёки. Один ответ.',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Пять заданий, по четыре подсказки. Ответьте раньше остальных: за верный ответ — 4, 3, 2 или 1 очко. После ошибки можно попробовать с новой подсказкой.',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              '1–12 игроков · подсказки открывает ведущий · ответы тайные',
+            ),
+            const SizedBox(height: 20),
+            if (host)
+              NightButton(
+                label: 'Начать «Что объединяет?»',
+                onPressed: enabled && snapshot.protocolVersion >= 4
+                    ? () {
+                        setState(() => _chooseNextGame = false);
+                        controller.play('clues.start');
+                      }
+                    : null,
+              )
+            else
+              const Text('Ведущий начнёт партию, когда все соберутся.'),
+          ],
+        ),
+      );
+    }
     if (choosing && _selectedGame == 'tolerance') {
       return NightPanel(
         child: Column(
@@ -166,7 +231,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
         children: [
           chooser,
           if (game == null || game.phase == 'results') ...[
-            if (snapshot.protocolVersion == 3)
+            if (snapshot.protocolVersion >= 3)
               const ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Text('Как играть в «Шпиона»'),
@@ -296,7 +361,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             Text(
               'Готовы ${game.readyIds.length} из ${snapshot.players.length}',
             ),
-            if (snapshot.protocolVersion == 3)
+            if (snapshot.protocolVersion >= 3)
               Text(
                 'Ждём: ${snapshot.players.where((p) => !game.readyIds.contains(p.id)).map((p) => p.id == snapshot.selfId ? '${p.name} (вы)' : p.name).join(', ')}',
                 style: const TextStyle(color: NightColors.muted),
@@ -364,6 +429,178 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _compactSpy(BuildContext context) {
+    final controller = widget.controller;
+    final snapshot = controller.snapshot!;
+    final game = snapshot.game!;
+    final host = snapshot.hostId == snapshot.selfId;
+    final enabled =
+        controller.online && !controller.busy && !controller.hasPending;
+    final ready = game.readyIds.contains(snapshot.selfId);
+    final label = switch (game.phase) {
+      'distribution' =>
+        ready
+            ? 'Роль подтверждена'
+            : controller.cardVisible
+            ? 'Скрыть и подтвердить'
+            : 'Подтвердить роль',
+      'discussion' => 'Завершить обсуждение',
+      _ => 'Подтвердить выбор',
+    };
+    VoidCallback? action;
+    if (enabled &&
+        game.phase == 'distribution' &&
+        controller.roleViewed &&
+        !ready) {
+      action = () => controller.play('spy.ready');
+    } else if (enabled && host && game.phase == 'discussion') {
+      action = () => controller.play('spy.vote');
+    } else if (enabled && host && game.phase == 'voting' && _suspect != null) {
+      action = () => controller.play('spy.accuse', {'suspectId': _suspect});
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(switch (game.phase) {
+          'distribution' => 'Посмотрите свою карточку',
+          'discussion' => 'Обсуждение',
+          _ => 'Кого подозревает компания?',
+        }, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Text(
+          game.phase == 'distribution'
+              ? 'Готовы ${game.readyIds.length} из ${snapshot.players.length}'
+              : game.phase == 'voting'
+              ? 'Проголосуйте вслух. Выбор подтвердит ведущий.'
+              : 'Задавайте вопросы о месте, не называя его.',
+          style: const TextStyle(color: NightColors.muted),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, space) {
+              if (game.phase == 'distribution') {
+                if (ready) {
+                  return const Center(
+                    child: Text('Роль скрыта. Ждём остальных.'),
+                  );
+                }
+                return SingleChildScrollView(
+                  child: RolePeekCard(
+                    key: ValueKey((
+                      'room-peek',
+                      game.sessionId,
+                      snapshot.selfId,
+                    )),
+                    compact: true,
+                    surfaceHeight: (space.maxHeight - 60).clamp(176, 480),
+                    showSafetyHint: false,
+                    showContinue: false,
+                    revealed: controller.cardVisible,
+                    enabled: enabled,
+                    viewed: controller.roleViewed,
+                    concealEpoch: controller.roleConcealEpoch,
+                    onReveal: controller.revealRole,
+                    onConceal: controller.hideRole,
+                    onContinue: () => controller.play('spy.ready'),
+                    continueLabel: 'Скрыть и подтвердить',
+                    closedContinueLabel: 'Подтвердить роль',
+                    secretBuilder: (_) => RoleSecretFace(
+                      title: snapshot.card?.role == 'spy'
+                          ? 'Вы — шпион'
+                          : 'Вы знаете место',
+                      message: snapshot.card?.role == 'spy'
+                          ? 'Выясните локацию, не выдавая себя.'
+                          : snapshot.card!.location!,
+                      isSpy: snapshot.card?.role == 'spy',
+                    ),
+                  ),
+                );
+              }
+              if (game.phase == 'discussion') {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Semantics(
+                        label:
+                            'Осталось ${controller.remaining.inMinutes} минут ${controller.remaining.inSeconds % 60} секунд',
+                        excludeSemantics: true,
+                        child: Text(
+                          '${controller.remaining.inMinutes}:${(controller.remaining.inSeconds % 60).toString().padLeft(2, '0')}',
+                          style: Theme.of(context).textTheme.displayLarge
+                              ?.copyWith(color: NightColors.accent),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const SpyQuestionHelp(),
+                      if (controller.remaining == Duration.zero)
+                        const Text('Ждём завершения обсуждения на сервере.'),
+                    ],
+                  ),
+                );
+              }
+              return SingleChildScrollView(
+                child: host
+                    ? RadioGroup<String>(
+                        groupValue: _suspect,
+                        onChanged: (value) {
+                          if (enabled) setState(() => _suspect = value);
+                        },
+                        child: Column(
+                          children: [
+                            for (final (index, player)
+                                in snapshot.players.indexed)
+                              RadioListTile<String>(
+                                value: player.id,
+                                title: Text('${index + 1}. ${player.name}'),
+                                enabled: enabled,
+                                dense: true,
+                              ),
+                          ],
+                        ),
+                      )
+                    : const Text(
+                        'Обсудите подозрения. Ведущий подтвердит общий выбор.',
+                      ),
+              );
+            },
+          ),
+        ),
+        if (controller.error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                controller.error!.message,
+                style: const TextStyle(color: NightColors.error),
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: game.phase == 'distribution' || host
+                  ? NightButton(label: label, onPressed: action)
+                  : const Text(
+                      'Дальше перейдёт ведущий.',
+                      style: TextStyle(color: NightColors.muted),
+                    ),
+            ),
+            if (host)
+              IconButton(
+                tooltip: 'Отменить раунд',
+                onPressed: enabled ? _cancel : null,
+                icon: const Icon(Icons.close_rounded),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

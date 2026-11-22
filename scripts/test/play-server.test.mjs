@@ -96,6 +96,7 @@ test('API commands preserve methods, query, bearer header, body and backend stat
     '/rooms',
     '/v2/rooms/a/commands',
     '/v3/rooms/a/commands',
+    '/v4/rooms/a/commands',
     '/socket.io/?EIO=4',
     '/health',
     '/ready',

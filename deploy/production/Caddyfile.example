@@ -1,6 +1,7 @@
 # Add this site block to the Caddyfile of your standalone Docker Caddy.
 # Its container must also join the external partybox_proxy network.
 partybox.sorima.tech {
+    encode zstd gzip
     reverse_proxy partybox-api:3000 {
         # Exactly one trusted proxy; discard client-supplied forwarding chains.
         header_up X-Forwarded-For {remote_host}

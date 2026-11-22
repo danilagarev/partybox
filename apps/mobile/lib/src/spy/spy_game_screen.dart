@@ -53,6 +53,8 @@ class _SpyGameScreenState extends State<SpyGameScreen>
   int _count = 4;
   int _minutes = 5;
   String? _suspectId;
+  bool _compact = false;
+  double _roleSurfaceHeight = 240;
 
   bool get _active =>
       _controller?.phase != null && _controller?.phase != SpyPhase.results;
@@ -270,59 +272,151 @@ class _SpyGameScreenState extends State<SpyGameScreen>
         title: const Text('ШПИОН'),
         leading: BackButton(onPressed: _exit),
       ),
+      bottomNavigationBar: _primaryAction(),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: ListView(
-              key: ValueKey((
-                _controller?.phase,
-                _settings,
-                _controller?.currentPlayer?.id,
-                _setupRevision,
-              )),
-              padding: const EdgeInsets.all(24),
-              children: [
-                NightEntrance(
-                  key: ValueKey((
-                    _controller?.phase,
-                    _settings,
-                    _controller?.currentPlayer?.id,
-                    _loadFailed,
-                  )),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_controller != null) ...[
-                        NightStageProgress(
-                          labels: const [
-                            'Подготовка',
-                            'Роли',
-                            'Обсуждение',
-                            'Голосование',
-                            'Итоги',
-                          ],
-                          current: switch (_controller!.phase) {
-                            null => 0,
-                            SpyPhase.distribution => 1,
-                            SpyPhase.discussion => 2,
-                            SpyPhase.voting => 3,
-                            SpyPhase.results => 4,
-                          },
+        child: LayoutBuilder(
+          builder: (context, viewport) {
+            _compact = MediaQuery.textScalerOf(context).scale(16) <= 18.4;
+            _roleSurfaceHeight = (viewport.maxHeight - 268).clamp(176.0, 300.0);
+            final theme = Theme.of(context);
+            return Theme(
+              data: _compact
+                  ? theme.copyWith(
+                      inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
                         ),
-                        const SizedBox(height: 24),
-                      ],
-                      ..._content(context),
+                      ),
+                    )
+                  : theme,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: ListView(
+                    key: ValueKey((
+                      _controller?.phase,
+                      _settings,
+                      _controller?.currentPlayer?.id,
+                      _setupRevision,
+                    )),
+                    padding: EdgeInsets.all(_compact ? 16 : 24),
+                    children: [
+                      NightEntrance(
+                        key: ValueKey((
+                          _controller?.phase,
+                          _settings,
+                          _controller?.currentPlayer?.id,
+                          _loadFailed,
+                        )),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_controller != null) ...[
+                              NightStageProgress(
+                                labels: const [
+                                  'Подготовка',
+                                  'Роли',
+                                  'Обсуждение',
+                                  'Голосование',
+                                  'Итоги',
+                                ],
+                                current: switch (_controller!.phase) {
+                                  null => 0,
+                                  SpyPhase.distribution => 1,
+                                  SpyPhase.discussion => 2,
+                                  SpyPhase.voting => 3,
+                                  SpyPhase.results => 4,
+                                },
+                              ),
+                              SizedBox(height: _compact ? 12 : 24),
+                            ],
+                            ..._content(context),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     ),
   );
+
+  Widget? _primaryAction() {
+    final controller = _controller;
+    if (controller == null) return null;
+    final phase = controller.phase;
+    final String label;
+    final VoidCallback? action;
+    switch (phase) {
+      case null:
+        label = _settings
+            ? (_saving ? 'Готовим партию…' : 'Раздать роли')
+            : 'К настройкам';
+        action = _settings
+            ? (_saving || _clearing ? null : () => _start(controller))
+            : (_clearing
+                  ? null
+                  : () {
+                      if (!_formKey.currentState!.validate()) return;
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() => _settings = true);
+                    });
+      case SpyPhase.distribution:
+        label = !controller.canHandoff
+            ? 'Посмотрите роль'
+            : controller.visibleCard == null
+            ? 'Передать телефон'
+            : 'Скрыть и передать';
+        action = controller.canHandoff && _canReveal
+            ? () => _handoff(controller.currentPlayer!.id)
+            : null;
+      case SpyPhase.discussion:
+        label = 'Завершить обсуждение';
+        action = controller.startVoting;
+      case SpyPhase.voting:
+        label = 'Подтвердить и раскрыть';
+        action = _suspectId == null
+            ? null
+            : () => controller.accuse(_suspectId!);
+      case SpyPhase.results:
+        label = 'Ещё раз с теми же игроками';
+        action = () {
+          _suspectId = null;
+          controller.replay();
+        };
+    }
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: KeyedSubtree(
+                key: phase == SpyPhase.distribution && controller.canHandoff
+                    ? const ValueKey('handoff-role')
+                    : null,
+                child: NightButton(
+                  key: const ValueKey('spy-primary-action'),
+                  onPressed: action,
+                  label: label,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   List<Widget> _content(BuildContext context) {
     final controller = _controller;
@@ -362,25 +456,33 @@ class _SpyGameScreenState extends State<SpyGameScreen>
         final player = controller.currentPlayer!;
         final card = controller.visibleCard;
         return [
-          NightEyebrow('ЛИЧНАЯ КАРТОЧКА / ТЕЛЕФОН ПО КРУГУ'),
-          const SizedBox(height: 12),
+          if (!_compact) ...[
+            const NightEyebrow('ЛИЧНАЯ КАРТОЧКА / ТЕЛЕФОН ПО КРУГУ'),
+            const SizedBox(height: 12),
+          ],
           Text(
             'Карточка ${controller.distributedCount + 1} из ${controller.players.length}',
             style: const TextStyle(color: NightColors.muted),
           ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: controller.distributedCount / controller.players.length,
-            semanticsLabel:
-                'Роли получили ${controller.distributedCount} из ${controller.players.length}',
-            minHeight: 3,
-            borderRadius: BorderRadius.circular(2),
-          ),
-          const SizedBox(height: 24),
+          if (!_compact) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: controller.distributedCount / controller.players.length,
+              semanticsLabel:
+                  'Роли получили ${controller.distributedCount} из ${controller.players.length}',
+              minHeight: 3,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ],
+          SizedBox(height: _compact ? 8 : 24),
           _heading(context, 'Передайте телефон: ${player.name}'),
-          const SizedBox(height: 24),
+          SizedBox(height: _compact ? 12 : 24),
           RolePeekCard(
             key: ValueKey(('peek', player.id)),
+            compact: _compact,
+            surfaceHeight: _compact ? _roleSurfaceHeight : null,
+            showSafetyHint: !_compact,
+            showContinue: false,
             revealed: card != null,
             concealEpoch: controller.concealEpoch,
             enabled: _canReveal,
@@ -396,9 +498,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
               title: card!.role == SpyRole.spy
                   ? 'Вы — шпион'
                   : 'Вы — мирный игрок',
-              message:
-                  card.location ??
-                  'Вы не знаете локацию. Слушайте вопросы и не выдавайте себя.',
+              message: card.location ?? 'Выясните локацию. Не выдавайте себя.',
               isSpy: card.role == SpyRole.spy,
             ),
           ),
@@ -406,11 +506,14 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       case SpyPhase.discussion:
         final seconds = controller.remainingSeconds;
         return [
-          const NightEyebrow('ВСЕ РОЛИ РОЗДАНЫ'),
-          const SizedBox(height: 16),
+          if (!_compact) ...[
+            const NightEyebrow('ВСЕ РОЛИ РОЗДАНЫ'),
+            const SizedBox(height: 16),
+          ],
           _heading(context, 'Обсуждение'),
-          const NightArt(kind: NightArtKind.constellation, height: 130),
-          const SizedBox(height: 24),
+          if (!_compact)
+            const NightArt(kind: NightArtKind.constellation, height: 130),
+          SizedBox(height: _compact ? 16 : 24),
           Semantics(
             label: 'Осталось ${seconds ~/ 60} минут ${seconds % 60} секунд',
             child: ExcludeSemantics(
@@ -419,9 +522,9 @@ class _SpyGameScreenState extends State<SpyGameScreen>
                 child: Text(
                   '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
                   key: const ValueKey('discussion-timer'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Manrope',
-                    fontSize: 80,
+                    fontSize: _compact ? 72 : 80,
                     height: 1.1,
                     letterSpacing: -4,
                     fontWeight: FontWeight.w800,
@@ -450,22 +553,21 @@ class _SpyGameScreenState extends State<SpyGameScreen>
             'Задавайте друг другу вопросы о месте. Не называйте локацию прямо.',
           ),
           const SpyQuestionHelp(),
-          const SizedBox(height: 24),
-          NightButton(
-            onPressed: controller.startVoting,
-            label: 'Завершить обсуждение',
-          ),
         ];
       case SpyPhase.voting:
         return [
-          const NightEyebrow('ГОЛОСОВАНИЕ / ОБЩИЙ ВЫБОР'),
-          const SizedBox(height: 16),
+          if (!_compact) ...[
+            const NightEyebrow('ГОЛОСОВАНИЕ / ОБЩИЙ ВЫБОР'),
+            const SizedBox(height: 16),
+          ],
           _heading(context, 'Кого подозревает компания?'),
-          const SizedBox(height: 16),
-          const Text(
-            'Проголосуйте вслух. При ничьей обсудите ещё раз. Ведущий вводит общий выбор.',
-          ),
-          const SizedBox(height: 16),
+          if (!_compact) ...[
+            const SizedBox(height: 16),
+            const Text(
+              'Проголосуйте вслух. При ничьей обсудите ещё раз. Ведущий вводит общий выбор.',
+            ),
+          ],
+          SizedBox(height: _compact ? 12 : 16),
           RadioGroup<String>(
             groupValue: _suspectId,
             onChanged: (value) {
@@ -476,7 +578,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
               children: [
                 for (var i = 0; i < controller.players.length; i++)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: EdgeInsets.only(bottom: _compact ? 6 : 10),
                     child: Material(
                       animationDuration: NightMotion.reduced(context)
                           ? Duration.zero
@@ -493,6 +595,11 @@ class _SpyGameScreenState extends State<SpyGameScreen>
                           ? NightColors.raised
                           : NightColors.surface,
                       child: RadioListTile<String>(
+                        dense: _compact,
+                        visualDensity: _compact ? VisualDensity.compact : null,
+                        contentPadding: _compact
+                            ? const EdgeInsets.symmetric(horizontal: 12)
+                            : null,
                         selected: _suspectId == controller.players[i].id,
                         title: Text(controller.players[i].name),
                         subtitle: Text('Игрок ${i + 1}'),
@@ -503,20 +610,14 @@ class _SpyGameScreenState extends State<SpyGameScreen>
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          if (_suspectId != null) ...[
+          if (!_compact && _suspectId != null) ...[
+            const SizedBox(height: 24),
             Text(
               'Выбор компании: ${controller.players.firstWhere((p) => p.id == _suspectId).name}',
               style: const TextStyle(color: NightColors.accent),
             ),
             const SizedBox(height: 16),
           ],
-          NightButton(
-            onPressed: _suspectId == null
-                ? null
-                : () => controller.accuse(_suspectId!),
-            label: 'Подтвердить и раскрыть',
-          ),
         ];
       case SpyPhase.results:
         final result = controller.result!;
@@ -527,32 +628,35 @@ class _SpyGameScreenState extends State<SpyGameScreen>
           (p) => p.id == result['suspectId'],
         );
         return [
-          const NightEyebrow('ИТОГ ПАРТИИ'),
-          NightResultArt(
-            kind: result['winner'] == 'civilians'
-                ? NightArtKind.seal
-                : NightArtKind.eye,
-            height: 180,
-            onColor: NightColors.accent,
-            color: result['winner'] == 'civilians'
-                ? NightColors.accent
-                : NightColors.raised,
-          ),
+          if (!_compact) ...[
+            const NightEyebrow('ИТОГ ПАРТИИ'),
+            NightResultArt(
+              kind: result['winner'] == 'civilians'
+                  ? NightArtKind.seal
+                  : NightArtKind.eye,
+              height: 180,
+              onColor: NightColors.accent,
+              color: result['winner'] == 'civilians'
+                  ? NightColors.accent
+                  : NightColors.raised,
+            ),
+          ],
           _heading(
             context,
             result['winner'] == 'civilians'
                 ? 'Шпион найден!'
                 : 'Шпион победил!',
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: _compact ? 12 : 24),
           Text(
             result['winner'] == 'civilians'
                 ? 'Алиби не сработало. Команда верно вычислила шпиона.'
                 : 'Шпион остался незамеченным. Компания выбрала мирного игрока.',
             style: const TextStyle(color: NightColors.muted),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: _compact ? 12 : 24),
           NightPanel(
+            padding: _compact ? 16 : 24,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -560,21 +664,14 @@ class _SpyGameScreenState extends State<SpyGameScreen>
                   'Шпион: ${spy.name}',
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-                const Divider(height: 28),
+                Divider(height: _compact ? 16 : 28),
                 Text('Локация: ${result['location']}'),
-                const Divider(height: 28),
+                Divider(height: _compact ? 16 : 28),
                 Text('Вы выбрали: ${suspect.name}'),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          NightButton(
-            onPressed: () {
-              _suspectId = null;
-              controller.replay();
-            },
-            label: 'Ещё раз с теми же игроками',
-          ),
+          SizedBox(height: _compact ? 8 : 24),
           TextButton(
             onPressed: () =>
                 Navigator.of(context).popUntil((route) => route.isFirst),
@@ -584,16 +681,26 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     }
   }
 
-  Widget _heading(BuildContext context, String text) =>
-      Text(text, style: Theme.of(context).textTheme.headlineMedium);
+  Widget _heading(BuildContext context, String text) => Text(
+    text,
+    style: _compact
+        ? Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontSize: 24, height: 1.15)
+        : Theme.of(context).textTheme.headlineMedium,
+  );
 
   List<Widget> _playersContent() => [
-    const NightEyebrow('ПОДГОТОВКА / 01'),
-    const SizedBox(height: 16),
+    if (!_compact) ...[
+      const NightEyebrow('ПОДГОТОВКА / 01'),
+      const SizedBox(height: 16),
+    ],
     _heading(context, 'Кто играет?'),
-    const SizedBox(height: 16),
-    const Text('От 4 до 12 человек. Одинаковые имена допустимы.'),
-    const SizedBox(height: 24),
+    if (!_compact) ...[
+      const SizedBox(height: 16),
+      const Text('От 4 до 12 человек. Одинаковые имена допустимы.'),
+    ],
+    SizedBox(height: _compact ? 12 : 24),
     DropdownButtonFormField<int>(
       isExpanded: true,
       key: const ValueKey('player-count'),
@@ -605,41 +712,41 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       ],
       onChanged: _clearing ? null : (value) => setState(() => _count = value!),
     ),
-    const SizedBox(height: 16),
+    SizedBox(height: _compact ? 12 : 16),
     Form(
       key: _formKey,
-      child: Column(
-        children: [
-          for (var i = 0; i < _count; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TextFormField(
-                key: ValueKey('player-name-$i'),
-                controller: _names[i],
-                enabled: !_clearing,
-                decoration: InputDecoration(labelText: 'Игрок ${i + 1}'),
-                textCapitalization: TextCapitalization.words,
-                textInputAction: i == _count - 1
-                    ? TextInputAction.done
-                    : TextInputAction.next,
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Введите имя'
-                    : null,
-              ),
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = _compact
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+          return Wrap(
+            spacing: 12,
+            runSpacing: _compact ? 12 : 16,
+            children: [
+              for (var i = 0; i < _count; i++)
+                SizedBox(
+                  width: width,
+                  child: TextFormField(
+                    key: ValueKey('player-name-$i'),
+                    controller: _names[i],
+                    enabled: !_clearing,
+                    decoration: InputDecoration(labelText: 'Игрок ${i + 1}'),
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: i == _count - 1
+                        ? TextInputAction.done
+                        : TextInputAction.next,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Введите имя'
+                        : null,
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     ),
-    NightButton(
-      onPressed: _clearing
-          ? null
-          : () {
-              if (!_formKey.currentState!.validate()) return;
-              FocusManager.instance.primaryFocus?.unfocus();
-              setState(() => _settings = true);
-            },
-      label: 'К настройкам',
-    ),
+    SizedBox(height: _compact ? 8 : 16),
     if (widget.setupStore != null)
       TextButton(
         onPressed: _clearing ? null : _clearSetup,
@@ -651,15 +758,19 @@ class _SpyGameScreenState extends State<SpyGameScreen>
   ];
 
   List<Widget> _settingsContent(SpyController controller) => [
-    const NightEyebrow('ПОДГОТОВКА / 02'),
-    const SizedBox(height: 16),
+    if (!_compact) ...[
+      const NightEyebrow('ПОДГОТОВКА / 02'),
+      const SizedBox(height: 16),
+    ],
     _heading(context, 'Настройки партии'),
-    const SizedBox(height: 12),
-    const Text(
-      'Один раунд. Один шпион. Все свои?',
-      style: TextStyle(color: NightColors.muted),
-    ),
-    const SizedBox(height: 24),
+    if (!_compact) ...[
+      const SizedBox(height: 12),
+      const Text(
+        'Один раунд. Один шпион. Все свои?',
+        style: TextStyle(color: NightColors.muted),
+      ),
+    ],
+    SizedBox(height: _compact ? 12 : 24),
     DropdownButtonFormField<String>(
       isExpanded: true,
       key: ValueKey('spy-pack-${controller.adapter.pack.id}'),
@@ -679,13 +790,13 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       onChanged: _saving ? null : (id) => controller.selectPack(id!),
     ),
     const SizedBox(height: 12),
-    if (controller.adapter.pack.description.isNotEmpty)
+    if (!_compact && controller.adapter.pack.description.isNotEmpty)
       Text(controller.adapter.pack.description),
     Text(
       controller.adapter.pack.rotationLabel,
       style: const TextStyle(color: NightColors.muted),
     ),
-    const SizedBox(height: 24),
+    SizedBox(height: _compact ? 12 : 24),
     DropdownButtonFormField<int>(
       isExpanded: true,
       key: const ValueKey('discussion-duration'),
@@ -697,20 +808,16 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       ],
       onChanged: _saving ? null : (value) => setState(() => _minutes = value!),
     ),
-    const SizedBox(height: 24),
+    SizedBox(height: _compact ? 12 : 24),
     Text('Игроков: $_count · один шпион'),
-    if (widget.setupStore != null) ...[
+    if (!_compact && widget.setupStore != null) ...[
       const SizedBox(height: 12),
       const Text(
         'При старте сохраним имена, тему и время. После закрытия приложения начните новый раунд.',
         style: TextStyle(color: NightColors.muted),
       ),
     ],
-    const SizedBox(height: 24),
-    NightButton(
-      onPressed: _saving ? null : () => _start(controller),
-      label: _saving ? 'Готовим партию…' : 'Раздать роли',
-    ),
+    SizedBox(height: _compact ? 8 : 24),
     TextButton(
       onPressed: _saving ? null : () => setState(() => _settings = false),
       child: const Text('Изменить имена'),

@@ -22,6 +22,59 @@ Map<String, dynamic> fixture() =>
             as Map)['GameSnapshot']
         as Map<String, dynamic>);
 void main() {
+  for (final size in [
+    const Size(320, 640),
+    const Size(360, 800),
+    const Size(390, 844),
+  ]) {
+    testWidgets('network role and confirmation fit $size without page scroll', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final api = FakeRoomApi()..current = RoomSnapshot.parse(fixture());
+      final controller = RoomController(
+        api: api,
+        vault: TestVault()..value = saved(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: RoomScreen(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      final action = find.text('Подтвердить роль');
+      final rect = tester.getRect(action);
+      expect(rect.bottom, lessThanOrEqualTo(size.height));
+      expect(rect.top, greaterThanOrEqualTo(0));
+      for (final element in find.byType(Scrollable).evaluate()) {
+        expect((element as StatefulElement).state is ScrollableState, true);
+        final position = (element.state as ScrollableState).position;
+        expect(position.maxScrollExtent, 0);
+      }
+      final before = tester.getRect(
+        find.byKey(const ValueKey('role-peek-surface')),
+      );
+      final gesture = await holdCard(tester);
+      expect(controller.cardVisible, true);
+      expect(
+        tester.getRect(find.byKey(const ValueKey('role-peek-surface'))),
+        before,
+      );
+      await gesture.up();
+      await tester.pump();
+      expect(controller.cardVisible, false);
+      expect(find.text('Учебная локация'), findsNothing);
+      expect(tester.getRect(action).bottom, lessThanOrEqualTo(size.height));
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   testWidgets(
     'catalogue choice replaces finished Spy but preserves active Spy',
     (tester) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'src/rooms/room_api.dart';
+import 'src/rooms/room_invitation.dart';
 import 'src/rooms/room_controller.dart';
 import 'src/rooms/room_vault.dart';
 import 'src/rooms/session_room_vault.dart';
@@ -21,7 +22,10 @@ Widget createPartyBoxApp({
     'ROOM_SERVER_URL',
     defaultValue: 'https://partybox.sorima.tech',
   ),
+  Uri? launchUri,
 }) {
+  final entry = launchUri ?? (kIsWeb ? Uri.base : null);
+  final invitation = entry == null ? null : RoomInvitation.parse(entry);
   const browserRooms = bool.fromEnvironment('BROWSER_ROOMS');
   final defaultServer = kIsWeb && configuredServer == 'same-origin'
       ? Uri.base.origin
@@ -50,8 +54,12 @@ Widget createPartyBoxApp({
     if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
       return null;
     }
-    if (settings.origin == null) await configureServer(context);
-    final server = settings.origin;
+    if (settings.origin == null && invitation == null) {
+      await configureServer(context);
+    }
+    // An invitation belongs to its web origin. Never redirect it to a saved
+    // custom server; the vault still requires explicit handling of old access.
+    final server = invitation?.origin ?? settings.origin;
     if (!context.mounted || server == null) return null;
     return RoomController(
       api: HttpRoomApi(server, allowInsecure: !kReleaseMode),
@@ -60,6 +68,7 @@ Widget createPartyBoxApp({
   }
 
   return PartyBoxApp(
+    initialRoomPin: invitation?.pin,
     setupStore: PreferencesSpySetupStore(),
     resolveRoomController: resolveController,
     onConfigureServer: configureServer,

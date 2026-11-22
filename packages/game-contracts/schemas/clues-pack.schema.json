@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "const": "clues-ru-base" },
+    "gameId": { "const": "clues" },
+    "locale": { "const": "ru" },
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "items": {
+      "type": "array",
+      "minItems": 60,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^clues-[0-9]{3}$" },
+          "answer": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "aliases": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 80 }
+          },
+          "clues": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 8, "maxLength": 240 }
+          }
+        },
+        "required": ["id", "answer", "aliases", "clues"]
+      }
+    }
+  },
+  "required": ["schemaVersion", "id", "gameId", "locale", "version", "title", "items"]
+}

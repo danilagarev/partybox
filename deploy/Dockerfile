@@ -13,7 +13,7 @@ RUN npm run build --workspace @partybox/backend && npm prune --omit=dev --ignore
 
 FROM node:24.15.0-bookworm-slim AS runtime
 WORKDIR /app
-ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000 WEB_ROOT=/app/public
 COPY --from=build --chown=node:node /app/node_modules node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/apps/backend/package.json apps/backend/
@@ -24,6 +24,7 @@ COPY packages/game-content/packs packages/game-content/packs
 COPY packages/game-content/spy-catalog.json packages/game-content/
 COPY apps/backend/migrations apps/backend/migrations
 COPY deploy/entrypoint.mjs deploy/entrypoint.mjs
+COPY deploy/web public
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 CMD ["node", "-e", "fetch('http://127.0.0.1:3000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

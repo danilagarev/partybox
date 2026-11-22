@@ -273,3 +273,39 @@ host-сценарий, для текущей схемы не используе�
 [GitHub manual workflow](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
 Локальный Docker smoke проверяет изолированный Caddy с тестовым CA, TLS/Socket.IO,
 пересоздание API и сохранение БД; он не является внешним VPS/DNS-плейтестом.
+
+## Веб-клиент и три игры — PB-048
+
+После публикации новой версии и успешного Checks тот же ручной **Deploy backend**
+развёртывает backend и общий Flutter Web. Отдельный контейнер, DNS, порт или новое
+правило reverse_proxy не требуются: `https://partybox.sorima.tech/` станет каталогом,
+`/health`, `/ready`, `/rooms`, `/v2/rooms`, `/v3/rooms`, `/v4/rooms`
+и Socket.IO продолжают обслуживаться там же.
+
+Workflow Flutter собирает `scripts/build-web.sh`, проверяет полный набор assets и
+публикует artifact `partybox-web-<SHA>`. HTTPS job проверяет именно этот bundle.
+CD скачивает bundle точного успешного push-run выбранного main SHA, повторно
+проверяет хеши и включает его в `/app/public` Docker-образа. Отсутствующий или
+повреждённый bundle останавливает CD. Старые коммиты без такого artifact этим
+новым workflow не разворачивать; для rollback используется сохранённый image.
+
+На текущем VPS новые SQL-миграции для clues не нужны. Migration job всё равно
+выполняется штатно. Пример Caddy теперь включает `encode zstd gzip`; для сжатия
+первой загрузки рекомендуется добавить эту строку в существующий site block
+и проверить/reload свой Caddy. Сам CD действующий Caddyfile не переписывает.
+Без encode веб также работает, но assets передаются без этого сжатия.
+
+Локально из корня:
+
+```sh
+FLUTTER_BIN="$PWD/.tools/flutter/bin/flutter" bash scripts/build-web.sh
+node scripts/verify-web.mjs deploy/web
+REQUIRE_WEB_BUNDLE=true node deploy/production/test-smoke.mjs
+```
+
+`deploy/web/` содержит только воспроизводимые public assets и игнорируется Git;
+в нём нельзя хранить секреты. Runtime API/ответы никогда не попадают в web cache.
+Веб использует sessionStorage отдельно для каждой вкладки; закрытие вкладки может
+потерять доступ. Manifest/icons позволяют добавить ярлык, но offline web cache
+в этом срезе не реализуется. Политика/контакты разработчика остаются открытыми
+по просьбе владельца; готовность веба не означает готовность магазинной публикации.

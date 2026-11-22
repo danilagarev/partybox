@@ -1,3 +1,15 @@
+import type { V4Command, V4Snapshot, V4Ack } from '@partybox/game-contracts/rooms-v4';
+import {
+  createClues,
+  answerClues,
+  hintClues,
+  nextClues,
+  cluesPublic,
+  cluesPrivate,
+  CluesRuleError,
+  type CluesState,
+} from '../games/clues.js';
+import { selectCluesQuestions, cluesPackVersion } from '../games/clues-content.js';
 import type { V3Command, V3Snapshot, V3Ack } from '@partybox/game-contracts/rooms-v3';
 import {
   createTolerance,
@@ -41,6 +53,7 @@ interface Member {
   left: boolean;
   gameClient?: boolean;
   toleranceClient?: boolean;
+  cluesClient?: boolean;
 }
 interface Room {
   id: string;
@@ -53,6 +66,7 @@ interface Room {
   game?: { id: string; packId: string; packVersion: number; state: SpyState; readyIds: string[] };
   spyHistory?: Record<string, string[]>;
   tolerance?: { id: string; state: ToleranceState };
+  clues?: { id: string; packVersion: number; state: CluesState };
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const ttl = 24 * 60 * 60 * 1000;
@@ -92,7 +106,8 @@ export class RoomService {
   }
   async rateLimit(ip: string, operation: string, limit: number) {
     const now = this.now();
-    // Stable keyed IP digest avoids storing raw addresses or trusting proxy headers.
+    // Stable keyed identity digest avoids storing raw addresses or guest tokens.
+    // IP buckets cap aggregate traffic; v4 additionally caps each guest identity.
     const key = createHmac('sha256', this.secret).update(`${operation}:${ip}`).digest('hex');
     const result = await this.pool.query<{ attempts: number }>(
       `INSERT INTO pb_rate_limits(bucket, attempts, reset_at) VALUES($1, 1, $2)
@@ -198,12 +213,14 @@ export class RoomService {
           throw new RoomError('ROOM_UNAVAILABLE', 404);
         if (
           (room.game && room.game.state.phase !== 'results') ||
-          (room.tolerance && room.tolerance.state.phase !== 'finished')
+          (room.tolerance && room.tolerance.state.phase !== 'finished') ||
+          (room.clues && room.clues.state.phase !== 'finished')
         )
           throw new RoomError('ROOM_UNAVAILABLE', 409);
         if (room.members.filter((m) => !m.left).length >= 12) throw new RoomError('ROOM_FULL', 409);
         // A completed party belongs to its frozen roster; a newcomer starts a fresh lobby.
         delete room.tolerance;
+        delete room.clues;
         room.members.push(member);
         room.version++;
       } else {
@@ -278,6 +295,7 @@ export class RoomService {
       if (command.expectedVersion !== room.version) throw new RoomError('VERSION_CONFLICT', 409);
       delete room.game;
       delete room.tolerance;
+      delete room.clues;
       member.left = true;
       const remaining = room.members.filter((m) => !m.left);
       if (!remaining.length) room.closed = true;
@@ -335,11 +353,14 @@ export class RoomService {
   async snapshotV3(roomId: string, token: string): Promise<V3Snapshot> {
     return this.snapshotBoth(roomId, token, 3) as Promise<V3Snapshot>;
   }
+  async snapshotV4(roomId: string, token: string): Promise<V4Snapshot> {
+    return this.snapshotBoth(roomId, token, 4) as Promise<V4Snapshot>;
+  }
   private async snapshotBoth(
     roomId: string,
     token: string,
-    protocol: 2 | 3,
-  ): Promise<GameSnapshot | V3Snapshot> {
+    protocol: 2 | 3 | 4,
+  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot> {
     let changed = false;
     const snapshot = await this.transaction(async (client) => {
       const room = await this.read(client, roomId);
@@ -347,14 +368,20 @@ export class RoomService {
       this.active(room);
       const advanced = this.advanceGame(room);
       changed = advanced;
-      if (!member.gameClient || (protocol === 3 && !member.toleranceClient) || advanced) {
+      if (
+        !member.gameClient ||
+        (protocol >= 3 && !member.toleranceClient) ||
+        (protocol === 4 && !member.cluesClient) ||
+        advanced
+      ) {
         member.gameClient = true;
-        if (protocol === 3) member.toleranceClient = true;
+        if (protocol >= 3) member.toleranceClient = true;
+        if (protocol === 4) member.cluesClient = true;
         await client.query('UPDATE pb_rooms SET state=$2 WHERE id=$1', [roomId, room]);
       }
       const view = this.gameView(room, member);
       if (protocol === 2) return view;
-      return {
+      const v3 = {
         ...view,
         protocolVersion: 3 as const,
         publicState: {
@@ -364,6 +391,16 @@ export class RoomService {
             : null,
         },
         privateTolerance: room.tolerance ? tolerancePrivate(room.tolerance.state, member.id) : null,
+      };
+      if (protocol === 3) return v3;
+      return {
+        ...v3,
+        protocolVersion: 4 as const,
+        publicState: {
+          ...v3.publicState,
+          clues: room.clues ? cluesPublic(room.clues.state, room.clues.id) : null,
+        },
+        privateClues: room.clues ? cluesPrivate(room.clues.state, member.id) : null,
       };
     });
     if (changed) this.onChanged?.(roomId);
@@ -375,11 +412,14 @@ export class RoomService {
   async commandV3(roomId: string, token: string, command: V3Command): Promise<V3Ack> {
     return this.commandBoth(roomId, token, command) as Promise<V3Ack>;
   }
+  async commandV4(roomId: string, token: string, command: V4Command): Promise<V4Ack> {
+    return this.commandBoth(roomId, token, command) as Promise<V4Ack>;
+  }
   private async commandBoth(
     roomId: string,
     token: string,
-    command: GameCommand | V3Command,
-  ): Promise<GameAck | V3Ack> {
+    command: GameCommand | V3Command | V4Command,
+  ): Promise<GameAck | V3Ack | V4Ack> {
     return this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token, true);
@@ -401,7 +441,7 @@ export class RoomService {
               : command.payload,
         }),
       );
-      const previous = await client.query<{ fingerprint: string; ack: GameAck | V3Ack }>(
+      const previous = await client.query<{ fingerprint: string; ack: GameAck | V3Ack | V4Ack }>(
         'SELECT fingerprint,ack FROM pb_room_commands WHERE room_id=$1 AND player_id=$2 AND command_id=$3',
         [roomId, member.id, command.commandId],
       );
@@ -417,21 +457,67 @@ export class RoomService {
       const expectedSession =
         command.protocolVersion === 2 && command.type === 'room.leave'
           ? (room.game?.id ?? null)
-          : (room.tolerance?.id ?? room.game?.id ?? null);
+          : command.protocolVersion === 4
+            ? (room.clues?.id ?? room.tolerance?.id ?? room.game?.id ?? null)
+            : (room.tolerance?.id ?? room.game?.id ?? null);
       if (command.sessionId !== expectedSession) throw new RoomError('SESSION_CONFLICT', 409);
       try {
         if (command.type === 'room.leave') {
           member.left = true;
           delete room.game;
           delete room.tolerance;
+          delete room.clues;
           const remaining = room.members.filter((m) => !m.left);
           if (!remaining.length) room.closed = true;
           else if (room.hostId === member.id) room.hostId = remaining[0]!.id;
+        } else if (command.type === 'clues.start') {
+          if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          if (
+            (room.game && room.game.state.phase !== 'results') ||
+            (room.tolerance && room.tolerance.state.phase !== 'finished') ||
+            (room.clues && room.clues.state.phase !== 'finished')
+          )
+            throw new RoomError('INVALID_PHASE', 409);
+          const players = room.members.filter((m) => !m.left);
+          if (players.some((m) => !m.cluesClient))
+            throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          room.clues = {
+            id: randomUUID(),
+            packVersion: cluesPackVersion,
+            state: createClues(
+              players.map((p) => p.id),
+              selectCluesQuestions(randomInt),
+            ),
+          };
+          delete room.game;
+          delete room.tolerance;
+        } else if (
+          command.type === 'clues.answer' ||
+          command.type === 'clues.hint' ||
+          command.type === 'clues.next' ||
+          command.type === 'clues.cancel'
+        ) {
+          const game = room.clues;
+          if (!game) throw new RoomError('INVALID_PHASE', 409);
+          if (command.type === 'clues.answer')
+            game.state = answerClues(
+              game.state,
+              member.id,
+              command.payload.answer,
+              command.payload.clueIndex,
+            );
+          else {
+            if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+            if (command.type === 'clues.hint') game.state = hintClues(game.state);
+            else if (command.type === 'clues.next') game.state = nextClues(game.state);
+            else delete room.clues;
+          }
         } else if (command.type === 'tolerance.start') {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
           if (
             (room.game && room.game.state.phase !== 'results') ||
-            (room.tolerance && room.tolerance.state.phase !== 'finished')
+            (room.tolerance && room.tolerance.state.phase !== 'finished') ||
+            (room.clues && room.clues.state.phase !== 'finished')
           )
             throw new RoomError('INVALID_PHASE', 409);
           const players = room.members.filter((m) => !m.left);
@@ -447,6 +533,7 @@ export class RoomService {
             ),
           };
           delete room.game;
+          delete room.clues;
         } else if (
           command.type === 'tolerance.rank' ||
           command.type === 'tolerance.guess' ||
@@ -465,7 +552,7 @@ export class RoomService {
             else delete room.tolerance;
           }
         } else if (command.type === 'spy.ready') {
-          if (room.tolerance) throw new RoomError('INVALID_PHASE', 409);
+          if (room.tolerance || room.clues) throw new RoomError('INVALID_PHASE', 409);
           const game = room.game;
           if (!game || game.state.phase !== 'distribution' || game.readyIds.includes(member.id))
             throw new RoomError('INVALID_PHASE', 409);
@@ -481,10 +568,13 @@ export class RoomService {
             );
         } else {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
-          if (command.type !== 'spy.start' && room.tolerance)
+          if (command.type !== 'spy.start' && (room.tolerance || room.clues))
             throw new RoomError('INVALID_PHASE', 409);
           if (command.type === 'spy.start') {
-            if (room.tolerance && room.tolerance.state.phase !== 'finished')
+            if (
+              (room.tolerance && room.tolerance.state.phase !== 'finished') ||
+              (room.clues && room.clues.state.phase !== 'finished')
+            )
               throw new RoomError('INVALID_PHASE', 409);
             const pack = spyPacks.get(command.payload.packId);
             if (!pack) throw new RoomError('INVALID_REQUEST', 400);
@@ -503,6 +593,7 @@ export class RoomService {
               }),
             );
             delete room.tolerance;
+            delete room.clues;
             room.game = {
               id: randomUUID(),
               packId: pack.id,
@@ -533,6 +624,11 @@ export class RoomService {
           }
         }
       } catch (error) {
+        if (error instanceof CluesRuleError)
+          throw new RoomError(
+            error.code,
+            error.code === 'FORBIDDEN' ? 403 : error.code === 'INVALID_REQUEST' ? 400 : 409,
+          );
         if (error instanceof ToleranceRuleError)
           throw new RoomError(
             error.code,
@@ -542,7 +638,7 @@ export class RoomService {
         throw error;
       }
       room.version++;
-      const ack: GameAck | V3Ack = {
+      const ack: GameAck | V3Ack | V4Ack = {
         protocolVersion: command.protocolVersion,
         commandId: command.commandId,
         accepted: true,

@@ -9,6 +9,7 @@ dependencies:
     sdk: flutter
 flutter:
   assets:
+    - packs/clues-ru-base.json
     - spy-catalog.json
     - packs/spy-ru-base.json
     - packs/spy-ru-travel.json

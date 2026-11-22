@@ -5,7 +5,7 @@ import '../design/night_art.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
 
-/// Two games share a hierarchy; the original marks distinguish their premise.
+/// Games share a hierarchy; their marks distinguish the premise.
 class CatalogGameCard extends StatelessWidget {
   const CatalogGameCard({
     super.key,
@@ -17,9 +17,11 @@ class CatalogGameCard extends StatelessWidget {
     required this.action,
     required this.tolerance,
     required this.onPressed,
+    this.clues = false,
   });
   final String title, genre, description, metadata, mode, action;
   final bool tolerance;
+  final bool clues;
   final VoidCallback onPressed;
 
   @override
@@ -28,7 +30,9 @@ class CatalogGameCard extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: tolerance
+        colors: clues
+            ? const [Color(0xFF394337), Color(0xFF202C2A)]
+            : tolerance
             ? const [Color(0xFF303A39), Color(0xFF202C2A)]
             : const [Color(0xFF344733), Color(0xFF202C2A)],
       ),
@@ -73,7 +77,13 @@ class CatalogGameCard extends StatelessWidget {
                           )
                         : null,
                   ),
-                  child: tolerance
+                  child: clues
+                      ? const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          color: NightColors.ink,
+                          size: 36,
+                        )
+                      : tolerance
                       ? CustomPaint(painter: _ToleranceMark())
                       : const NightArt(height: 68),
                 ),

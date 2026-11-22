@@ -171,12 +171,12 @@ final class RoomController extends ChangeNotifier {
   Future<void> enroll(String name, {String? pin}) => _run(() async {
     if (!canEnroll) return;
     final request = <String, dynamic>{
-      'protocolVersion': 3,
+      'protocolVersion': 4,
       'requestId': roomCommandId(),
       'retryKey': randomRoomKey(),
       'name': name.trim(),
     };
-    if (!RoomContract.accepts('V3Enrollment', request) ||
+    if (!RoomContract.accepts('V4Enrollment', request) ||
         (pin != null && !RegExp(r'^\d{6}$').hasMatch(pin))) {
       throw const RoomFailure('INVALID_REQUEST');
     }
@@ -371,7 +371,9 @@ final class RoomController extends ChangeNotifier {
       roomId: access.roomId,
       token: access.token,
       leave: {
-        'protocolVersion': current.protocolVersion == 3 ? 3 : 2,
+        'protocolVersion': current.protocolVersion >= 3
+            ? current.protocolVersion
+            : 2,
         'sessionId': current.sessionId,
         'commandId': roomCommandId(),
         'expectedVersion': current.version,
@@ -389,7 +391,11 @@ final class RoomController extends ChangeNotifier {
         RoomSnapshot current = initial;
         final sessionId = current.sessionId;
         _stop();
-        if (const {'tolerance.rank', 'tolerance.guess'}.contains(type)) {
+        if (const {
+          'tolerance.rank',
+          'tolerance.guess',
+          'clues.answer',
+        }.contains(type)) {
           await _sendSecret(access, current, type, payload);
           return;
         }
@@ -400,7 +406,9 @@ final class RoomController extends ChangeNotifier {
             roomId: access.roomId,
             token: access.token,
             leave: {
-              'protocolVersion': current.protocolVersion == 3 ? 3 : 2,
+              'protocolVersion': current.protocolVersion >= 3
+                  ? current.protocolVersion
+                  : 2,
               'commandId': roomCommandId(),
               'expectedVersion': current.version,
               'sessionId': current.sessionId,
@@ -445,37 +453,57 @@ final class RoomController extends ChangeNotifier {
     String type,
     Map<String, dynamic> payload,
   ) async {
-    final request = RoomAccess(
-      origin: access.origin,
-      roomId: access.roomId,
-      token: access.token,
-      leave: {
-        'protocolVersion': 3,
-        'commandId': roomCommandId(),
-        'expectedVersion': current.version,
-        'sessionId': current.sessionId,
-        'type': type,
-        'payload': payload,
-      },
-    );
-    RoomFailure? failure;
-    try {
-      await api.command(request);
-    } on RoomFailure catch (e) {
-      if (e.terminal) rethrow;
-      failure = e;
-    } catch (_) {
-      failure = const RoomFailure('CONNECTION');
-    }
-    if (_disposed) return;
-    final fresh = await api.snapshot(access);
-    if (_disposed) return;
-    _accept(fresh);
-    _watch();
-    if (failure != null) {
-      notice =
-          'Проверили состояние на сервере. Если выбор не принят, отправьте его ещё раз.';
-      if (failure.code != 'CONNECTION') throw failure;
+    for (var attempt = 0; ; attempt++) {
+      final request = RoomAccess(
+        origin: access.origin,
+        roomId: access.roomId,
+        token: access.token,
+        leave: {
+          'protocolVersion': current.protocolVersion >= 3
+              ? current.protocolVersion
+              : 3,
+          'commandId': roomCommandId(),
+          'expectedVersion': current.version,
+          'sessionId': current.sessionId,
+          'type': type,
+          'payload': payload,
+        },
+      );
+      RoomFailure? failure;
+      try {
+        await api.command(request);
+      } on RoomFailure catch (e) {
+        if (e.terminal) rethrow;
+        failure = e;
+      } catch (_) {
+        failure = const RoomFailure('CONNECTION');
+      }
+      if (_disposed) return;
+      final fresh = await api.snapshot(access);
+      if (_disposed) return;
+      _accept(fresh);
+      // Independent answers may race. Retry only a definite rejection, with
+      // the original text/round/clue, never an uncertain accepted command.
+      if (type == 'clues.answer' &&
+          failure?.code == 'VERSION_CONFLICT' &&
+          _active &&
+          attempt < fresh.players.length - 1 &&
+          fresh.sessionId == current.sessionId &&
+          fresh.clues?.phase == 'playing' &&
+          fresh.clues?.roundIndex == current.clues?.roundIndex &&
+          fresh.clues?.clueIndex == payload['clueIndex'] &&
+          !fresh.clues!.solvedIds.contains(fresh.selfId) &&
+          !fresh.clues!.attemptedIds.contains(fresh.selfId)) {
+        current = fresh;
+        continue;
+      }
+      _watch();
+      if (failure != null) {
+        notice =
+            'Проверили состояние на сервере. Если ответ не принят, отправьте его ещё раз.';
+        if (failure.code != 'CONNECTION') throw failure;
+      }
+      return;
     }
   }
 

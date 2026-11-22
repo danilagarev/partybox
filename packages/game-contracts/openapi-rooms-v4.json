@@ -1,0 +1,1230 @@
+{
+  "openapi": "3.1.0",
+  "info": { "title": "PartyBox — сетевая партия", "version": "4.0.0" },
+  "paths": {
+    "/v4/rooms": {
+      "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/V4Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/V4EnrollmentResult" }
+              }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/v4/rooms/join/{pin}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pin",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[0-9]{6}$" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/V4Enrollment" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/V4EnrollmentResult" }
+              }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/v4/rooms/{roomId}": {
+      "get": {
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Персональный snapshot",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Snapshot" } }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/v4/rooms/{roomId}/commands": {
+      "post": {
+        "security": [{ "guestToken": [] }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "roomId",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/V4Command" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Принято",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Ack" } }
+            }
+          },
+          "default": {
+            "description": "Ошибка",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/V4Error" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "guestToken": { "type": "http", "scheme": "bearer" } },
+    "schemas": {
+      "V4Player": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "V4Enrollment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 4 },
+          "requestId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "retryKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+          }
+        },
+        "required": ["protocolVersion", "requestId", "retryKey", "name"]
+      },
+      "V4Command": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "room.leave" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.start" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "discussionMinutes": { "type": "integer", "minimum": 3, "maximum": 15 },
+                  "packId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,79}$" }
+                },
+                "required": ["discussionMinutes", "packId"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.ready" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.vote" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.accuse" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "suspectId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                },
+                "required": ["suspectId"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "spy.cancel" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "tolerance.start" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "tolerance.rank" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "order": {
+                    "type": "array",
+                    "items": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+                    "minItems": 4,
+                    "maxItems": 4
+                  }
+                },
+                "required": ["order"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "tolerance.guess" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": { "position": { "type": "integer", "minimum": 0, "maximum": 3 } },
+                "required": ["position"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "tolerance.next" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "tolerance.cancel" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "clues.start" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "clues.answer" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "answer": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^(?=.*\\S)[^\\u0000-\\u001f\\u007f\\ud800-\\udfff]+$"
+                  },
+                  "clueIndex": { "type": "integer", "minimum": 0, "maximum": 3 }
+                },
+                "required": ["answer", "clueIndex"]
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "clues.hint" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "clues.next" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "protocolVersion": { "const": 4 },
+              "commandId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expectedVersion": { "type": "integer", "minimum": 1 },
+              "sessionId": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "type": { "const": "clues.cancel" },
+              "payload": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            },
+            "required": [
+              "protocolVersion",
+              "commandId",
+              "expectedVersion",
+              "sessionId",
+              "type",
+              "payload"
+            ]
+          }
+        ]
+      },
+      "V4Result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "spyId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "location": { "type": "string", "minLength": 1 },
+          "suspectId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "winner": { "enum": ["spy", "civilians"] }
+        },
+        "required": ["spyId", "location", "suspectId", "winner"]
+      },
+      "V4View": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "packId": { "type": "string" },
+          "packVersion": { "type": "integer", "minimum": 1 },
+          "phase": { "enum": ["distribution", "discussion", "voting", "results"] },
+          "readyIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "minItems": 0,
+            "maxItems": 12
+          },
+          "deadline": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+          "result": { "oneOf": [{ "$ref": "#/components/schemas/V4Result" }, { "type": "null" }] }
+        },
+        "required": [
+          "sessionId",
+          "packId",
+          "packVersion",
+          "phase",
+          "readyIds",
+          "deadline",
+          "result"
+        ]
+      },
+      "V4Card": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "role": { "const": "spy" }, "location": { "type": "null" } },
+            "required": ["role", "location"]
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": { "const": "civilian" },
+              "location": { "type": "string", "minLength": 1 }
+            },
+            "required": ["role", "location"]
+          }
+        ]
+      },
+      "V4Snapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 4 },
+          "roomId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "version": { "type": "integer", "minimum": 1 },
+          "serverTime": { "type": "string" },
+          "publicState": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "phase": { "const": "lobby" },
+              "pin": { "type": "string", "pattern": "^[0-9]{6}$" },
+              "hostId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "expiresAt": { "type": "string" },
+              "players": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 12,
+                "items": { "$ref": "#/components/schemas/V4Player" }
+              },
+              "game": { "oneOf": [{ "$ref": "#/components/schemas/V4View" }, { "type": "null" }] },
+              "tolerance": {
+                "oneOf": [{ "$ref": "#/components/schemas/TolerancePublic" }, { "type": "null" }]
+              },
+              "clues": {
+                "oneOf": [{ "$ref": "#/components/schemas/CluesPublic" }, { "type": "null" }]
+              }
+            },
+            "required": [
+              "phase",
+              "pin",
+              "hostId",
+              "expiresAt",
+              "players",
+              "game",
+              "tolerance",
+              "clues"
+            ]
+          },
+          "privateState": {
+            "oneOf": [{ "$ref": "#/components/schemas/V4Card" }, { "type": "null" }]
+          },
+          "selfId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "privateTolerance": {
+            "oneOf": [{ "$ref": "#/components/schemas/PrivateTolerance" }, { "type": "null" }]
+          },
+          "privateClues": {
+            "oneOf": [{ "$ref": "#/components/schemas/PrivateClues" }, { "type": "null" }]
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "roomId",
+          "version",
+          "serverTime",
+          "publicState",
+          "privateState",
+          "selfId",
+          "privateTolerance",
+          "privateClues"
+        ]
+      },
+      "V4EnrollmentResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "guestToken": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+          "snapshot": { "$ref": "#/components/schemas/V4Snapshot" }
+        },
+        "required": ["guestToken", "snapshot"]
+      },
+      "V4Ack": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 4 },
+          "commandId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "accepted": { "const": true },
+          "version": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["protocolVersion", "commandId", "accepted", "version"]
+      },
+      "V4Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": { "const": 4 },
+          "code": {
+            "enum": [
+              "INVALID_REQUEST",
+              "UNAUTHORIZED",
+              "ROOM_UNAVAILABLE",
+              "ROOM_EXPIRED",
+              "ROOM_FULL",
+              "ROOM_CLOSED",
+              "VERSION_CONFLICT",
+              "COMMAND_CONFLICT",
+              "RATE_LIMITED",
+              "SERVICE_UNAVAILABLE",
+              "INTERNAL_ERROR",
+              "FORBIDDEN",
+              "INVALID_PHASE",
+              "ROOM_IN_PROGRESS",
+              "SESSION_CONFLICT",
+              "CLIENT_UPGRADE_REQUIRED"
+            ]
+          }
+        },
+        "required": ["protocolVersion", "code"]
+      },
+      "ToleranceCard": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+          "text": { "type": "string", "minLength": 1, "maxLength": 180 }
+        },
+        "required": ["id", "text"]
+      },
+      "ToleranceGuess": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "position": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "correct": { "type": "boolean" }
+        },
+        "required": ["playerId", "position", "correct"]
+      },
+      "ToleranceResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "order": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "guesses": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToleranceGuess" },
+            "minItems": 3,
+            "maxItems": 11
+          }
+        },
+        "required": ["order", "guesses"]
+      },
+      "ToleranceScore": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "score": { "type": "integer", "minimum": 0, "maximum": 11 }
+        },
+        "required": ["playerId", "score"]
+      },
+      "TolerancePublic": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "phase": { "enum": ["ranking", "guessing", "reveal", "finished"] },
+          "roundIndex": { "type": "integer", "minimum": 0, "maximum": 11 },
+          "heroId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "cards": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToleranceCard" },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "visibleOrder": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+            "minItems": 0,
+            "maxItems": 3
+          },
+          "targetId": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+          "submittedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "minItems": 0,
+            "maxItems": 11
+          },
+          "scores": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToleranceScore" },
+            "minItems": 4,
+            "maxItems": 12
+          },
+          "result": {
+            "oneOf": [{ "$ref": "#/components/schemas/ToleranceResult" }, { "type": "null" }]
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "minItems": 0,
+            "maxItems": 12
+          }
+        },
+        "required": [
+          "sessionId",
+          "phase",
+          "roundIndex",
+          "heroId",
+          "cards",
+          "visibleOrder",
+          "targetId",
+          "submittedIds",
+          "scores",
+          "result",
+          "winners"
+        ]
+      },
+      "PrivateTolerance": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "order": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": { "type": "string", "pattern": "^tolerance-[0-9]{2}$" },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              { "type": "null" }
+            ]
+          },
+          "guess": {
+            "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 3 }, { "type": "null" }]
+          }
+        },
+        "required": ["order", "guess"]
+      },
+      "CluesAnswer": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "answer": { "oneOf": [{ "type": "string", "maxLength": 120 }, { "type": "null" }] },
+          "correct": { "type": "boolean" },
+          "points": { "type": "integer", "minimum": 0, "maximum": 4 }
+        },
+        "required": ["playerId", "answer", "correct", "points"]
+      },
+      "CluesResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "answer": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "answers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": { "$ref": "#/components/schemas/CluesAnswer" }
+          }
+        },
+        "required": ["answer", "answers"]
+      },
+      "PrivateClues": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "answer": { "oneOf": [{ "type": "string", "maxLength": 120 }, { "type": "null" }] },
+          "clueIndex": {
+            "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 3 }, { "type": "null" }]
+          },
+          "correct": { "type": "boolean" },
+          "points": { "type": "integer", "minimum": 0, "maximum": 4 }
+        },
+        "required": ["answer", "clueIndex", "correct", "points"]
+      },
+      "CluesPublic": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "phase": { "enum": ["playing", "reveal", "finished"] },
+          "roundIndex": { "type": "integer", "minimum": 0, "maximum": 4 },
+          "roundCount": { "const": 5 },
+          "clueIndex": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "clues": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": { "type": "string", "minLength": 1, "maxLength": 240 }
+          },
+          "solvedIds": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 12,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          },
+          "attemptedIds": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 12,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          },
+          "scores": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "playerId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                },
+                "score": { "type": "integer", "minimum": 0, "maximum": 20 }
+              },
+              "required": ["playerId", "score"]
+            }
+          },
+          "result": {
+            "oneOf": [{ "$ref": "#/components/schemas/CluesResult" }, { "type": "null" }]
+          },
+          "winners": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 12,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+        },
+        "required": [
+          "sessionId",
+          "phase",
+          "roundIndex",
+          "roundCount",
+          "clueIndex",
+          "clues",
+          "solvedIds",
+          "attemptedIds",
+          "scores",
+          "result",
+          "winners"
+        ]
+      }
+    }
+  }
+}

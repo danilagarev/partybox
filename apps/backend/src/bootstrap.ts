@@ -1,3 +1,6 @@
+import { webAssets } from './web-assets.js';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -6,11 +9,13 @@ import { AppModule } from './app.module.js';
 
 export async function createApp(
   options: {
+    webRoot?: string;
     databaseUrl?: string;
     tokenSecret?: string;
     now?: () => Date;
     trustOneProxy?: boolean;
   } = {
+    webRoot: process.env.WEB_ROOT,
     databaseUrl: process.env.DATABASE_URL,
     tokenSecret: process.env.ROOM_TOKEN_SECRET,
     trustOneProxy: process.env.TRUST_PROXY_HOPS === '1',
@@ -28,6 +33,8 @@ export async function createApp(
       next();
     },
   );
+  if (options.webRoot && existsSync(resolve(options.webRoot, 'index.html')))
+    app.use(await webAssets(options.webRoot));
   runtime.attach(app);
   app.enableShutdownHooks();
   return app;

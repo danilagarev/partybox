@@ -12,3 +12,5 @@ apps/mobile/android
 apps/mobile/ios
 apps/mobile/.metadata
 **/*.dart
+# Flutter replaces these template tokens before JavaScript is executed.
+apps/mobile/web/flutter_bootstrap.js

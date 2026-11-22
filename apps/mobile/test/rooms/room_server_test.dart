@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:partybox_mobile/src/rooms/room_api.dart';
@@ -197,6 +198,56 @@ void main() {
           host.snapshot!.tolerance!.scores.map((s) => s.score),
           everyElement(3),
         );
+        // The same real clients now exercise V4 answer races across all five rounds.
+        final cluePack =
+            jsonDecode(
+                  File(
+                    '../../packages/game-content/packs/clues-ru-base.json',
+                  ).readAsStringSync(),
+                )
+                as Map;
+        await host.retry();
+        await host.play('clues.start');
+        expect(host.error, null);
+        for (var round = 0; round < 5; round++) {
+          await until(
+            () => members.every(
+              (m) =>
+                  m.online &&
+                  m.snapshot!.clues?.phase == 'playing' &&
+                  m.snapshot!.clues?.roundIndex == round,
+            ),
+          );
+          final game = host.snapshot!.clues!;
+          final answer =
+              (cluePack['items'] as List)
+                      .cast<Map<String, dynamic>>()
+                      .singleWhere(
+                        (q) => (q['clues'] as List).first == game.clues.first,
+                      )['answer']
+                  as String;
+          await Future.wait(
+            members.map(
+              (m) => m.play('clues.answer', {'answer': answer, 'clueIndex': 0}),
+            ),
+          );
+          expect(members.map((m) => m.error), everyElement(null));
+          await until(
+            () => members.every((m) => m.snapshot!.clues?.phase == 'reveal'),
+          );
+          expect(members.every((m) => m.snapshot!.privateClues == null), true);
+          expect(
+            host.snapshot!.clues!.scores.map((s) => s.score),
+            everyElement((round + 1) * 4),
+          );
+          await host.retry();
+          await host.play('clues.next');
+          expect(host.error, null);
+        }
+        await until(
+          () => members.every((m) => m.snapshot!.clues?.phase == 'finished'),
+        );
+        expect(host.snapshot!.clues!.winners, hasLength(4));
         final next = members[1];
         await host.leave();
         expect(vault.value, null);

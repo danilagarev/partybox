@@ -16,7 +16,11 @@ final class RoomAccess {
   final Map<String, dynamic>? enrollment, leave;
   final String? pin, roomId, token;
   Map<String, dynamic> toJson() {
-    if (const {'tolerance.rank', 'tolerance.guess'}.contains(leave?['type'])) {
+    if (const {
+      'tolerance.rank',
+      'tolerance.guess',
+      'clues.answer',
+    }.contains(leave?['type'])) {
       throw const RoomFailure('STORAGE');
     }
     return {
@@ -53,7 +57,8 @@ final class RoomAccess {
             as Map)['protocolVersion']) {
           1 => 'Enrollment',
           2 => 'V2Enrollment',
-          _ => 'V3Enrollment',
+          3 => 'V3Enrollment',
+          _ => 'V4Enrollment',
         }, map['enrollment']);
         if (map.containsKey('roomId') ||
             map.containsKey('token') ||
@@ -79,13 +84,15 @@ final class RoomAccess {
         if (const {
           'tolerance.rank',
           'tolerance.guess',
+          'clues.answer',
         }.contains((map['leave'] as Map)['type'])) {
           throw const FormatException();
         }
         RoomContract.require(switch ((map['leave'] as Map)['protocolVersion']) {
           1 => 'LeaveRoom',
           2 => 'GameCommand',
-          _ => 'V3Command',
+          3 => 'V3Command',
+          _ => 'V4Command',
         }, map['leave']);
       }
       return RoomAccess(

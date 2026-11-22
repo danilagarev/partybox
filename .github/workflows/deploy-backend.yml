@@ -37,14 +37,20 @@ jobs:
           [[ $sha =~ ^[a-f0-9]{40}$ ]]
           checked=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
             -f head_sha="$sha" -f event=push -f status=success -f per_page=100 \
-            --jq '.workflow_runs[] | select(.head_branch == "main" and .conclusion == "success") | .id')
+            --jq '[.workflow_runs[] | select(.head_branch == "main" and .conclusion == "success")][0].id // empty')
           test -n "$checked" || { echo 'This SHA needs a successful Checks push on main.' >&2; exit 1; }
           echo "RELEASE_SHA=$sha" >> "$GITHUB_ENV"
+          echo "CHECKS_RUN_ID=$checked" >> "$GITHUB_ENV"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Download the web bundle from this exact successful Checks run
+        run: |
+          gh run download "$CHECKS_RUN_ID" --name "partybox-web-$RELEASE_SHA" --dir deploy/web
+          test -s deploy/web/index.html
+          node scripts/verify-web.mjs deploy/web
       - name: Require main ancestry and compatible deployment layout
         run: |
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main

@@ -6,12 +6,18 @@ import 'package:partybox_mobile/src/app.dart';
 
 Future<void> showWidget(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
-    await tester.scrollUntilVisible(
-      finder,
-      200,
-      maxScrolls: 30,
-      scrollable: find.byType(Scrollable).first,
-    );
+    final scrollable = find.byType(Scrollable).first;
+    for (final delta in [-200.0, 200.0]) {
+      for (
+        var attempt = 0;
+        attempt < 30 && finder.evaluate().isEmpty;
+        attempt++
+      ) {
+        await tester.drag(scrollable, Offset(0, delta));
+        await tester.pumpAndSettle();
+      }
+      if (finder.evaluate().isNotEmpty) break;
+    }
   }
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();

@@ -60,9 +60,18 @@ jobs:
       - run: flutter pub get --enforce-lockfile
         working-directory: apps/mobile
       - run: make check-mobile
+      - name: Build shared production web client
+        run: FLUTTER_BIN=flutter bash scripts/build-web.sh
+      - name: Preserve verified web bundle for deployment
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: partybox-web-${{ github.sha }}
+          path: deploy/web/
+          if-no-files-found: error
+          retention-days: 30
 
   https:
-    needs: node
+    needs: [node, flutter]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -81,7 +90,13 @@ jobs:
         working-directory: packages/game_core
       - run: flutter pub get --enforce-lockfile
         working-directory: apps/mobile
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: partybox-web-${{ github.sha }}
+          path: deploy/web/
       - run: node deploy/smoke.mjs
         env:
           FLUTTER_BIN: flutter
       - run: node deploy/production/test-smoke.mjs
+        env:
+          REQUIRE_WEB_BUNDLE: true
