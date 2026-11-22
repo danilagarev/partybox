@@ -15,6 +15,14 @@ List<CluesQuestion> questions() => List.generate(
 );
 
 void main() {
+  test('answer limit counts Unicode code points like the wire schema', () {
+    final session = CluesSession.start(questions());
+    final accepted = 'а${List.filled(119, '😀').join()}';
+    expect(accepted.runes.length, 120);
+    expect(session.answer(accepted).attempt, accepted);
+    expect(() => session.answer('$accepted😀'), throwsArgumentError);
+  });
+
   test('shared server normalization vectors match Dart rules', () {
     final vectors =
         jsonDecode(

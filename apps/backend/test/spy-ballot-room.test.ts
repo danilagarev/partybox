@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID, randomBytes } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import pg from 'pg';
@@ -125,6 +125,16 @@ test(
       const first = await raw(host, commands[0]!);
       assert.equal(first.status, 201);
       const firstAck = await first.json();
+      const reordered = { ...commands[0]!, payload: { suspectId: ids[0], round: 1 } };
+      assert.deepEqual(await (await raw(host, reordered)).json(), firstAck);
+      // A durable receipt created by an earlier v5 process may use either order.
+      const oldFingerprint = createHash('sha256').update(JSON.stringify(reordered)).digest('hex');
+      await pool.query(
+        'UPDATE pb_room_commands SET fingerprint=$1 WHERE room_id=$2 AND player_id=$3 AND command_id=$4',
+        [oldFingerprint, host.snapshot.roomId, host.snapshot.selfId, commands[0]!.commandId],
+      );
+      assert.deepEqual(await (await raw(host, commands[0]!)).json(), firstAck);
+
       assert.equal((await snapshot(host)).publicState.game?.phase, 'voting');
       const own = await snapshot(host);
       assert.equal(own.privateState?.ballot?.suspectId, ids[0]);
@@ -195,6 +205,29 @@ test(
         assert.equal(v.publicState.game?.voting, undefined);
       }
       assert.equal((await send(host, 'spy.ballot', { round: 2, suspectId: ids[1] })).status, 409);
+      // A newcomer receives usable access after results, including an older client.
+      const newcomerRequest = enrollment('Новый участник', 4);
+      const join = await post(`/v4/rooms/join/${pin}`, newcomerRequest);
+      assert.equal(join.status, 201, 'old client must receive access after v5 results');
+      const newcomer = await join.json();
+      assert.equal(newcomer.snapshot.publicState.game, null);
+      assert.equal((await snapshot(host)).publicState.players.length, 5);
+      const replayJoin = await (await post(`/v4/rooms/join/${pin}`, newcomerRequest)).json();
+      assert.equal(replayJoin.guestToken, newcomer.guestToken);
+      const left = await post(
+        `/v4/rooms/${host.snapshot.roomId}/commands`,
+        {
+          protocolVersion: 4,
+          commandId: randomUUID(),
+          expectedVersion: newcomer.snapshot.version,
+          sessionId: null,
+          type: 'room.leave',
+          payload: {},
+        },
+        newcomer.guestToken,
+      );
+      assert.equal(left.status, 201);
+      assert.equal((await snapshot(host)).publicState.players.length, 4);
       // The single-phone / older protocol behavior remains supported in an older game.
       const legacy = {
         ...(await make(host, 'spy.start', { packId: 'spy-ru-base', discussionMinutes: 3 })),

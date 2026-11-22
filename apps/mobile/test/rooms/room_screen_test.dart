@@ -58,12 +58,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Войти / вернуться в комнату'),
-      200,
-    );
+    await tester.scrollUntilVisible(find.text('Войти по коду'), 200);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Войти / вернуться в комнату'));
+    await tester.tap(find.text('Войти по коду'));
     await tester.pumpAndSettle();
     expect(factories, 1);
     await tester.tap(find.text('Войти по коду'));
@@ -79,9 +76,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(vault.value!.token, testToken);
     expect(api.leaves, isEmpty);
-    await tester.ensureVisible(find.text('Войти / вернуться в комнату'));
+    await tester.ensureVisible(find.text('Войти по коду'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Войти / вернуться в комнату'));
+    await tester.tap(find.text('Войти по коду'));
     await tester.pumpAndSettle();
     expect(factories, 2);
     expect(api.enrollments, hasLength(1));

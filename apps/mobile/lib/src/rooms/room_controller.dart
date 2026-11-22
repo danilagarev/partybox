@@ -480,7 +480,15 @@ final class RoomController extends ChangeNotifier {
         failure = const RoomFailure('CONNECTION');
       }
       if (_disposed) return;
-      final fresh = await api.snapshot(access);
+      final RoomSnapshot fresh;
+      try {
+        fresh = await api.snapshot(access);
+      } catch (_) {
+        // Even an uncertain command followed by a failed read must not leave
+        // live updates permanently disconnected. Never resend the secret here.
+        _watch();
+        rethrow;
+      }
       if (_disposed) return;
       _accept(fresh);
       // Independent answers may race. Retry only a definite rejection, with

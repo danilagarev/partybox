@@ -156,6 +156,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 'Три игры. Для себя и своей компании.',
                 style: TextStyle(color: NightColors.muted),
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => _openRoom(context, joining: true),
+                icon: const Icon(Icons.meeting_room_outlined),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Войти по коду'),
+                ),
+              ),
               const SizedBox(height: 24),
               const Wrap(
                 spacing: 20,
@@ -220,27 +229,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: () => _openRoom(context, joining: true),
-                icon: const Icon(Icons.meeting_room_outlined),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Войти / вернуться в комнату'),
-                ),
-              ),
-              if (widget.onConfigureServer != null)
+              if (widget.onConfigureServer != null) ...[
+                const SizedBox(height: 20),
                 TextButton.icon(
                   onPressed: () => _configureServer(context),
                   icon: const Icon(Icons.tune, size: 18),
                   label: const Text('Подключение комнат'),
                 ),
-              const SizedBox(height: 8),
-              const Text(
-                'Уже играете с друзьями? Введите код или продолжите с сохранённого места.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: NightColors.muted),
-              ),
+              ],
             ],
           ),
         ),
@@ -275,9 +271,8 @@ class SpyRulesScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const NightRule(
                 number: '01',
-                title: 'Телефон по кругу',
-                text:
-                    'Все знают место, кроме шпиона. Посмотрите роль, скройте и передайте телефон.',
+                title: 'У каждого своя роль',
+                text: 'Один игрок — шпион. Остальные знают одно и то же место.',
               ),
               const SizedBox(height: 12),
               const NightRule(
@@ -289,16 +284,16 @@ class SpyRulesScreen extends StatelessWidget {
               const SizedBox(height: 12),
               const NightRule(
                 number: '03',
-                title: 'Решайте вместе',
+                title: 'Кого подозреваете?',
                 text:
-                    'Проголосуйте вслух. Нашли шпиона — выиграли. Ошиблись — победил он.',
+                    'Нашли шпиона — команда победила. Ошиблись — победил шпион.',
               ),
               const SizedBox(height: 24),
               const Divider(),
               const NightEyebrow('КАК БУДЕТЕ ИГРАТЬ?'),
               const SizedBox(height: 12),
               const Text(
-                'За одним столом · без интернета. Нужен только один телефон.',
+                'Один телефон · без интернета. Посмотрите роль, скройте и передайте телефон. Голосуйте вслух.',
               ),
               const SizedBox(height: 12),
               NightButton(
@@ -312,7 +307,7 @@ class SpyRulesScreen extends StatelessWidget {
               if (onOpenRoom != null) ...[
                 const SizedBox(height: 16),
                 const Text(
-                  'У каждого свой телефон — роли на личных экранах, вход по коду.',
+                  'У каждого свой телефон. Роли личные, голоса тайные. При ничьей — новый тур среди лидеров.',
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(

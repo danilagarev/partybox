@@ -91,3 +91,11 @@ test('clues validates bounds, membership, phase and lets host finish stalled fin
   assert.equal(state.scores[0]!.score, 0);
   bad(() => answerClues(state, 'a', 'Ёж 0', 3), 'INVALID_PHASE');
 });
+
+test('answer limit uses Unicode code points consistently with the schema', () => {
+  const state = createClues(['a'], questions);
+  const answer = 'а' + '😀'.repeat(119);
+  const next = answerClues(state, 'a', answer, 0);
+  assert.equal(cluesPrivate(next, 'a')!.answer, answer);
+  bad(() => answerClues(state, 'a', answer + '😀', 0), 'INVALID_REQUEST');
+});

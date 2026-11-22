@@ -67,7 +67,7 @@ export function answerClues(
 ): CluesState {
   if (!state.players.includes(actorId)) invalid('FORBIDDEN');
   if (state.phase !== 'playing') invalid('INVALID_PHASE');
-  if (clueIndex !== state.clueIndex || answer.length > 120 || !normalizeCluesAnswer(answer))
+  if (clueIndex !== state.clueIndex || [...answer].length > 120 || !normalizeCluesAnswer(answer))
     invalid('INVALID_REQUEST');
   if (
     state.attempts.some((a) => a.playerId === actorId && (a.correct || a.clueIndex === clueIndex))

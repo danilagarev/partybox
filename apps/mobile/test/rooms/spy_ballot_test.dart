@@ -112,6 +112,119 @@ void main() {
       );
     },
   );
+  testWidgets(
+    'compact voting recovers after command and snapshot both lose connection',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final api = BallotApi()
+        ..current = RoomSnapshot.parse(ballotFixture())
+        ..loseResponse = true;
+      final c = RoomController(api: api, vault: TestVault()..value = saved());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: RoomScreen(controller: c),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleRoomContent(tester);
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      final watches = api.watchCount;
+      api.snapshotError = const RoomFailure('CONNECTION');
+      await tester.tap(find.byType(RadioListTile<String>).at(1));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Проголосовать'));
+      await tester.pumpAndSettle();
+      expect(c.online, false);
+      expect(c.hasPending, false);
+      expect(api.watchCount, greaterThan(watches));
+      final reconnect = find.text('Восстановить связь');
+      expect(reconnect, findsOneWidget);
+      expect(tester.getRect(reconnect).bottom, lessThanOrEqualTo(844));
+      api.snapshotError = null;
+      await tester.tap(reconnect);
+      await tester.pumpAndSettle();
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      expect(c.online, true);
+      expect(c.error, null);
+      expect(api.leaves, hasLength(1));
+      expect(find.text('Голос принят'), findsOneWidget);
+      expect(reconnect, findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'guest lobby waits for the host without inventing a selected game',
+    (tester) async {
+      final data = ballotFixture();
+      (data['publicState'] as Map)['game'] = null;
+      data['privateState'] = null;
+      final api = FakeRoomApi()..current = RoomSnapshot.parse(data);
+      final c = RoomController(api: api, vault: TestVault()..value = saved());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: RoomScreen(controller: c),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleRoomContent(tester);
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      expect(find.text('Ждём начала игры'), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets('Spy lobby explains personal ballots only for the new protocol', (
+    tester,
+  ) async {
+    for (final version in [4, 5]) {
+      final data = ballotFixture(host: true);
+      data['protocolVersion'] = version;
+      (data['publicState'] as Map)['game'] = null;
+      data['privateState'] = null;
+      final api = FakeRoomApi()..current = RoomSnapshot.parse(data);
+      final c = RoomController(api: api, vault: TestVault()..value = saved());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nightTheme(),
+          home: RoomScreen(controller: c),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await settleRoomContent(tester);
+      api.receive!(api.current);
+      await tester.pumpAndSettle();
+      final rules = find.text('Как играть в «Шпиона»');
+      await tester.ensureVisible(rules);
+      await tester.pumpAndSettle();
+      await tester.tap(rules);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          version == 5
+              ? 'каждый тайно голосует'
+              : 'ведущий подтвердит общий выбор',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          version == 5
+              ? 'ведущий подтвердит общий выбор'
+              : 'каждый тайно голосует',
+        ),
+        findsNothing,
+      );
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
   for (final host in [true, false]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets(

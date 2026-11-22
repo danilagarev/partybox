@@ -2,6 +2,13 @@
 
 ## Актуальное дополнение: личное голосование v5
 
+Уточнение PB-053: порядок JSON-полей `spy.ballot` и `clues.answer` не влияет
+на повтор принятой команды; учитываются fingerprints обеих ранних форм записи.
+При входе нового участника завершённая партия очищается в той же транзакции,
+включая «Шпиона», поэтому старый клиент получает работоспособный доступ к лобби.
+Лимит ответа «Что объединяет?» в TS/Dart и UI считается по 120 кодовым точкам
+Unicode, как `maxLength` в JSON Schema, а не по единицам UTF-16.
+
 [Схема](../packages/game-contracts/schemas/rooms-v5.schema.json),
 [примеры](../packages/game-contracts/examples/rooms-v5.json),
 [OpenAPI](../packages/game-contracts/openapi-rooms-v5.json).

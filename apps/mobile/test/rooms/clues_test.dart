@@ -53,6 +53,32 @@ Widget cluesApp(RoomController controller, {double scale = 1}) => MaterialApp(
 );
 
 void main() {
+  testWidgets(
+    'complex Unicode answer is bounded before a network command is sent',
+    (tester) async {
+      final api = CluesApi()..current = RoomSnapshot.parse(cluesFixture());
+      final controller = await connectClues(api, TestVault()..value = saved());
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(cluesApp(controller));
+      await tester.pumpAndSettle();
+      const family = '👨‍👩‍👧‍👦';
+      final tooLong = 'а${List.filled(20, family).join()}';
+      final field = find.byKey(const ValueKey('clues-network-answer'));
+      await tester.enterText(field, tooLong);
+      await tapCluesControl(tester, find.text('Ответить'));
+      expect(find.text('Не больше 120 символов.'), findsOneWidget);
+      expect(api.leaves, isEmpty);
+      final boundary = 'а${List.filled(17, family).join()}';
+      expect(boundary.runes.length, 120);
+      api.responses.add(cluesFixture(version: 2, ownAnswer: boundary));
+      await tester.enterText(field, boundary);
+      await tapCluesControl(tester, find.text('Ответить'));
+      expect(api.leaves.single.leave!['payload']['answer'], boundary);
+      expect(tester.takeException(), null);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   test(
     'v4 semantic validation rejects foreign, duplicate and early secret data',
     () {

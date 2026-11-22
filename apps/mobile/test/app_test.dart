@@ -24,9 +24,36 @@ void main() {
     await tapVisible(tester, find.text('Играть в «Шпиона»'));
     await tester.pumpAndSettle();
     expect(find.text('Один из вас не в курсе.'), findsOneWidget);
+    await showWidget(tester, find.textContaining('Голосуйте вслух'));
+    expect(find.textContaining('Один телефон · без интернета'), findsOneWidget);
+    await showWidget(tester, find.textContaining('новый тур среди лидеров'));
+    expect(find.textContaining('голоса тайные'), findsOneWidget);
     await goBack(tester);
     await tester.pumpAndSettle();
     expect(find.text('Играть в «Шпиона»'), findsOneWidget);
+  });
+
+  testWidgets('room code entry is visible on the first screen of the catalog', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      PartyBoxApp(
+        roomControllerFactory: () =>
+            RoomController(api: FakeRoomApi(), vault: TestVault()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final join = find.text('Войти по коду').hitTestable();
+    expect(join, findsOneWidget);
+    await tester.tap(join);
+    await tester.pumpAndSettle();
+    expect(find.byType(RoomScreen), findsOneWidget);
+    expect(find.text('Код комнаты'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('small screen and large text remain scrollable', (tester) async {
@@ -175,7 +202,7 @@ void main() {
           },
         ),
       );
-      final join = find.text('Войти / вернуться в комнату');
+      final join = find.text('Войти по коду');
       await tapVisible(tester, join);
       await tapVisible(tester, join);
       expect(pending, hasLength(1));
@@ -240,14 +267,14 @@ void main() {
     final settings = find.text('Подключение комнат');
     await tapVisible(tester, settings);
     await tapVisible(tester, settings);
-    await tapVisible(tester, find.text('Войти / вернуться в комнату'));
+    await tapVisible(tester, find.text('Войти по коду'));
     await tapVisible(tester, find.text('Играть в «Шпиона»'));
     expect(settingsCalls, 1);
     expect(roomCalls, 0);
     expect(find.byType(SpyRulesScreen), findsNothing);
     configured.complete();
     await tester.pumpAndSettle();
-    await tapVisible(tester, find.text('Войти / вернуться в комнату'));
+    await tapVisible(tester, find.text('Войти по коду'));
     expect(roomCalls, 1);
   });
 

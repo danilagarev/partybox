@@ -164,8 +164,9 @@ class _CluesPanelState extends State<CluesPanel> with WidgetsBindingObserver {
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(120),
                         ],
-                        validator: (value) =>
-                            normalizeCluesAnswer(value ?? '').isEmpty
+                        validator: (value) => (value ?? '').runes.length > 120
+                            ? 'Не больше 120 символов.'
+                            : normalizeCluesAnswer(value ?? '').isEmpty
                             ? 'Введите слово или короткую фразу.'
                             : null,
                         onFieldSubmitted: (_) => _submit(),

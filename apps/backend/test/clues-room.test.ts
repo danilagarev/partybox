@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID, randomBytes } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import pg from 'pg';
@@ -155,6 +155,20 @@ test(
       assert.equal((await raw(members[1]!, other)).status, 409);
       const ack = await (await raw(host, wrong)).json();
       assert.deepEqual(await (await raw(host, wrong)).json(), ack);
+      const reordered = {
+        ...wrong,
+        payload: { clueIndex: 0, answer: 'НЕВЕРНЫЙ_ТЕСТОВЫЙ_ОТВЕТ' },
+      } as V4Command;
+      assert.deepEqual(await (await raw(host, reordered)).json(), ack);
+      const legacyFingerprint = createHash('sha256')
+        .update(JSON.stringify(reordered))
+        .digest('hex');
+      await pool.query(
+        'UPDATE pb_room_commands SET fingerprint=$1 WHERE room_id=$2 AND player_id=$3 AND command_id=$4',
+        [legacyFingerprint, host.snapshot.roomId, host.snapshot.selfId, wrong.commandId],
+      );
+      assert.deepEqual(await (await raw(host, wrong)).json(), ack);
+
       assert.equal(
         (await raw(host, { ...wrong, payload: { answer: 'changed', clueIndex: 0 } } as V4Command))
           .status,

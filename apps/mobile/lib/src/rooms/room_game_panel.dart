@@ -130,6 +130,28 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
       );
     }
     final choosing = game == null || game.phase == 'results';
+    if (choosing && game == null && !host && snapshot.protocolVersion >= 3) {
+      return NightPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Ждём начала игры',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Ведущий выбирает игру. Он начнёт партию, когда все соберутся.',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Ваше место в комнате сохранено. Пока можно пригласить остальных по коду.',
+              style: TextStyle(color: NightColors.muted),
+            ),
+          ],
+        ),
+      );
+    }
     final chooser = snapshot.protocolVersion >= 3 && choosing
         ? Padding(
             padding: const EdgeInsets.only(bottom: 20),
@@ -238,7 +260,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
           chooser,
           if (game == null || game.phase == 'results') ...[
             if (snapshot.protocolVersion >= 3)
-              const ExpansionTile(
+              ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Text('Как играть в «Шпиона»'),
                 children: [
@@ -249,7 +271,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                       'Посмотрите свою карточку и подтвердите готовность. '
                       'Задавайте друг другу вопросы о месте, не называя его. '
                       'Шпион старается не выдать себя. Когда время закончится, '
-                      'проголосуйте вслух: ведущий подтвердит общий выбор. '
+                      '${snapshot.protocolVersion >= 5 ? 'каждый тайно голосует со своего телефона. При ничьей — новый тур среди лидеров. ' : 'проголосуйте вслух: ведущий подтвердит общий выбор. '}'
                       'Нашли шпиона — победили остальные. Ошиблись — победил шпион.',
                     ),
                   ),
@@ -663,6 +685,12 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             ),
           ),
         const SizedBox(height: 8),
+        if (!controller.online || controller.hasPending)
+          TextButton.icon(
+            onPressed: controller.busy ? null : controller.retry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Восстановить связь'),
+          ),
         Row(
           children: [
             Expanded(

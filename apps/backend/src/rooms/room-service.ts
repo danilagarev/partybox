@@ -224,6 +224,7 @@ export class RoomService {
           throw new RoomError('ROOM_UNAVAILABLE', 409);
         if (room.members.filter((m) => !m.left).length >= 12) throw new RoomError('ROOM_FULL', 409);
         // A completed party belongs to its frozen roster; a newcomer starts a fresh lobby.
+        delete room.game;
         delete room.tolerance;
         delete room.clues;
         room.members.push(member);
@@ -459,22 +460,46 @@ export class RoomService {
       const member = this.member(room, token, true);
       if (this.now().getTime() >= Date.parse(room.expiresAt))
         throw new RoomError('ROOM_EXPIRED', 410);
-      const fingerprint = hash(
-        JSON.stringify({
-          protocolVersion: command.protocolVersion,
-          commandId: command.commandId,
-          expectedVersion: command.expectedVersion,
-          sessionId: command.sessionId,
-          type: command.type,
-          payload:
-            command.type === 'spy.start'
-              ? {
-                  discussionMinutes: command.payload.discussionMinutes,
-                  packId: command.payload.packId,
-                }
+      const fingerprintFor = (payload: unknown) =>
+        hash(
+          JSON.stringify({
+            protocolVersion: command.protocolVersion,
+            commandId: command.commandId,
+            expectedVersion: command.expectedVersion,
+            sessionId: command.sessionId,
+            type: command.type,
+            payload,
+          }),
+        );
+      const fingerprint = fingerprintFor(
+        command.type === 'spy.start'
+          ? { discussionMinutes: command.payload.discussionMinutes, packId: command.payload.packId }
+          : command.type === 'spy.ballot'
+            ? { round: command.payload.round, suspectId: command.payload.suspectId }
+            : command.type === 'clues.answer'
+              ? { answer: command.payload.answer, clueIndex: command.payload.clueIndex }
               : command.payload,
-        }),
       );
+      // Earlier receipts stored the caller's field order. Accept equivalent
+      // legacy payload orders, while changed values still conflict.
+      const compatibleFingerprints =
+        command.type === 'spy.ballot'
+          ? [
+              fingerprint,
+              fingerprintFor({
+                suspectId: command.payload.suspectId,
+                round: command.payload.round,
+              }),
+            ]
+          : command.type === 'clues.answer'
+            ? [
+                fingerprint,
+                fingerprintFor({
+                  clueIndex: command.payload.clueIndex,
+                  answer: command.payload.answer,
+                }),
+              ]
+            : [fingerprint];
       const previous = await client.query<{
         fingerprint: string;
         ack: GameAck | V3Ack | V4Ack | V5Ack;
@@ -483,7 +508,7 @@ export class RoomService {
         [roomId, member.id, command.commandId],
       );
       if (previous.rows[0]) {
-        if (previous.rows[0].fingerprint !== fingerprint)
+        if (!compatibleFingerprints.includes(previous.rows[0].fingerprint))
           throw new RoomError('COMMAND_CONFLICT', 409);
         return previous.rows[0].ack;
       }

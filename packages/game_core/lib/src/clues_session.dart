@@ -72,7 +72,7 @@ class CluesSession {
 
   CluesSession answer(String value) {
     if (!canAnswer) throw StateError('No answer is allowed at this clue');
-    if (value.length > 120 || normalizeCluesAnswer(value).isEmpty) {
+    if (value.runes.length > 120 || normalizeCluesAnswer(value).isEmpty) {
       throw ArgumentError('Answer must contain 1–120 characters');
     }
     final correct = _questions[roundIndex].matches(value);

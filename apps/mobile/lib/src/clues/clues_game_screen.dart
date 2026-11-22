@@ -91,6 +91,8 @@ class CluesGameScreen extends StatefulWidget {
 }
 
 class _CluesGameScreenState extends State<CluesGameScreen> {
+  static const _maxAnswerLength = 120;
+
   final _answer = TextEditingController();
   final _scroll = ScrollController();
   CluesDeck? _deck;
@@ -139,11 +141,16 @@ class _CluesGameScreenState extends State<CluesGameScreen> {
 
   void _submit() {
     if (_session?.canAnswer != true) return;
-    if (normalizeCluesAnswer(_answer.text).isEmpty) {
+    final answer = _answer.text;
+    if (answer.runes.length > _maxAnswerLength) {
+      setState(() => _validation = 'Не больше $_maxAnswerLength символов');
+      return;
+    }
+    if (normalizeCluesAnswer(answer).isEmpty) {
       setState(() => _validation = 'Напишите свой ответ');
       return;
     }
-    _change(_session!.answer(_answer.text));
+    _change(_session!.answer(answer));
   }
 
   Future<void> _confirmExit() async {
@@ -315,7 +322,7 @@ class _CluesGameScreenState extends State<CluesGameScreen> {
         key: const ValueKey('clues-answer'),
         controller: _answer,
         enabled: game.canAnswer,
-        maxLength: 120,
+        maxLength: _maxAnswerLength,
         textInputAction: TextInputAction.done,
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(
@@ -375,7 +382,7 @@ class _CluesGameScreenState extends State<CluesGameScreen> {
     ),
     const SizedBox(height: 12),
     TextButton(
-      onPressed: () => Navigator.of(context).maybePop(),
+      onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
       child: const Text('К выбору игр'),
     ),
   ];

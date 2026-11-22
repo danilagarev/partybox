@@ -2,9 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:partybox_game_core/partybox_game_core.dart';
+import 'package:partybox_mobile/src/app.dart';
 import 'package:partybox_mobile/src/clues/clues_game_screen.dart';
 import 'package:partybox_mobile/src/clues/clues_pack.dart';
 import 'package:partybox_mobile/src/design/night_theme.dart';
+
+import 'support/local_game_flow.dart' as flow;
 
 CluesPack fixture() => CluesPack(
   id: 'fixture',
@@ -52,6 +55,56 @@ void main() {
       }
     }
     expect(seen.length, pack.questions.length ~/ 5 * 5);
+  });
+
+  testWidgets('solo validates pasted answers by Unicode code points', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nightTheme(),
+        home: CluesGameScreen(packLoader: () async => fixture()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('clues-answer'));
+    final tooLong = 'Ответ${List.filled(20, '👩‍👩‍👧‍👦').join()}';
+    await tester.enterText(field, tooLong);
+    await tapVisible(tester, 'Ответить · 4 очк.');
+    expect(find.text('Не больше 120 символов'), findsOneWidget);
+    expect(find.byKey(const ValueKey('clues-revealed-answer')), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final atLimit = 'Ответ${List.filled(115, '😀').join()}';
+    await tester.enterText(field, atLimit);
+    await tapVisible(tester, 'Ответить · 4 очк.');
+    expect(find.byKey(const ValueKey('clues-revealed-answer')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('solo completion returns from the result to the catalog', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const PartyBoxApp());
+    await flow.tapVisible(tester, find.text('Играть в «Что объединяет?»'));
+    await flow.tapVisible(
+      tester,
+      find.text('Играть одному'),
+      loadsContent: true,
+    );
+    for (var round = 0; round < 5; round++) {
+      for (var points = 3; points >= 1; points--) {
+        await tapVisible(tester, 'Следующая подсказка · $points очк.');
+      }
+      await tapVisible(tester, 'Показать ответ · 0 очков');
+      await tapVisible(
+        tester,
+        round == 4 ? 'Посмотреть результат' : 'Следующее задание',
+      );
+    }
+    await tapVisible(tester, 'К выбору игр');
+    expect(find.byType(CatalogScreen), findsOneWidget);
+    expect(find.byType(CluesRulesScreen), findsNothing);
   });
 
   test('deck draws all bundled questions before reusing them', () {
