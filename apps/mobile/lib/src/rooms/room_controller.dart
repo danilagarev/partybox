@@ -171,12 +171,12 @@ final class RoomController extends ChangeNotifier {
   Future<void> enroll(String name, {String? pin}) => _run(() async {
     if (!canEnroll) return;
     final request = <String, dynamic>{
-      'protocolVersion': 4,
+      'protocolVersion': 5,
       'requestId': roomCommandId(),
       'retryKey': randomRoomKey(),
       'name': name.trim(),
     };
-    if (!RoomContract.accepts('V4Enrollment', request) ||
+    if (!RoomContract.accepts('V5Enrollment', request) ||
         (pin != null && !RegExp(r'^\d{6}$').hasMatch(pin))) {
       throw const RoomFailure('INVALID_REQUEST');
     }
@@ -395,6 +395,7 @@ final class RoomController extends ChangeNotifier {
           'tolerance.rank',
           'tolerance.guess',
           'clues.answer',
+          'spy.ballot',
         }.contains(type)) {
           await _sendSecret(access, current, type, payload);
           return;
@@ -496,6 +497,14 @@ final class RoomController extends ChangeNotifier {
           !fresh.clues!.attemptedIds.contains(fresh.selfId)) {
         current = fresh;
         continue;
+      }
+      if (type == 'spy.ballot' &&
+          fresh.sessionId == current.sessionId &&
+          (fresh.game?.phase == 'results' ||
+              (fresh.game?.votingRound ?? 0) > (payload['round'] as int) ||
+              (fresh.card?.ballotRound == payload['round'] &&
+                  fresh.card?.ballotSuspectId == payload['suspectId']))) {
+        failure = null;
       }
       _watch();
       if (failure != null) {

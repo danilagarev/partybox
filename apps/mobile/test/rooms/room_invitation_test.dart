@@ -10,6 +10,35 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'support.dart';
 
 void main() {
+  testWidgets('QR button is labelled and readable on the accent room panel', (
+    tester,
+  ) async {
+    final api = FakeRoomApi();
+    final controller = RoomController(
+      api: api,
+      vault: TestVault()..value = saved(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nightTheme(),
+        home: RoomScreen(controller: controller),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await settleRoomContent(tester);
+    final label = find.text('Показать QR-код');
+    expect(label, findsOneWidget);
+    final button = tester.widget<OutlinedButton>(
+      find.ancestor(of: label, matching: find.byType(OutlinedButton)),
+    );
+    expect(button.style!.foregroundColor!.resolve({}), NightColors.ink);
+    await tester.ensureVisible(label);
+    await tester.tap(label);
+    await tester.pumpAndSettle();
+    expect(find.byType(QrImageView), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test('invitation contains only the room locator and rejects unsafe URLs', () {
     final invite = RoomInvitation.create(
       'https://partybox.sorima.tech',

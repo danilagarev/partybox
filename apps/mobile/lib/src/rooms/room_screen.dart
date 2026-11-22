@@ -578,9 +578,13 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         const Text('Назовите код друзьям. Комната открыта 24 часа с создания.'),
         const SizedBox(height: 12),
         OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: NightColors.ink,
+            side: const BorderSide(color: NightColors.ink),
+          ),
           onPressed: () => _showInvitation(snapshot),
           icon: const Icon(Icons.qr_code_2),
-          label: const Text('Пригласить друзей'),
+          label: const Text('Показать QR-код'),
         ),
       ],
     ),

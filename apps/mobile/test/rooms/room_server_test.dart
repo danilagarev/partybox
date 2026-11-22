@@ -138,8 +138,19 @@ void main() {
             .firstWhere((m) => m.snapshot!.card!.role == 'spy')
             .snapshot!
             .selfId;
-        await host.play('spy.accuse', {'suspectId': spy});
-        expect(host.error, null);
+        // Every phone submits an independent secret choice, concurrently.
+        await Future.wait(
+          members.map(
+            (member) => member.play('spy.ballot', {
+              'round': member.snapshot!.game!.votingRound,
+              'suspectId': spy,
+            }),
+          ),
+        );
+        for (final member in members) {
+          expect(member.error, null);
+          expect(member.hasPending, false);
+        }
         await until(
           () => members.every((m) => m.snapshot!.game?.phase == 'results'),
         );
@@ -198,7 +209,7 @@ void main() {
           host.snapshot!.tolerance!.scores.map((s) => s.score),
           everyElement(3),
         );
-        // The same real clients now exercise V4 answer races across all five rounds.
+        // The same real clients now exercise v5 answer races across all five rounds.
         final cluePack =
             jsonDecode(
                   File(

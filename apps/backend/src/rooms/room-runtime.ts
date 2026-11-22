@@ -69,8 +69,8 @@ export class RoomRuntime {
             socket.handshake.headers['x-forwarded-for'],
             this.trustOneProxy,
           ),
-          socket.handshake.auth.protocolVersion === 4 ? 'socket-v4' : 'socket',
-          socket.handshake.auth.protocolVersion === 4 ? 360 : 60,
+          socket.handshake.auth.protocolVersion >= 4 ? 'socket-v4' : 'socket',
+          socket.handshake.auth.protocolVersion >= 4 ? 360 : 60,
         );
         const roomId = parseRoomId(socket.handshake.auth.roomId);
         const token = parseToken(socket.handshake.auth.guestToken);
@@ -79,18 +79,21 @@ export class RoomRuntime {
           protocolVersion !== 1 &&
           protocolVersion !== 2 &&
           protocolVersion !== 3 &&
-          protocolVersion !== 4
+          protocolVersion !== 4 &&
+          protocolVersion !== 5
         )
           throw new RoomError('INVALID_REQUEST', 400);
         const snapshot =
-          protocolVersion === 4
-            ? await service.snapshotV4(roomId, token)
-            : protocolVersion === 3
-              ? await service.snapshotV3(roomId, token)
-              : protocolVersion === 2
-                ? await service.snapshotGame(roomId, token)
-                : await service.snapshot(roomId, token);
-        if (protocolVersion === 4) await service.rateLimit(token, 'socket-member-v4', 60);
+          protocolVersion === 5
+            ? await service.snapshotV5(roomId, token)
+            : protocolVersion === 4
+              ? await service.snapshotV4(roomId, token)
+              : protocolVersion === 3
+                ? await service.snapshotV3(roomId, token)
+                : protocolVersion === 2
+                  ? await service.snapshotGame(roomId, token)
+                  : await service.snapshot(roomId, token);
+        if (protocolVersion >= 4) await service.rateLimit(token, 'socket-member-v4', 60);
         socket.data = { roomId, token, protocolVersion, expiresAt: snapshot.publicState.expiresAt };
         next();
       } catch (error) {
@@ -126,13 +129,15 @@ export class RoomRuntime {
   private async sendSnapshot(socket: import('socket.io').Socket) {
     try {
       const snapshot =
-        socket.data.protocolVersion === 4
-          ? await this.requireService().snapshotV4(socket.data.roomId, socket.data.token)
-          : socket.data.protocolVersion === 3
-            ? await this.requireService().snapshotV3(socket.data.roomId, socket.data.token)
-            : socket.data.protocolVersion === 2
-              ? await this.requireService().snapshotGame(socket.data.roomId, socket.data.token)
-              : await this.requireService().snapshot(socket.data.roomId, socket.data.token);
+        socket.data.protocolVersion === 5
+          ? await this.requireService().snapshotV5(socket.data.roomId, socket.data.token)
+          : socket.data.protocolVersion === 4
+            ? await this.requireService().snapshotV4(socket.data.roomId, socket.data.token)
+            : socket.data.protocolVersion === 3
+              ? await this.requireService().snapshotV3(socket.data.roomId, socket.data.token)
+              : socket.data.protocolVersion === 2
+                ? await this.requireService().snapshotGame(socket.data.roomId, socket.data.token)
+                : await this.requireService().snapshot(socket.data.roomId, socket.data.token);
       if (socket.connected) socket.emit('room.snapshot', snapshot);
     } catch (error) {
       socket.emit('room.error', {

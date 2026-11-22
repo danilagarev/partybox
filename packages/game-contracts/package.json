@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "generate": "node tool/generate.mjs && node tool/openapi.mjs && node tool/dart.mjs && node tool/game.mjs && node tool/tolerance.mjs && node tool/clues.mjs"
+    "generate": "node tool/generate.mjs && node tool/openapi.mjs && node tool/dart.mjs && node tool/game.mjs && node tool/tolerance.mjs && node tool/clues.mjs && node tool/ballot.mjs"
   },
   "devDependencies": {
     "ajv": "8.20.0",
@@ -19,6 +19,8 @@
     "./rooms-v3.schema.json": "./schemas/rooms-v3.schema.json",
     "./rooms-v3": "./generated/rooms-v3.d.ts",
     "./rooms-v4.schema.json": "./schemas/rooms-v4.schema.json",
-    "./rooms-v4": "./generated/rooms-v4.d.ts"
+    "./rooms-v4": "./generated/rooms-v4.d.ts",
+    "./rooms-v5": "./generated/rooms-v5.d.ts",
+    "./rooms-v5.schema.json": "./schemas/rooms-v5.schema.json"
   }
 }

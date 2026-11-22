@@ -20,6 +20,7 @@ final class RoomAccess {
       'tolerance.rank',
       'tolerance.guess',
       'clues.answer',
+      'spy.ballot',
     }.contains(leave?['type'])) {
       throw const RoomFailure('STORAGE');
     }
@@ -58,7 +59,8 @@ final class RoomAccess {
           1 => 'Enrollment',
           2 => 'V2Enrollment',
           3 => 'V3Enrollment',
-          _ => 'V4Enrollment',
+          4 => 'V4Enrollment',
+          _ => 'V5Enrollment',
         }, map['enrollment']);
         if (map.containsKey('roomId') ||
             map.containsKey('token') ||
@@ -85,6 +87,7 @@ final class RoomAccess {
           'tolerance.rank',
           'tolerance.guess',
           'clues.answer',
+          'spy.ballot',
         }.contains((map['leave'] as Map)['type'])) {
           throw const FormatException();
         }
@@ -92,7 +95,8 @@ final class RoomAccess {
           1 => 'LeaveRoom',
           2 => 'GameCommand',
           3 => 'V3Command',
-          _ => 'V4Command',
+          4 => 'V4Command',
+          _ => 'V5Command',
         }, map['leave']);
       }
       return RoomAccess(

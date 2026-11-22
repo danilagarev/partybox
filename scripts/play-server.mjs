@@ -26,7 +26,7 @@ const types = {
   '.frag': 'application/octet-stream',
 };
 const apiPath = (path) =>
-  /^\/(?:v[234]\/rooms|rooms|socket\.io|health|ready)(?:\/|\?|$)/.test(path);
+  /^\/(?:v[2345]\/rooms|rooms|socket\.io|health|ready)(?:\/|\?|$)/.test(path);
 
 /** One origin for Flutter, HTTP commands and Socket.IO; never serves repository files. */
 export function createPlayServer({ webRoot, backendPort, trustCloudflare = false }) {

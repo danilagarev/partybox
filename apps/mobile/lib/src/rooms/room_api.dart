@@ -71,8 +71,12 @@ final class HttpRoomApi implements RoomApi {
         if ((RoomContract.accepts('Error', value) ||
             RoomContract.accepts('GameError', value) ||
             RoomContract.accepts('V3Error', value) ||
-            RoomContract.accepts('V4Error', value))) {
+            RoomContract.accepts('V4Error', value) ||
+            RoomContract.accepts('V5Error', value))) {
           throw RoomFailure((value as Map)['code'] as String);
+        }
+        if (response.statusCode == 404 && path.startsWith('/v5/')) {
+          throw const RoomFailure('SERVER_UPGRADE_REQUIRED');
         }
         throw const RoomFailure('CONNECTION');
       }
@@ -99,7 +103,8 @@ final class HttpRoomApi implements RoomApi {
       1 => 'EnrollmentResult',
       2 => 'GameEnrollmentResult',
       3 => 'V3EnrollmentResult',
-      _ => 'V4EnrollmentResult',
+      4 => 'V4EnrollmentResult',
+      _ => 'V5EnrollmentResult',
     }, value);
     final map = value as Map;
     return (
@@ -112,7 +117,7 @@ final class HttpRoomApi implements RoomApi {
   Future<RoomSnapshot> snapshot(RoomAccess access) async {
     _checkOrigin(access);
     return RoomSnapshot.parse(
-      await _request('/v4/rooms/${access.roomId}', token: access.token),
+      await _request('/v5/rooms/${access.roomId}', token: access.token),
     );
   }
 
@@ -128,7 +133,8 @@ final class HttpRoomApi implements RoomApi {
       1 => 'Ack',
       2 => 'GameAck',
       3 => 'V3Ack',
-      _ => 'V4Ack',
+      4 => 'V4Ack',
+      _ => 'V5Ack',
     }, value);
     if ((value as Map)['commandId'] != access.leave!['commandId']) {
       throw const RoomFailure('PROTOCOL');
@@ -156,7 +162,7 @@ final class HttpRoomApi implements RoomApi {
           .setAuth({
             'roomId': access.roomId,
             'guestToken': access.token,
-            'protocolVersion': 4,
+            'protocolVersion': 5,
           })
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
@@ -176,7 +182,8 @@ final class HttpRoomApi implements RoomApi {
           (RoomContract.accepts('Error', value) ||
                   RoomContract.accepts('GameError', value) ||
                   RoomContract.accepts('V3Error', value) ||
-                  RoomContract.accepts('V4Error', value))
+                  RoomContract.accepts('V4Error', value) ||
+                  RoomContract.accepts('V5Error', value))
               ? (value as Map)['code'] as String
               : 'PROTOCOL',
         ),
@@ -210,7 +217,8 @@ final class HttpRoomApi implements RoomApi {
     1 => '',
     2 => '/v2',
     3 => '/v3',
-    _ => '/v4',
+    4 => '/v4',
+    _ => '/v5',
   };
 
   void _checkOrigin(RoomAccess access) {

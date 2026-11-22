@@ -7,6 +7,30 @@ import 'package:partybox_mobile/src/rooms/room_models.dart';
 import 'support.dart';
 
 void main() {
+  test('missing v5 endpoint explains required server update', () async {
+    final api = HttpRoomApi(
+      'https://rooms.example',
+      client: MockClient((request) async {
+        expect(request.url.path, '/v5/rooms/$roomId');
+        return http.Response(
+          jsonEncode({'statusCode': 404, 'message': 'Not Found'}),
+          404,
+        );
+      }),
+    );
+    addTearDown(api.close);
+    await expectLater(
+      api.snapshot(saved()),
+      throwsA(
+        isA<RoomFailure>().having(
+          (f) => f.code,
+          'code',
+          'SERVER_UPGRADE_REQUIRED',
+        ),
+      ),
+    );
+  });
+
   test(
     'API binds credentials to origin, disallows redirects and validates errors',
     () async {

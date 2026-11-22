@@ -1,0 +1,147 @@
+{
+  "V5Enrollment": {
+    "protocolVersion": 5,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "V5Command": {
+    "protocolVersion": 5,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": "00000000-0000-4000-8000-000000000020",
+    "type": "spy.ballot",
+    "payload": {
+      "round": 1,
+      "suspectId": "00000000-0000-4000-8000-000000000010"
+    }
+  },
+  "V5Snapshot": {
+    "protocolVersion": 5,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "name": "Игрок 3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "name": "Игрок 4"
+        }
+      ],
+      "game": {
+        "sessionId": "00000000-0000-4000-8000-000000000020",
+        "packId": "spy-ru-base",
+        "packVersion": 1,
+        "phase": "voting",
+        "readyIds": [
+          "00000000-0000-4000-8000-000000000002",
+          "00000000-0000-4000-8000-000000000010",
+          "00000000-0000-4000-8000-000000000011",
+          "00000000-0000-4000-8000-000000000012"
+        ],
+        "deadline": "2026-11-08T12:03:00.000Z",
+        "result": null,
+        "voting": {
+          "round": 1,
+          "candidateIds": [
+            "00000000-0000-4000-8000-000000000002",
+            "00000000-0000-4000-8000-000000000010",
+            "00000000-0000-4000-8000-000000000011",
+            "00000000-0000-4000-8000-000000000012"
+          ],
+          "votedIds": ["00000000-0000-4000-8000-000000000002"]
+        }
+      },
+      "tolerance": null,
+      "clues": null
+    },
+    "privateState": {
+      "role": "civilian",
+      "location": "Учебная локация",
+      "ballot": {
+        "round": 1,
+        "suspectId": "00000000-0000-4000-8000-000000000010"
+      }
+    },
+    "selfId": "00000000-0000-4000-8000-000000000002",
+    "privateTolerance": null,
+    "privateClues": null
+  },
+  "V5EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 5,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "name": "Игрок 4"
+          }
+        ],
+        "game": {
+          "sessionId": "00000000-0000-4000-8000-000000000020",
+          "packId": "spy-ru-base",
+          "packVersion": 1,
+          "phase": "distribution",
+          "readyIds": [],
+          "deadline": null,
+          "result": null
+        },
+        "tolerance": null,
+        "clues": null
+      },
+      "privateState": {
+        "role": "civilian",
+        "location": "Учебная локация"
+      },
+      "selfId": "00000000-0000-4000-8000-000000000002",
+      "privateTolerance": null,
+      "privateClues": null
+    }
+  },
+  "V5Ack": {
+    "protocolVersion": 5,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "V5Error": {
+    "protocolVersion": 5,
+    "code": "FORBIDDEN"
+  }
+}

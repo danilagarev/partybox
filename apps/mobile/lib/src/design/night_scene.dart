@@ -29,10 +29,13 @@ class _NightSceneState extends State<NightScene>
     with SingleTickerProviderStateMixin {
   late final AnimationController _entrance = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: const Duration(milliseconds: 1050),
   );
-  late final Animation<double> _motion = _entrance.drive(
-    CurveTween(curve: NightMotion.curve),
+  late final Animation<double> _arrival = _entrance.drive(
+    CurveTween(curve: const Interval(0, .44, curve: NightMotion.curve)),
+  );
+  late final Animation<double> _detail = _entrance.drive(
+    CurveTween(curve: const Interval(.22, 1, curve: Curves.easeInOutCubic)),
   );
 
   @override
@@ -42,6 +45,18 @@ class _NightSceneState extends State<NightScene>
       _entrance.value = 1;
     } else if (_entrance.isDismissed) {
       _entrance.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant NightScene oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.kind != widget.kind) {
+      if (NightMotion.reduced(context)) {
+        _entrance.value = 1;
+      } else {
+        _entrance.forward(from: 0);
+      }
     }
   }
 
@@ -67,12 +82,16 @@ class _NightSceneState extends State<NightScene>
             ),
           ),
           child: FadeTransition(
-            opacity: _motion,
+            opacity: _arrival,
             child: SlideTransition(
-              position: _motion.drive(
+              position: _arrival.drive(
                 Tween(begin: const Offset(0, .045), end: Offset.zero),
               ),
-              child: CustomPaint(painter: _NightScenePainter(widget.kind)),
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _NightScenePainter(widget.kind, _detail),
+                ),
+              ),
             ),
           ),
         ),
@@ -92,9 +111,10 @@ class _NightSceneState extends State<NightScene>
 }
 
 class _NightScenePainter extends CustomPainter {
-  const _NightScenePainter(this.kind);
+  _NightScenePainter(this.kind, this.detail) : super(repaint: detail);
 
   final NightSceneKind kind;
+  final Animation<double> detail;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -107,7 +127,7 @@ class _NightScenePainter extends CustomPainter {
       (size.height - 152 * scale) / 2,
     );
     canvas.scale(scale);
-    final scene = _Scene(canvas);
+    final scene = _Scene(canvas, detail.value);
     scene.halo(kind);
     switch (kind) {
       case NightSceneKind.spy:
@@ -130,13 +150,15 @@ class _NightScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_NightScenePainter oldDelegate) =>
-      oldDelegate.kind != kind;
+      oldDelegate.kind != kind || oldDelegate.detail != detail;
 }
 
 class _Scene {
-  _Scene(this.canvas);
+  _Scene(this.canvas, this.progress);
 
   final Canvas canvas;
+  final double progress;
+  double get remaining => 1 - progress;
   static const _ink = NightColors.ink;
   static const _lime = NightColors.accent;
   static const _lilac = NightColors.lilac;
@@ -294,6 +316,8 @@ class _Scene {
       _ring(22, 27, 10, _moss, 1.6);
       _ring(22, 27, 6, _moss.withAlpha(150));
     });
+    canvas.save();
+    canvas.translate(-37 * remaining, -13 * remaining);
     _line(177, 98, 207, 125, _ink, 16);
     _line(177, 96, 205, 122, _sage, 10);
     _line(186, 104, 205, 122, _lime, 2);
@@ -306,6 +330,7 @@ class _Scene {
       ..quadraticBezierTo(161, 93, 149, 80);
     canvas.drawPath(eye, _stroke(_cream, 1.6));
     _circle(161, 80, 3.6, _lime);
+    canvas.restore();
   }
 
   void tolerance() {
@@ -350,7 +375,15 @@ class _Scene {
         _ink,
       );
     }
-    _line(144.5, 103.5, 159, 88, _ink, 2);
+    final turn = -1.9 * remaining;
+    _line(
+      144.5,
+      103.5,
+      144.5 + 14.5 * math.cos(turn) + 15.5 * math.sin(turn),
+      103.5 + 14.5 * math.sin(turn) - 15.5 * math.cos(turn),
+      _ink,
+      2,
+    );
     _circle(144.5, 103.5, 3, _ink);
     _line(113, 112, 176, 112, _plum.withAlpha(145));
   }
@@ -360,7 +393,7 @@ class _Scene {
       ..moveTo(34, 87)
       ..cubicTo(98, 135, 180, 25, 241, 70);
     canvas.drawPath(string, _stroke(_gold.withAlpha(160), 1.2));
-    _rotate(80, 78, -.16, () {
+    _rotate(80 + 38 * remaining, 78, -.16 * progress, () {
       _box(-30, -34, 65, 78, 6, _ink);
       _box(-34, -39, 65, 78, 6, _sage);
       _frame(-29, -34, 55, 67, 4, _cream.withAlpha(140));
@@ -371,7 +404,7 @@ class _Scene {
       _line(14, 16, 18, 12, _cream, 3);
       _line(-15, 24, 10, 24, _moss);
     });
-    _rotate(197, 78, .17, () {
+    _rotate(197 - 36 * remaining, 78, .17 * progress, () {
       _box(-29, -34, 65, 78, 6, _ink);
       _box(-34, -39, 65, 78, 6, _plum);
       _frame(-29, -34, 55, 67, 4, _lilac.withAlpha(150));
@@ -421,7 +454,7 @@ class _Scene {
     _box(90, 51, 83, 11, 3, _paper);
     _line(101, 56, 159, 56, _moss);
     _box(95, 79, 43, 33, 3, _ink);
-    _box(99, 83, 35, 25, 2, _gold);
+    _box(99, 83, 35, 25, 2, Color.lerp(_moss, _gold, progress)!);
     _line(117, 83, 117, 108, _moss, 2);
     _line(100, 95, 133, 95, _moss, 2);
     _box(143, 79, 23, 45, 4, _ink);
@@ -448,7 +481,7 @@ class _Scene {
   void everyday() {
     _box(91, 25, 84, 65, 8, _ink);
     _box(96, 30, 74, 56, 5, _moss);
-    _circle(150, 47, 9, _lilac.withAlpha(190));
+    _circle(150, 47 + 14 * remaining, 9, _lilac.withAlpha(190));
     _polygon(const [
       Offset(96, 74),
       Offset(114, 58),
@@ -533,7 +566,7 @@ class _Scene {
       ], _ink);
       _line(x, y + 20, x, y + 29, _ink, 2);
     }
-    _rotate(178, 107, -.12, () {
+    _rotate(178 + 22 * remaining, 107 - 11 * remaining, -.12 * progress, () {
       _frame(-13, -34, 26, 18, 5, _gold);
       _box(-37, -22, 78, 48, 8, _ink);
       _box(-41, -26, 78, 48, 8, _gold);
@@ -603,9 +636,11 @@ class _Scene {
     const meridian = Rect.fromLTWH(128, 43, 23, 48);
     canvas.drawArc(meridian, math.pi, math.pi, false, _stroke(_plum, 1.3));
     _line(114, 67, 165, 67, _cream, 2);
-    _line(143, 46, 155, 32, _ink, 8);
-    _line(143, 45, 155, 31, _sage, 4);
-    _line(152, 29, 158, 34, _gold, 3);
+    _rotate(143, 45, -.85 * remaining, () {
+      _line(0, 1, 12, -13, _ink, 8);
+      _line(0, 0, 12, -14, _sage, 4);
+      _line(9, -16, 15, -11, _gold, 3);
+    });
     _line(129, 103, 151, 103, _cream, 2);
     _circle(166, 126, 2, _lilac.withAlpha(138));
     _circle(120, 136, 1.4, _lilac.withAlpha(138));

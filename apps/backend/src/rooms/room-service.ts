@@ -1,3 +1,4 @@
+import type { V5Command, V5Snapshot, V5Ack } from '@partybox/game-contracts/rooms-v5';
 import type { V4Command, V4Snapshot, V4Ack } from '@partybox/game-contracts/rooms-v4';
 import {
   createClues,
@@ -30,6 +31,9 @@ import {
   advanceSpy,
   voteSpy,
   accuseSpy,
+  ballotSpy,
+  spyVoting,
+  spyBallot,
   spyCard,
   spyPublic,
   SpyRuleError,
@@ -54,6 +58,7 @@ interface Member {
   gameClient?: boolean;
   toleranceClient?: boolean;
   cluesClient?: boolean;
+  ballotClient?: boolean;
 }
 interface Room {
   id: string;
@@ -356,27 +361,34 @@ export class RoomService {
   async snapshotV4(roomId: string, token: string): Promise<V4Snapshot> {
     return this.snapshotBoth(roomId, token, 4) as Promise<V4Snapshot>;
   }
+  async snapshotV5(roomId: string, token: string): Promise<V5Snapshot> {
+    return this.snapshotBoth(roomId, token, 5) as Promise<V5Snapshot>;
+  }
   private async snapshotBoth(
     roomId: string,
     token: string,
-    protocol: 2 | 3 | 4,
-  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot> {
+    protocol: 2 | 3 | 4 | 5,
+  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot | V5Snapshot> {
     let changed = false;
     const snapshot = await this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token);
       this.active(room);
+      if (protocol < 5 && room.game?.state.ballots)
+        throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
       const advanced = this.advanceGame(room);
       changed = advanced;
       if (
         !member.gameClient ||
         (protocol >= 3 && !member.toleranceClient) ||
-        (protocol === 4 && !member.cluesClient) ||
+        (protocol >= 4 && !member.cluesClient) ||
+        (protocol === 5 && !member.ballotClient) ||
         advanced
       ) {
         member.gameClient = true;
         if (protocol >= 3) member.toleranceClient = true;
-        if (protocol === 4) member.cluesClient = true;
+        if (protocol >= 4) member.cluesClient = true;
+        if (protocol === 5) member.ballotClient = true;
         await client.query('UPDATE pb_rooms SET state=$2 WHERE id=$1', [roomId, room]);
       }
       const view = this.gameView(room, member);
@@ -393,7 +405,7 @@ export class RoomService {
         privateTolerance: room.tolerance ? tolerancePrivate(room.tolerance.state, member.id) : null,
       };
       if (protocol === 3) return v3;
-      return {
+      const v4 = {
         ...v3,
         protocolVersion: 4 as const,
         publicState: {
@@ -401,6 +413,25 @@ export class RoomService {
           clues: room.clues ? cluesPublic(room.clues.state, room.clues.id) : null,
         },
         privateClues: room.clues ? cluesPrivate(room.clues.state, member.id) : null,
+      };
+      if (protocol === 4) return v4;
+      const voting = room.game ? spyVoting(room.game.state) : undefined;
+      const ballot = room.game ? spyBallot(room.game.state, member.id) : undefined;
+      return {
+        ...v4,
+        protocolVersion: 5 as const,
+        publicState: {
+          ...v4.publicState,
+          game: v4.publicState.game
+            ? {
+                ...v4.publicState.game,
+                ...(voting ? { voting } : {}),
+              }
+            : null,
+        },
+        privateState: v4.privateState
+          ? { ...v4.privateState, ...(ballot ? { ballot } : {}) }
+          : null,
       };
     });
     if (changed) this.onChanged?.(roomId);
@@ -415,11 +446,14 @@ export class RoomService {
   async commandV4(roomId: string, token: string, command: V4Command): Promise<V4Ack> {
     return this.commandBoth(roomId, token, command) as Promise<V4Ack>;
   }
+  async commandV5(roomId: string, token: string, command: V5Command): Promise<V5Ack> {
+    return this.commandBoth(roomId, token, command) as Promise<V5Ack>;
+  }
   private async commandBoth(
     roomId: string,
     token: string,
-    command: GameCommand | V3Command | V4Command,
-  ): Promise<GameAck | V3Ack | V4Ack> {
+    command: GameCommand | V3Command | V4Command | V5Command,
+  ): Promise<GameAck | V3Ack | V4Ack | V5Ack> {
     return this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token, true);
@@ -441,7 +475,10 @@ export class RoomService {
               : command.payload,
         }),
       );
-      const previous = await client.query<{ fingerprint: string; ack: GameAck | V3Ack | V4Ack }>(
+      const previous = await client.query<{
+        fingerprint: string;
+        ack: GameAck | V3Ack | V4Ack | V5Ack;
+      }>(
         'SELECT fingerprint,ack FROM pb_room_commands WHERE room_id=$1 AND player_id=$2 AND command_id=$3',
         [roomId, member.id, command.commandId],
       );
@@ -453,11 +490,18 @@ export class RoomService {
       if (member.left) throw new RoomError('UNAUTHORIZED', 401);
       this.active(room);
       // Persisted deadlines are advanced by snapshots/background polling before further actions.
-      if (command.expectedVersion !== room.version) throw new RoomError('VERSION_CONFLICT', 409);
+      // Other players' independent ballots may commit before this one.
+      const independentBallot =
+        command.type === 'spy.ballot' &&
+        command.expectedVersion <= room.version &&
+        room.game?.state.phase === 'voting' &&
+        room.game.state.ballots?.round === command.payload.round;
+      if (command.expectedVersion !== room.version && !independentBallot)
+        throw new RoomError('VERSION_CONFLICT', 409);
       const expectedSession =
         command.protocolVersion === 2 && command.type === 'room.leave'
           ? (room.game?.id ?? null)
-          : command.protocolVersion === 4
+          : command.protocolVersion >= 4
             ? (room.clues?.id ?? room.tolerance?.id ?? room.game?.id ?? null)
             : (room.tolerance?.id ?? room.game?.id ?? null);
       if (command.sessionId !== expectedSession) throw new RoomError('SESSION_CONFLICT', 409);
@@ -551,6 +595,14 @@ export class RoomService {
             if (command.type === 'tolerance.next') game.state = nextTolerance(game.state);
             else delete room.tolerance;
           }
+        } else if (command.type === 'spy.ballot') {
+          if (room.tolerance || room.clues || !room.game) throw new RoomError('INVALID_PHASE', 409);
+          room.game.state = ballotSpy(
+            room.game.state,
+            member.id,
+            command.payload.round,
+            command.payload.suspectId,
+          );
         } else if (command.type === 'spy.ready') {
           if (room.tolerance || room.clues) throw new RoomError('INVALID_PHASE', 409);
           const game = room.game;
@@ -582,6 +634,8 @@ export class RoomService {
               throw new RoomError('INVALID_PHASE', 409);
             const players = room.members.filter((m) => !m.left);
             if (players.length < 4) throw new RoomError('INVALID_PHASE', 409);
+            if (command.protocolVersion === 5 && players.some((m) => !m.ballotClient))
+              throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
             if (players.some((m) => !m.gameClient))
               throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
             const key = `${pack.id}:${pack.version}`;
@@ -603,6 +657,7 @@ export class RoomService {
                 selection.location,
                 randomInt(players.length),
                 command.payload.discussionMinutes * 60000,
+                command.protocolVersion === 5,
               ),
               readyIds: [],
             };
@@ -638,7 +693,7 @@ export class RoomService {
         throw error;
       }
       room.version++;
-      const ack: GameAck | V3Ack | V4Ack = {
+      const ack: GameAck | V3Ack | V4Ack | V5Ack = {
         protocolVersion: command.protocolVersion,
         commandId: command.commandId,
         accepted: true,

@@ -4,6 +4,7 @@ import 'generated/room_schema.dart';
 import 'generated/room_game_schema.dart';
 import 'generated/room_tolerance_schema.dart';
 import 'generated/room_clues_schema.dart';
+import 'generated/room_ballot_schema.dart';
 
 final class RoomFailure implements Exception {
   const RoomFailure(this.code);
@@ -30,6 +31,8 @@ final class RoomFailure implements Exception {
     'FORBIDDEN' => 'Это действие доступно ведущему.',
     'INVALID_PHASE' => 'Этап игры уже изменился. Обновите комнату.',
     'SESSION_CONFLICT' => 'Эта партия уже закончилась. Обновите комнату.',
+    'SERVER_UPGRADE_REQUIRED' =>
+      'На сервере пока старая версия. Для личного голосования нужно обновить сервер комнат.',
     'CLIENT_UPGRADE_REQUIRED' =>
       'Все участники должны открыть комнату в новой версии приложения.',
     'INVALID_REQUEST' => 'Проверьте имя и код комнаты.',
@@ -52,6 +55,9 @@ final class RoomContract {
     );
     (base[r'$defs'] as Map).addAll(
       (jsonDecode(roomCluesSchemaJson) as Map)[r'$defs'] as Map,
+    );
+    (base[r'$defs'] as Map).addAll(
+      (jsonDecode(roomBallotSchemaJson) as Map)[r'$defs'] as Map,
     );
     return base;
   })();
@@ -200,7 +206,9 @@ final class RoomSnapshot {
   );
   factory RoomSnapshot.parse(Object? json) {
     RoomContract.require(
-      json is Map && json['protocolVersion'] == 4
+      json is Map && json['protocolVersion'] == 5
+          ? 'V5Snapshot'
+          : json is Map && json['protocolVersion'] == 4
           ? 'V4Snapshot'
           : json is Map && json['protocolVersion'] == 3
           ? 'V3Snapshot'
@@ -246,6 +254,24 @@ final class RoomSnapshot {
       if (result != null &&
           (!ids.contains(result['spyId']) ||
               !ids.contains(result['suspectId']))) {
+        throw const RoomFailure('PROTOCOL');
+      }
+      final voting = gameValue['voting'] as Map?;
+      final ballot = cardValue?['ballot'] as Map?;
+      if (voting != null) {
+        final candidates = (voting['candidateIds'] as List).cast<String>();
+        final voted = (voting['votedIds'] as List).cast<String>();
+        if (phase != 'voting' ||
+            candidates.any((id) => !ids.contains(id)) ||
+            voted.any((id) => !ids.contains(id)) ||
+            voted.length >= ids.length ||
+            voted.contains(map['selfId']) != (ballot != null) ||
+            (ballot != null &&
+                (ballot['round'] != voting['round'] ||
+                    !candidates.contains(ballot['suspectId'])))) {
+          throw const RoomFailure('PROTOCOL');
+        }
+      } else if (ballot != null) {
         throw const RoomFailure('PROTOCOL');
       }
       if (phase == 'results' && cardValue != null ||
@@ -525,8 +551,19 @@ final class RoomGame {
       deadline = value['deadline'] == null
           ? null
           : DateTime.parse(value['deadline'] as String),
-      result = value['result'] as Map<String, dynamic>?;
+      result = value['result'] as Map<String, dynamic>?,
+      votingRound = (value['voting'] as Map?)?['round'] as int?,
+      candidateIds = List<String>.unmodifiable(
+        ((value['voting'] as Map?)?['candidateIds'] as List?)?.cast<String>() ??
+            const <String>[],
+      ),
+      votedIds = List<String>.unmodifiable(
+        ((value['voting'] as Map?)?['votedIds'] as List?)?.cast<String>() ??
+            const <String>[],
+      );
   final String sessionId, phase, packId;
+  final int? votingRound;
+  final List<String> candidateIds, votedIds;
   final List<String> readyIds;
   final DateTime? deadline;
   final Map<String, dynamic>? result;
@@ -535,9 +572,13 @@ final class RoomGame {
 final class RoomCard {
   RoomCard(Map<String, dynamic> value)
     : role = value['role'] as String,
-      location = value['location'] as String?;
+      location = value['location'] as String?,
+      ballotRound = (value['ballot'] as Map?)?['round'] as int?,
+      ballotSuspectId = (value['ballot'] as Map?)?['suspectId'] as String?;
   final String role;
   final String? location;
+  final int? ballotRound;
+  final String? ballotSuspectId;
   @override
   String toString() => 'RoomCard(<redacted>)';
 }

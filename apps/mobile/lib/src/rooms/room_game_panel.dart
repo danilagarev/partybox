@@ -30,6 +30,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
   List<SpyPack>? _packs;
   bool _packLoadFailed = false;
   String? _suspect;
+  Object? _ballotSelectionKey;
 
   @override
   void initState() {
@@ -97,6 +98,11 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     final controller = widget.controller;
     final snapshot = controller.snapshot!;
     final game = snapshot.game;
+    final selectionKey = (game?.sessionId, game?.votingRound);
+    if (selectionKey != _ballotSelectionKey) {
+      _ballotSelectionKey = selectionKey;
+      _suspect = null;
+    }
     final host = snapshot.hostId == snapshot.selfId;
     final enabled =
         !controller.busy && !controller.hasPending && controller.online;
@@ -393,32 +399,23 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 12),
-            const Text('Проголосуйте вслух. Ведущий подтвердит общий выбор.'),
-            if (host) ...[
-              RadioGroup<String>(
-                groupValue: _suspect,
-                onChanged: (value) {
-                  if (enabled) setState(() => _suspect = value);
-                },
-                child: Column(
-                  children: [
-                    for (final (index, player) in snapshot.players.indexed)
-                      RadioListTile<String>(
-                        value: player.id,
-                        title: Text('${index + 1}. ${player.name}'),
-                        enabled: enabled,
-                      ),
-                  ],
-                ),
-              ),
+            Text(_votingHint()),
+            _votingChoices(enabled),
+            if (game.votingRound != null || host)
               NightButton(
-                label: 'Подтвердить выбор',
-                onPressed: enabled && _suspect != null
-                    ? () =>
-                          controller.play('spy.accuse', {'suspectId': _suspect})
+                label: _hasVoted
+                    ? 'Голос принят'
+                    : game.votingRound != null
+                    ? 'Проголосовать'
+                    : 'Подтвердить выбор',
+                onPressed:
+                    enabled &&
+                        !_hasVoted &&
+                        _suspect != null &&
+                        (game.votingRound != null || host)
+                    ? _submitVote
                     : null,
               ),
-            ],
           ],
           if (host && game != null && game.phase != 'results') ...[
             const SizedBox(height: 12),
@@ -427,6 +424,101 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
               child: const Text('Отменить раунд'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  bool get _hasVoted {
+    final snapshot = widget.controller.snapshot!;
+    return snapshot.game!.votedIds.contains(snapshot.selfId);
+  }
+
+  String _votingHint() {
+    final snapshot = widget.controller.snapshot!;
+    final game = snapshot.game!;
+    if (game.votingRound == null) {
+      return 'Проголосуйте вслух. Выбор подтвердит ведущий.';
+    }
+    return '${game.votingRound! > 1 ? 'Ничья. Тур ${game.votingRound} среди лидеров. ' : ''}'
+        'Проголосовали ${game.votedIds.length} из ${snapshot.players.length}. '
+        'Каждый голосует на своём телефоне.';
+  }
+
+  void _submitVote() {
+    final game = widget.controller.snapshot!.game!;
+    if (_suspect == null) return;
+    widget.controller.play(
+      game.votingRound != null ? 'spy.ballot' : 'spy.accuse',
+      {
+        'suspectId': _suspect,
+        if (game.votingRound != null) 'round': game.votingRound,
+      },
+    );
+  }
+
+  Widget _votingChoices(bool enabled) {
+    final snapshot = widget.controller.snapshot!;
+    final game = snapshot.game!;
+    final individual = game.votingRound != null;
+    if (_hasVoted) {
+      final chosen = snapshot.players.firstWhere(
+        (p) => p.id == snapshot.card!.ballotSuspectId,
+      );
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Semantics(
+          liveRegion: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: NightColors.accent,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Ваш голос: ${chosen.name}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Выбор сохранён. Ждём остальных. До конца тура голоса закрыты.',
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (!individual && snapshot.hostId != snapshot.selfId) {
+      return const Text('Обсудите подозрения. Ведущий подтвердит общий выбор.');
+    }
+    return RadioGroup<String>(
+      groupValue: _suspect,
+      onChanged: (value) {
+        if (enabled) setState(() => _suspect = value);
+      },
+      child: Column(
+        children: [
+          if (individual)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Выберите подозреваемого. После отправки изменить голос нельзя.',
+                style: TextStyle(color: NightColors.muted),
+              ),
+            ),
+          for (final (index, player) in snapshot.players.indexed)
+            if (!individual || game.candidateIds.contains(player.id))
+              RadioListTile<String>(
+                value: player.id,
+                title: Text(
+                  '${index + 1}. ${player.name}${player.id == snapshot.selfId ? ' (вы)' : ''}',
+                ),
+                enabled: enabled,
+                dense: true,
+              ),
         ],
       ),
     );
@@ -448,7 +540,12 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             ? 'Скрыть и подтвердить'
             : 'Подтвердить роль',
       'discussion' => 'Завершить обсуждение',
-      _ => 'Подтвердить выбор',
+      _ =>
+        _hasVoted
+            ? 'Голос принят'
+            : game.votingRound != null
+            ? 'Проголосовать'
+            : 'Подтвердить выбор',
     };
     VoidCallback? action;
     if (enabled &&
@@ -458,8 +555,12 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
       action = () => controller.play('spy.ready');
     } else if (enabled && host && game.phase == 'discussion') {
       action = () => controller.play('spy.vote');
-    } else if (enabled && host && game.phase == 'voting' && _suspect != null) {
-      action = () => controller.play('spy.accuse', {'suspectId': _suspect});
+    } else if (enabled &&
+        (game.votingRound != null || host) &&
+        game.phase == 'voting' &&
+        !_hasVoted &&
+        _suspect != null) {
+      action = _submitVote;
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -467,14 +568,17 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
         Text(switch (game.phase) {
           'distribution' => 'Посмотрите свою карточку',
           'discussion' => 'Обсуждение',
-          _ => 'Кого подозревает компания?',
+          _ =>
+            game.votingRound != null
+                ? 'Кто здесь шпион?'
+                : 'Кого подозревает компания?',
         }, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Text(
           game.phase == 'distribution'
               ? 'Готовы ${game.readyIds.length} из ${snapshot.players.length}'
               : game.phase == 'voting'
-              ? 'Проголосуйте вслух. Выбор подтвердит ведущий.'
+              ? _votingHint()
               : 'Задавайте вопросы о месте, не называя его.',
           style: const TextStyle(color: NightColors.muted),
         ),
@@ -543,30 +647,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                   ),
                 );
               }
-              return SingleChildScrollView(
-                child: host
-                    ? RadioGroup<String>(
-                        groupValue: _suspect,
-                        onChanged: (value) {
-                          if (enabled) setState(() => _suspect = value);
-                        },
-                        child: Column(
-                          children: [
-                            for (final (index, player)
-                                in snapshot.players.indexed)
-                              RadioListTile<String>(
-                                value: player.id,
-                                title: Text('${index + 1}. ${player.name}'),
-                                enabled: enabled,
-                                dense: true,
-                              ),
-                          ],
-                        ),
-                      )
-                    : const Text(
-                        'Обсудите подозрения. Ведущий подтвердит общий выбор.',
-                      ),
-              );
+              return SingleChildScrollView(child: _votingChoices(enabled));
             },
           ),
         ),
@@ -585,7 +666,10 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
         Row(
           children: [
             Expanded(
-              child: game.phase == 'distribution' || host
+              child:
+                  game.phase == 'distribution' ||
+                      host ||
+                      game.votingRound != null
                   ? NightButton(label: label, onPressed: action)
                   : const Text(
                       'Дальше перейдёт ведущий.',
