@@ -1,7 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../design/night_art.dart';
+import '../design/night_scene.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
 
@@ -64,28 +63,15 @@ class CatalogGameCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              ExcludeSemantics(
-                child: Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: tolerance ? NightColors.raised : NightColors.accent,
-                    borderRadius: BorderRadius.circular(23),
-                    border: tolerance
-                        ? Border.all(
-                            color: NightColors.lilac.withValues(alpha: .45),
-                          )
-                        : null,
-                  ),
-                  child: clues
-                      ? const Icon(
-                          Icons.lightbulb_outline_rounded,
-                          color: NightColors.ink,
-                          size: 36,
-                        )
+              SizedBox(
+                width: 104,
+                child: NightScene(
+                  kind: clues
+                      ? NightSceneKind.clues
                       : tolerance
-                      ? CustomPaint(painter: _ToleranceMark())
-                      : const NightArt(height: 68),
+                      ? NightSceneKind.tolerance
+                      : NightSceneKind.spy,
+                  height: 76,
                 ),
               ),
             ],
@@ -123,45 +109,4 @@ class CatalogGameCard extends StatelessWidget {
       ),
     ],
   );
-}
-
-class _ToleranceMark extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2 + 6);
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset.zero, radius: 22),
-      math.pi,
-      math.pi,
-      false,
-      stroke..color = NightColors.border,
-    );
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset.zero, radius: 22),
-      math.pi,
-      math.pi * .7,
-      false,
-      stroke..color = NightColors.lilac,
-    );
-    canvas.drawLine(
-      Offset.zero,
-      const Offset(12, -17),
-      stroke..color = NightColors.text,
-    );
-    canvas.drawCircle(Offset.zero, 4, Paint()..color = NightColors.lilac);
-    canvas.drawLine(
-      const Offset(-16, 10),
-      const Offset(16, 10),
-      stroke..color = NightColors.border,
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

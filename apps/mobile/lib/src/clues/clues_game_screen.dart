@@ -5,6 +5,7 @@ import 'package:partybox_game_core/partybox_game_core.dart';
 
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
+import '../design/night_scene.dart';
 import 'clues_pack.dart';
 
 class CluesRulesScreen extends StatelessWidget {
@@ -21,6 +22,8 @@ class CluesRulesScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              const NightScene(kind: NightSceneKind.clues, height: 150),
+              const SizedBox(height: 20),
               const NightEyebrow('ОДНА ДОГАДКА. ВСЁ БЛИЖЕ.'),
               const SizedBox(height: 16),
               Text(

@@ -8,6 +8,7 @@ import 'clues/clues_game_screen.dart';
 import 'design/night_components.dart';
 import 'design/night_gallery.dart';
 import 'design/night_theme.dart';
+import 'design/night_scene.dart';
 import 'spy/spy_game_screen.dart';
 import 'storage/spy_setup.dart';
 import 'rooms/room_controller.dart';
@@ -263,6 +264,8 @@ class SpyRulesScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              const NightScene(kind: NightSceneKind.spy, height: 150),
+              const SizedBox(height: 20),
               const NightEyebrow('ПРАВИЛА / ОДИН РАУНД'),
               const SizedBox(height: 16),
               Text(
@@ -338,6 +341,8 @@ class ToleranceRulesScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              const NightScene(kind: NightSceneKind.tolerance, height: 150),
+              const SizedBox(height: 20),
               const NightEyebrow('НАСКОЛЬКО ХОРОШО ВЫ ЗНАКОМЫ?'),
               const SizedBox(height: 16),
               Text(

@@ -12,6 +12,7 @@ import '../design/role_peek_card.dart';
 
 import 'local_session_adapter.dart';
 import 'spy_controller.dart';
+import 'spy_theme_preview.dart';
 import 'spy_question_help.dart';
 import '../storage/spy_setup.dart';
 
@@ -757,6 +758,9 @@ class _SpyGameScreenState extends State<SpyGameScreen>
     TextButton(onPressed: _exit, child: const Text('Отменить подготовку')),
   ];
 
+  bool get _compactThemePreview =>
+      _compact && MediaQuery.sizeOf(context).height < 720;
+
   List<Widget> _settingsContent(SpyController controller) => [
     if (!_compact) ...[
       const NightEyebrow('ПОДГОТОВКА / 02'),
@@ -770,7 +774,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
         style: TextStyle(color: NightColors.muted),
       ),
     ],
-    SizedBox(height: _compact ? 12 : 24),
+    SizedBox(height: _compactThemePreview ? 4 : (_compact ? 12 : 24)),
     DropdownButtonFormField<String>(
       isExpanded: true,
       key: ValueKey('spy-pack-${controller.adapter.pack.id}'),
@@ -790,13 +794,16 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       onChanged: _saving ? null : (id) => controller.selectPack(id!),
     ),
     const SizedBox(height: 12),
-    if (!_compact && controller.adapter.pack.description.isNotEmpty)
-      Text(controller.adapter.pack.description),
-    Text(
-      controller.adapter.pack.rotationLabel,
-      style: const TextStyle(color: NightColors.muted),
+    SpyThemePreview(
+      pack: controller.adapter.pack,
+      compact: _compactThemePreview,
     ),
-    SizedBox(height: _compact ? 12 : 24),
+    if (!_compactThemePreview)
+      Text(
+        controller.adapter.pack.rotationLabel,
+        style: const TextStyle(color: NightColors.muted),
+      ),
+    SizedBox(height: _compactThemePreview ? 4 : (_compact ? 12 : 24)),
     DropdownButtonFormField<int>(
       isExpanded: true,
       key: const ValueKey('discussion-duration'),
@@ -808,7 +815,7 @@ class _SpyGameScreenState extends State<SpyGameScreen>
       ],
       onChanged: _saving ? null : (value) => setState(() => _minutes = value!),
     ),
-    SizedBox(height: _compact ? 12 : 24),
+    SizedBox(height: _compactThemePreview ? 4 : (_compact ? 12 : 24)),
     Text('Игроков: $_count · один шпион'),
     if (!_compact && widget.setupStore != null) ...[
       const SizedBox(height: 12),
