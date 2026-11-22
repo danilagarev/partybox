@@ -198,6 +198,7 @@ volumes, параметры и сайты Caddy сохраняйте. Нужны
 
 ```caddyfile
 partybox.sorima.tech {
+    encode zstd gzip
     reverse_proxy partybox-api:3000 {
         header_up X-Forwarded-For {remote_host}
     }
@@ -208,6 +209,12 @@ partybox.sorima.tech {
 Сертификат и продление обслуживает Caddy; Certbot Baza не нужен. WebSocket
 поддерживается reverse_proxy штатно. Пути `/v1`, `/v2`, `/v3`, `/rooms`,
 `/socket.io/`, `/health`, `/ready` передаются без добавления `/api`.
+
+Для веба строка `encode zstd gzip` обязательна: JS и CanvasKit WASM занимают
+около 10,8 МБ без сжатия. В конфигурации первоначального ingress cutover этой
+строки не было; обновление backend через CD само по себе Caddyfile не меняет.
+После применения проверьте GET `/main.dart.js` и `/canvaskit/canvaskit.wasm`
+с заголовком `Accept-Encoding: gzip`: ожидается `Content-Encoding: gzip`.
 
 Проверьте конфигурацию и примените её вашим штатным способом. При Caddyfile
 в `/etc/caddy/Caddyfile`, container name `caddy` и включённом admin API:

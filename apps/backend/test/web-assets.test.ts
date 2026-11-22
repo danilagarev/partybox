@@ -9,7 +9,6 @@ test('optional web root serves only public Flutter assets and never masks API or
   const root = join(directory, 'public');
   await mkdir(join(root, 'assets'), { recursive: true });
   await writeFile(join(root, 'index.html'), '<html>PartyBox</html>');
-  await writeFile(join(root, 'main.dart.js'), 'window.partybox=true');
   await writeFile(join(root, 'assets', 'icon.svg'), '<svg/>');
   await writeFile(join(root, '.env'), 'PRIVATE');
   await writeFile(join(directory, 'private.txt'), 'PRIVATE');
@@ -31,9 +30,6 @@ test('optional web root serves only public Flutter assets and never masks API or
     });
     assert.equal(unchanged.status, 304);
     assert.equal(await unchanged.text(), '');
-    const script = await fetch(origin + '/main.dart.js');
-    assert.equal(script.status, 200);
-    assert.equal(script.headers.get('cache-control'), 'no-store');
     for (const path of [
       '/.env',
       '/%2eenv',
@@ -56,5 +52,51 @@ test('optional web root serves only public Flutter assets and never masks API or
   } finally {
     await app.close();
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('Flutter app bundles revalidate while release entrypoints stay uncached', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'pb-web-bundles-'));
+  const bundles = ['main.dart.js', 'main.dart.mjs', 'main.dart.wasm'];
+  const entrypoints = ['index.html', 'flutter_bootstrap.js', 'version.json'];
+  const original = 'release one';
+  const replacement = 'updated release';
+  for (const filename of [...bundles, ...entrypoints]) {
+    await writeFile(join(root, filename), original);
+  }
+  const app = await createApp({ webRoot: root });
+  try {
+    await app.listen(0, '127.0.0.1');
+    const origin = await app.getUrl();
+    for (const filename of bundles) {
+      const url = `${origin}/${filename}`;
+      const initial = await fetch(url);
+      const etag = initial.headers.get('etag');
+      assert.equal(initial.status, 200);
+      assert.equal(initial.headers.get('cache-control'), 'no-cache');
+      assert.ok(etag);
+      assert.equal(await initial.text(), original);
+
+      const headers = { 'If-None-Match': etag };
+      const unchanged = await fetch(url, { headers });
+      assert.equal(unchanged.status, 304);
+      assert.equal(unchanged.headers.get('etag'), etag);
+      assert.equal(await unchanged.text(), '');
+
+      await writeFile(join(root, filename), replacement);
+      const updated = await fetch(url, { headers });
+      assert.equal(updated.status, 200);
+      assert.notEqual(updated.headers.get('etag'), etag);
+      assert.equal(await updated.text(), replacement);
+    }
+    for (const filename of entrypoints) {
+      const response = await fetch(`${origin}/${filename}`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      await response.text();
+    }
+  } finally {
+    await app.close();
+    await rm(root, { recursive: true, force: true });
   }
 });

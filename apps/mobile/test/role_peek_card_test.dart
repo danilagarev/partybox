@@ -14,6 +14,7 @@ class PeekHarness extends StatefulWidget {
 class PeekHarnessState extends State<PeekHarness> {
   bool revealed = false, enabled = true, viewed = false;
   int confirmations = 0;
+  int secretBuilds = 0;
   int concealEpoch = 0;
   void hide() => setState(() {
     revealed = false;
@@ -42,10 +43,13 @@ class PeekHarnessState extends State<PeekHarness> {
               onContinue: () => setState(() => confirmations++),
               continueLabel: 'Скрыть и передать',
               closedContinueLabel: 'Передать телефон',
-              secretBuilder: (_) => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Тестовый секрет'),
-              ),
+              secretBuilder: (_) {
+                secretBuilds++;
+                return const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Тестовый секрет'),
+                );
+              },
             ),
           ),
         ),
@@ -62,6 +66,34 @@ void main() {
       isNot(contains('Тестовый секрет')),
     );
   }
+
+  testWidgets('drag updates the window without rebuilding private content', (
+    tester,
+  ) async {
+    final key = GlobalKey<PeekHarnessState>();
+    await tester.pumpWidget(PeekHarness(key: key));
+    await tester.pumpAndSettle();
+    final gesture = await holdCard(tester);
+    final builds = key.currentState!.secretBuilds;
+    expect(builds, greaterThan(0));
+    final surface = find.byKey(const ValueKey('role-peek-surface'));
+    final size = tester.getSize(surface);
+    double bandHeight() => tester
+        .widget<ClipRect>(find.byKey(const ValueKey('role-peek-window')))
+        .clipper!
+        .getClip(size)
+        .height;
+    final before = bandHeight();
+    for (var i = 0; i < 20; i++) {
+      await gesture.moveBy(const Offset(0, -2));
+      await tester.pump();
+    }
+    expect(bandHeight(), closeTo(before + 40, 1));
+    expect(key.currentState!.secretBuilds, builds);
+    await gesture.up();
+    await tester.pump();
+    expect(find.text('Тестовый секрет'), findsNothing);
+  });
 
   testWidgets(
     'drag exposes only the lifted band without changing card geometry',

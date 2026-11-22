@@ -44,7 +44,9 @@ class _RolePeekCardState extends State<RolePeekCard>
   final _pointers = <int>{};
   final _frameKey = GlobalKey();
   bool _dragging = false, _blocked = false, _foreground = true;
-  double _lift = 0;
+  // Pointer updates change only the clip and cover transform. Keep the secret
+  // subtree stable until reveal/conceal changes its lifetime.
+  final _lift = ValueNotifier<double>(0);
 
   @override
   void initState() {
@@ -63,16 +65,16 @@ class _RolePeekCardState extends State<RolePeekCard>
         (oldWidget.revealed && !widget.revealed)) {
       // Invalidate a held gesture after external concealment (e.g. disconnect).
       _dragging = false;
-      _lift = 0;
+      _lift.value = 0;
       _blocked = _pointers.isNotEmpty;
     }
   }
 
   void _endPeek() {
-    if (!mounted || (!_dragging && _lift == 0)) return;
+    if (!mounted || (!_dragging && _lift.value == 0)) return;
     setState(() {
       _dragging = false;
-      _lift = 0;
+      _lift.value = 0;
     });
     widget.onConceal();
   }
@@ -83,7 +85,7 @@ class _RolePeekCardState extends State<RolePeekCard>
       _foreground = state == AppLifecycleState.resumed;
       _blocked = true;
       _dragging = false;
-      _lift = 0;
+      _lift.value = 0;
       _pointers.clear();
     });
     // Also close a card opened by the keyboard/button, with no outgoing child.
@@ -94,7 +96,7 @@ class _RolePeekCardState extends State<RolePeekCard>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _dragging = false;
-    _lift = 0;
+    _lift.dispose();
     _pointers.clear();
     super.dispose();
   }
@@ -142,7 +144,7 @@ class _RolePeekCardState extends State<RolePeekCard>
                     }
                     setState(() {
                       _dragging = true;
-                      _lift = 0;
+                      _lift.value = 0;
                     });
                   }
                 : null,
@@ -153,16 +155,14 @@ class _RolePeekCardState extends State<RolePeekCard>
                     final height = frame is RenderBox
                         ? frame.size.height
                         : 320.0;
-                    setState(
-                      () => _lift = (_lift - event.delta.dy).clamp(
-                        0,
-                        height * .72,
-                      ),
+                    _lift.value = (_lift.value - event.delta.dy).clamp(
+                      0,
+                      height * .72,
                     );
-                    if (_lift >= _threshold && !widget.revealed) {
+                    if (_lift.value >= _threshold && !widget.revealed) {
                       HapticFeedback.selectionClick();
                       widget.onReveal();
-                    } else if (_lift == 0 && widget.revealed) {
+                    } else if (_lift.value == 0 && widget.revealed) {
                       _endPeek();
                     }
                   }
@@ -188,9 +188,13 @@ class _RolePeekCardState extends State<RolePeekCard>
                   ),
                   if (visible)
                     Positioned.fill(
-                      child: ClipRect(
-                        key: const ValueKey('role-peek-window'),
-                        clipper: _PeekWindow(_dragging ? _lift : null),
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _lift,
+                        builder: (context, lift, child) => ClipRect(
+                          key: const ValueKey('role-peek-window'),
+                          clipper: _PeekWindow(_dragging ? lift : null),
+                          child: child,
+                        ),
                         child: ExcludeSemantics(
                           // A partial drag must not announce the whole secret.
                           // The explicit button remains the screen reader path.
@@ -221,31 +225,38 @@ class _RolePeekCardState extends State<RolePeekCard>
                     ),
                   Positioned.fill(
                     child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final offset = visible && !_dragging
-                            ? -constraints.maxHeight * 1.02
-                            : -_lift;
-                        return IgnorePointer(
-                          child: ExcludeSemantics(
-                            child: AnimatedContainer(
-                              key: const ValueKey('role-peek-cover'),
-                              transform: Matrix4.translationValues(
-                                0,
-                                offset,
-                                0,
-                              ),
-                              duration: reduced || _dragging
-                                  ? Duration.zero
-                                  : NightMotion.quick,
-                              curve: Curves.easeOutCubic,
+                      builder: (context, constraints) =>
+                          ValueListenableBuilder<double>(
+                            valueListenable: _lift,
+                            child: RepaintBoundary(
                               child: KeyedSubtree(
                                 key: const ValueKey('role-peek-cover-face'),
                                 child: _cover(),
                               ),
                             ),
+                            builder: (context, lift, child) {
+                              final offset = visible && !_dragging
+                                  ? -constraints.maxHeight * 1.02
+                                  : -lift;
+                              return IgnorePointer(
+                                child: ExcludeSemantics(
+                                  child: AnimatedContainer(
+                                    key: const ValueKey('role-peek-cover'),
+                                    transform: Matrix4.translationValues(
+                                      0,
+                                      offset,
+                                      0,
+                                    ),
+                                    duration: reduced || _dragging
+                                        ? Duration.zero
+                                        : NightMotion.quick,
+                                    curve: Curves.easeOutCubic,
+                                    child: child,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
                     ),
                   ),
                 ],

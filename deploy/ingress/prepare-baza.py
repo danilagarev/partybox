@@ -127,6 +127,7 @@ CADDYFILE = '''sorima.tech {
 }
 
 partybox.sorima.tech {
+    encode zstd gzip
     reverse_proxy partybox-api:3000 {
         header_up X-Forwarded-For {remote_host}
     }

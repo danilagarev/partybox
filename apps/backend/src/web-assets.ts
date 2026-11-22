@@ -45,7 +45,10 @@ export async function webAssets(directory: string) {
       if (!file.startsWith(root + sep)) return next();
       const info = await stat(file);
       if (!info.isFile()) return next();
-      const revalidate = relative.startsWith('assets/') || relative.startsWith('canvaskit/');
+      const revalidate =
+        relative.startsWith('assets/') ||
+        relative.startsWith('canvaskit/') ||
+        /^main\.dart\.(?:js|wasm|mjs)$/.test(relative);
       const etag = `W/"${info.size.toString(16)}-${info.mtimeMs.toString(16)}"`;
       const headers = {
         'Content-Type': mime[extname(file)] ?? 'application/octet-stream',
