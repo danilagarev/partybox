@@ -16,6 +16,8 @@
     "doctor": "node scripts/doctor.mjs",
     "context": "node scripts/project-context.mjs",
     "context:check": "node scripts/project-context.mjs --check",
+    "check:quiet": "node scripts/run-check.mjs node",
+    "bench:spy": "node scripts/benchmark-spy.mjs",
     "play:lan": "node scripts/play.mjs lan",
     "play:internet": "node scripts/play.mjs internet",
     "test:tools": "node --test scripts/test/*.test.mjs",

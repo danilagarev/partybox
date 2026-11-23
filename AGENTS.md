@@ -7,11 +7,15 @@ PartyBox — мобильный и веб-сборник игр одному и 
 
 ## Сначала прочитай
 
-- `docs/PRODUCT.md` — подтверждённые требования и допущения.
-- `docs/ARCHITECTURE.md` — границы модулей и технические решения.
-- `docs/BACKLOG.md` — следующий вертикальный срез и критерии приёмки.
+- `node scripts/project-context.mjs <модуль>` — пути и проверки нужного среза.
+- Для новой задачи: нужный раздел `docs/BACKLOG.md` и план из `docs/plans/`.
+  При продолжении сначала «Передача работы» текущего плана.
+- `docs/PRODUCT.md` и `docs/ARCHITECTURE.md` — читать разделы по изменяемому
+  сценарию; не перечитывать документы целиком без необходимости.
 - Для игровой логики: `docs/GAME_RULES.md`; для сети: `docs/PROTOCOL.md`.
-- `docs/STATUS.md` — проверенное состояние и незавершённые части.
+- `docs/STATUS.md` — нужный раздел проверенного состояния, не вся история.
+- Память и токены: `docs/AI_DEVELOPMENT.md`; при подключённой Serena начать
+  с `project_entry`, затем символы/ссылки. Память не заменяет проверки.
 - Для визуала PB-015: `docs/plans/PB-015-design-and-motion.md` и
   `docs/DESIGN_TOOLING.md`; выбранную дизайн-систему зафиксировать при реализации.
 
@@ -34,6 +38,8 @@ PartyBox — мобильный и веб-сборник игр одному и 
 
 - `npm ci` — JS/TS-зависимости (Node из `.nvmrc`).
 - `npm run check` — форматирование, TypeScript, серверные и контентные тесты.
+- `node scripts/run-check.mjs node|mobile|release` — те же проверки с коротким
+  выводом, полным локальным логом и JSON-квитанцией в `output/checks/`.
 - `make bootstrap` — также загрузить зависимости Dart/Flutter.
 - `make check-mobile` — форматирование Dart, анализ и тесты ядра/приложения.
 - `make backend` / `make mobile` — запуск. Подробности в `docs/DEVELOPMENT.md`.

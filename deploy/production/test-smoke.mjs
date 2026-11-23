@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomUUID, randomBytes } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
 import { io } from 'socket.io-client';
 
 const root = mkdtempSync(join(tmpdir(), 'partybox-production-smoke-'));
@@ -141,6 +142,24 @@ try {
     assert.match(probe('flutter_bootstrap.js', ['-I']), /cache-control: no-store/i);
     assert.match(probe('canvaskit/canvaskit.wasm', ['-I']), /content-type: application\/wasm/i);
     assert.match(probe('manifest.json'), /PartyBox/);
+    for (const asset of ['main.dart.js', 'canvaskit/canvaskit.wasm']) {
+      const identityHeaders = probe(asset, ['-I', '-H', 'Accept-Encoding: identity']);
+      assert.match(identityHeaders, /cache-control: no-cache/i);
+      const etag = identityHeaders.match(/^etag:\s*(\S+)\r?$/im)?.[1];
+      assert.ok(etag, `Missing ETag for ${asset}`);
+      assert.match(
+        probe(asset, ['-I', '-H', 'Accept-Encoding: identity', '-H', `If-None-Match: ${etag}`]),
+        /^HTTP\/\S+ 304\b/,
+      );
+      const gzipFile = join(root, 'asset.gz');
+      const headers = probe(asset, ['-H', 'Accept-Encoding: gzip', '-D', '-', '-o', gzipFile]);
+      assert.match(headers, /content-encoding: gzip/i);
+      assert.match(headers, /vary:.*accept-encoding/i);
+      const compressed = readFileSync(gzipFile);
+      const original = readFileSync(resolve('deploy/web', asset));
+      assert.ok(compressed.length < original.length, `${asset} gzip must reduce the transfer size`);
+      assert.ok(gunzipSync(compressed).equals(original), `${asset} gzip must preserve asset bytes`);
+    }
   }
 
   const enrollment = JSON.parse(

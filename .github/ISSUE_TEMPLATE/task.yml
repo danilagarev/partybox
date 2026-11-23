@@ -1,0 +1,27 @@
+name: Задача PartyBox
+description: Проверяемый сценарий с границами и критериями приёмки
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Сценарий и проблема
+      description: Кто, что делает, какое поведение ожидает; PB-ID при наличии.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки
+      description: Наблюдаемый результат, ошибки и восстановление; измеримый бюджет для задачи производительности.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Границы и решения
+      description: Модули, совместимость, ограничения; ссылка на план для многоэтапной задачи.
+  - type: textarea
+    id: verification
+    attributes:
+      label: Как проверить
+      description: Тесты, ручной сценарий, устройство или нагрузка; что требует внешнего доступа.

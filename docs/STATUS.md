@@ -1,5 +1,34 @@
 # Состояние проекта
 
+## PB-056 — workflow разработки, память и CD, 2026-11-23
+
+Подготовлена цепочка задача/план → проверки → commit/PR → Checks main →
+автоматический Deploy backend. CD выбирает точный SHA и web artifact успешной
+HTTPS-попытки, отсекает посторонние/неуспешные/устаревшие runs; ручной redeploy
+и rollback сохранены. Повторный deploy того же digest не затирает previous-image.
+После VPS readiness проверяются публичный HTTPS и совпадение web-файлов.
+
+Добавлены шаблон задачи, проверяемая политика защиты main для применения вручную,
+runner с коротким выводом, логами и fingerprint-квитанциями; CI сохраняет JSON
+benchmark правил/проекций «Шпиона». Serena 2.1.0 запускается изолированно через
+uv; в Git — конфигурация и короткая память-индекс, кэши исключены.
+
+Проверено: npm check с изолированной PostgreSQL16 — 78 тестов без пропусков;
+13 release/resolve-тестов, 14 ingress-тестов; Docker/Caddy production smoke
+с реальным web bundle (TLS, WebSocket, gzip, ETag/304, recreate API, сохранение БД).
+Serena stdio MCP: память, JS find_symbol и Dart symbols overview прошли.
+Benchmark: четыре сценария, локальный p95 0,0033–0,0064 мс; это не сетевой SLA.
+Actionlint1.7.12 проверен с узким исключением нового официального `queue: max`.
+Flutter заново не запускался: код приложения/ядра не менялся.
+
+Read-only GitHub аудит подтвердил production secrets и успешные прежние Checks/CD;
+защиты main и ограничений веток environment пока нет. Удалённые настройки,
+commit/push и реальный новый production deploy не выполнялись. Serena MCP
+текущему клиенту автоматически не подключён: `.codex` доступен только для чтения;
+конфигурация в docs/mcp.example.toml. SDK LSP Serena отличаются от анализаторов
+проекта, поэтому не заменяют TypeScript/Flutter-проверки. Экономия токенов
+численно не измерялась. [Аудит](AI_DEVELOPMENT.md), [план](plans/PB-056-ai-delivery-workflow.md).
+
 ## PB-055 — «Не может быть!», 2026-11-23
 
 В каталоге появился сценарий на 2–12 участников. Десять раундов с тайным

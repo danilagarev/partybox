@@ -1,0 +1,23 @@
+project_name: partybox
+language_servers:
+  - typescript
+  - dart
+encoding: utf-8
+ignore_all_files_in_gitignore: true
+ignored_paths:
+  - '**/generated/**'
+  - '**/*.g.dart'
+  - '**/node_modules/**'
+  - '**/dist/**'
+  - '**/build/**'
+  - '**/.dart_tool/**'
+  - 'deploy/web/**'
+  - 'output/**'
+read_only: false
+excluded_tools:
+  - execute_shell_command
+initial_prompt: >-
+  Общение и память — по-русски. Сначала прочитай AGENTS.md и память project_entry.
+  Канонические решения находятся в docs, не дублируй их в памяти.
+  Для кода используй поиск символов и ссылок, тела загружай по необходимости.
+  Не записывай секреты, роли, токены, логи и историю бесед в память.

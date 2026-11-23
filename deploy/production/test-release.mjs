@@ -84,6 +84,18 @@ test('migration precedes replacement and success records immutable references', 
     f.close();
   }
 });
+test('redeploying the same digest preserves the rollback target', () => {
+  const f = fixture();
+  try {
+    writeFileSync(join(f.root, 'current-image'), newImage);
+    writeFileSync(join(f.root, 'previous-image'), oldImage);
+    assert.equal(f.run(newImage).status, 0);
+    assert.equal(readFileSync(join(f.root, 'current-image'), 'utf8').trim(), newImage);
+    assert.equal(readFileSync(join(f.root, 'previous-image'), 'utf8').trim(), oldImage);
+  } finally {
+    f.close();
+  }
+});
 test('failed readiness restores previous image without changing release record or deleting database', () => {
   const f = fixture();
   try {

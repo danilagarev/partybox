@@ -1,6 +1,10 @@
 name: Deploy backend
 
 on:
+  workflow_run:
+    workflows: [Checks]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       sha:
@@ -11,54 +15,79 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: partybox-production
-  cancel-in-progress: false
-
 jobs:
+  resolve:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      run_id: ${{ steps.resolve.outputs.run_id }}
+      artifact: ${{ steps.resolve.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Resolve the tested commit and web artifact
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: bash deploy/production/resolve-checks.sh
+
   deploy:
-    if: github.ref == 'refs/heads/main'
+    needs: resolve
+    if: needs.resolve.outputs.sha != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
+    concurrency:
+      group: partybox-production
+      queue: max
     permissions:
       contents: read
       packages: write
       actions: read
     env:
-      GH_TOKEN: ${{ github.token }}
+      RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
     steps:
-      - name: Resolve a successful Checks commit from main
-        env:
-          INPUT_SHA: ${{ inputs.sha }}
-        run: |
-          set -euo pipefail
-          sha=${INPUT_SHA:-$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)}
-          [[ $sha =~ ^[a-f0-9]{40}$ ]]
-          checked=$(gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
-            -f head_sha="$sha" -f event=push -f status=success -f per_page=100 \
-            --jq '[.workflow_runs[] | select(.head_branch == "main" and .conclusion == "success")][0].id // empty')
-          test -n "$checked" || { echo 'This SHA needs a successful Checks push on main.' >&2; exit 1; }
-          echo "RELEASE_SHA=$sha" >> "$GITHUB_ENV"
-          echo "CHECKS_RUN_ID=$checked" >> "$GITHUB_ENV"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ env.RELEASE_SHA }}
+          ref: ${{ needs.resolve.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Download the web bundle from this exact successful Checks run
-        run: |
-          gh run download "$CHECKS_RUN_ID" --name "partybox-web-$RELEASE_SHA" --dir deploy/web
-          test -s deploy/web/index.html
-          node scripts/verify-web.mjs deploy/web
       - name: Require main ancestry and compatible deployment layout
         run: |
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
           git merge-base --is-ancestor "$RELEASE_SHA" origin/main
           test -f deploy/production/Caddyfile.example
           grep -q 'partybox-api:' deploy/production/compose.yaml
           grep -Fq 'name: ${PARTYBOX_PROXY_NETWORK:-partybox_proxy}' deploy/production/compose.yaml
           grep -q '^    external: true$' deploy/production/compose.yaml
-          ! grep -q '^[[:space:]]*ports:' deploy/production/compose.yaml
+          if grep -q '^[[:space:]]*ports:' deploy/production/compose.yaml; then
+            echo 'Production API and PostgreSQL must remain private.' >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Download the tested web bundle by run and artifact name
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.resolve.outputs.artifact }}
+          run-id: ${{ needs.resolve.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: deploy/web/
+      - run: node scripts/verify-web.mjs deploy/web
       - name: Image name
         id: image
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}-backend" >> "$GITHUB_OUTPUT"
@@ -74,9 +103,13 @@ jobs:
           file: deploy/Dockerfile
           push: true
           tags: ${{ steps.image.outputs.name }}:${{ env.RELEASE_SHA }}
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.RELEASE_SHA }}
       - name: Transfer release and deploy over verified SSH
+        id: deploy
         env:
+          CHECKS_RUN_ID: ${{ needs.resolve.outputs.run_id }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
@@ -85,16 +118,23 @@ jobs:
           DEPLOY_ROOT: ${{ secrets.DEPLOY_PATH }}
           IMAGE: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          GHCR_USER: ${{ github.actor }}
+          GHCR_USER: ${{ vars.GHCR_USER || github.actor }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ $RELEASE_SHA =~ ^[a-f0-9]{40}$ ]]
+          if [[ $GITHUB_EVENT_NAME == workflow_run ]]; then
+            main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+            if [[ $RELEASE_SHA != "$main" ]]; then
+              echo "::notice::Checks commit $RELEASE_SHA has been superseded by $main. Skipping automatic deployment."
+              exit 0
+            fi
+          fi
           [[ $SSH_HOST =~ ^[a-zA-Z0-9.-]+$ && $SSH_HOST != -* ]]
           [[ $SSH_USER =~ ^[a-z_][a-z0-9_-]*$ ]]
           SSH_PORT=${SSH_PORT:-22}
           [[ $SSH_PORT =~ ^[0-9]{1,5}$ && $SSH_PORT -gt 0 && $SSH_PORT -lt 65536 ]]
           [[ $DEPLOY_ROOT =~ ^/[a-zA-Z0-9_./-]+$ && $DEPLOY_ROOT != *..* ]]
-          [[ $GHCR_USER =~ ^[a-zA-Z0-9_-]+$ ]]
           [[ $IMAGE =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$ ]]
           umask 077
           sshdir=$(mktemp -d)
@@ -103,6 +143,7 @@ jobs:
           printf '%s\n' "$SSH_KNOWN_HOSTS" > "$sshdir/known_hosts"
           ssh_opts=(-i "$sshdir/key" -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$sshdir/known_hosts")
           if [[ -n $GHCR_PAT ]]; then
+            [[ $GHCR_USER =~ ^[a-zA-Z0-9_-]+$ ]]
             printf '%s\n' "$GHCR_PAT" | ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "umask 077; test -s '$DEPLOY_ROOT/.env' && mkdir -p '$DEPLOY_ROOT/docker-auth' && docker --config '$DEPLOY_ROOT/docker-auth' login ghcr.io -u '$GHCR_USER' --password-stdin"
           fi
           remote="$DEPLOY_ROOT/releases/$RELEASE_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -110,3 +151,25 @@ jobs:
           tar -C deploy/production -cf - compose.yaml release.sh init.sh Caddyfile.example |
             ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "tar -xf - -C '$remote' && chmod 700 '$remote' '$remote/release.sh'"
           ssh "${ssh_opts[@]}" "$SSH_USER@$SSH_HOST" "bash '$remote/release.sh' '$IMAGE'"
+          echo 'deployed=true' >> "$GITHUB_OUTPUT"
+          printf 'VPS recorded `%s` from Checks run `%s` as `%s`.\n' \
+            "$RELEASE_SHA" "$CHECKS_RUN_ID" "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify the release through public HTTPS
+        if: steps.deploy.outputs.deployed == 'true'
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://partybox.sorima.tech' }}
+        run: |
+          set -euo pipefail
+          origin=${PRODUCTION_URL%/}
+          path=PRODUCTION_URL
+          trap 'echo "::error::Public HTTPS verification failed for $path after VPS readiness. See docs/deploy/PRODUCTION.md for diagnosis and rollback."' ERR
+          [[ $origin =~ ^https://[a-zA-Z0-9.-]+(:[0-9]{1,5})?$ ]]
+          probe=(curl --silent --show-error --fail --proto '=https' --compressed --max-time 20 --retry 5 --retry-connrefused)
+          path=/health
+          "${probe[@]}" "$origin$path" | jq -e '.status == "ok"' >/dev/null
+          path=/ready
+          "${probe[@]}" "$origin$path" | jq -e '.status == "ready"' >/dev/null
+          for path in /version.json /main.dart.js; do
+            "${probe[@]}" "$origin$path" | cmp -s "deploy/web$path" -
+          done
+          echo 'Public HTTPS health, database readiness, and checked web bundle verified.' >> "$GITHUB_STEP_SUMMARY"
