@@ -240,9 +240,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Выбирайте тайную цель, выставляйте закрытые чемоданы и торгуйтесь голосом.',
-            ),
+            const Text('Выставляйте чемоданы и торгуйтесь вслух.'),
             const SizedBox(height: 12),
             const Text('2–6 игроков · пять раундов'),
             if (!supported) ...[

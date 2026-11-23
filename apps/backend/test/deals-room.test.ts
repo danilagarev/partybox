@@ -208,8 +208,9 @@ test(
               accepted(await send(player, at(listing, 'deals.list', pass))),
             ),
           );
+        } else {
+          time += 180_001;
         }
-        time += 180_001;
         const market = await snapshot(host);
         assert.equal(market.publicState.deals!.phase, 'market');
         const ready = new Set(market.publicState.deals!.readyIds);

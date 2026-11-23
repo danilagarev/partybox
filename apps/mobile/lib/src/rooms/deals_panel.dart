@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
 import 'deals_models.dart';
+import 'deals_trading.dart';
 import 'room_controller.dart';
 import 'room_models.dart';
 
@@ -23,729 +24,422 @@ class DealsPanel extends StatefulWidget {
 }
 
 class _DealsPanelState extends State<DealsPanel> {
-  String? _itemId;
-  DealsCategory? _category;
-  int? _value;
-  int _price = 5;
+  int _goalIndex = 0;
+  DealsItem? _item;
+  DealsCategory? _claim;
+  int? _declaredValue;
+  int _price = 1;
 
-  RoomSnapshot get _snapshot => widget.snapshot;
-  DealsGame get _game => _snapshot.deals!;
-  DealsPrivate get _personal => _snapshot.privateDeals!;
-  bool get _host => _snapshot.hostId == _snapshot.selfId;
-  bool get _ready => _game.readyIds.contains(_snapshot.selfId);
+  RoomSnapshot get _view => widget.snapshot;
+  DealsGame get _game => _view.deals!;
+  DealsPrivate get _me => _view.privateDeals!;
+  bool get _ready => _game.readyIds.contains(_view.selfId);
+  bool get _host => _view.hostId == _view.selfId;
   bool get _enabled =>
       widget.controller.online &&
       !widget.controller.busy &&
       !widget.controller.hasPending;
-  bool get _canBuy => !_personal.purchased && !_ready;
-  bool get _canAct =>
-      _enabled &&
-      (_game.deadline == null || widget.controller.remaining > Duration.zero);
 
   Future<void> _play(
     String action, [
     Map<String, dynamic> payload = const {},
-    RoomSnapshot? intent,
-  ]) => widget.controller.play('deals.$action', payload, intent ?? _snapshot);
+  ]) => widget.controller.play('deals.$action', payload, _view);
 
   String _name(String id) =>
-      _snapshot.players.firstWhere((player) => player.id == id).name;
+      _view.players.firstWhere((player) => player.id == id).name;
+
+  static const _pass = <String, dynamic>{
+    'itemId': null,
+    'category': null,
+    'value': null,
+    'price': null,
+  };
 
   @override
   Widget build(BuildContext context) {
     final phase = _game.phase;
-    final theme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _header(phase),
-        const SizedBox(height: 20),
-        if (!widget.controller.online)
-          const Text('Восстанавливаем связь с комнатой…')
-        else ...[
-          if (_game.event case final event?
-              when phase != DealsPhase.finished) ...[
-            _DealsCard(
-              icon: Icons.bolt_rounded,
-              title: event.title,
-              caption: 'Событие раунда',
-              description: event.text,
+        _status(),
+        if (_game.event case final event?
+            when widget.controller.online && phase != DealsPhase.finished)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ActionChip(
+              avatar: const Icon(Icons.bolt_outlined, size: 18),
+              label: Text(event.title),
+              onPressed: () => _sheet<void>(event.title, [Text(event.text)]),
             ),
-            const SizedBox(height: 16),
-          ],
+          ),
+        const SizedBox(height: 16),
+        if (!widget.controller.online && phase != DealsPhase.trading)
+          const _Waiting('Подключаемся к комнате…')
+        else ...[
           ...switch (phase) {
             DealsPhase.goals => _goals(),
             DealsPhase.listing => _listing(),
-            DealsPhase.trading => _trading(),
+            DealsPhase.trading => [
+              DealsTrading(
+                key: const ValueKey('deals-trading'),
+                controller: widget.controller,
+                snapshot: _view,
+              ),
+            ],
             DealsPhase.market => _market(),
             DealsPhase.recap => _recap(),
             DealsPhase.finished => _finished(),
           },
-          if (phase != DealsPhase.finished) ...[
-            const SizedBox(height: 16),
-            if (_personal.goal case final goal?)
-              _details('Ваша тайная цель', [
-                Text(goal.title, style: theme.titleMedium),
-                Text(_goalLabel(goal)),
-              ]),
-            if (phase != DealsPhase.listing)
-              _details('Ваши товары (${_personal.inventory.length})', [
-                for (final item in _personal.inventory) Text(_itemLabel(item)),
-              ]),
-            if (_personal.purchases.isNotEmpty)
-              _details('История покупок', [
-                for (final purchase in _personal.purchases.reversed)
-                  Text('Раунд ${purchase.round} · ${_purchaseLabel(purchase)}'),
-              ]),
-            if (_host)
-              TextButton(
-                onPressed: _enabled ? _cancel : null,
-                child: const Text('Отменить партию'),
-              ),
+          if (widget.controller.online) ...[
+            const SizedBox(height: 14),
+            _tools(),
           ],
         ],
       ],
     );
   }
 
-  Widget _header(DealsPhase phase) {
-    final inRound = phase != DealsPhase.goals && phase != DealsPhase.finished;
-    final finished = phase == DealsPhase.finished;
-    final seconds = _remainingSeconds;
-    final title = switch (phase) {
-      DealsPhase.goals => 'Выберите тайную цель',
-      DealsPhase.listing => 'Выставьте закрытый лот',
-      DealsPhase.trading => 'Торги',
-      DealsPhase.market => 'Открытый рынок',
-      DealsPhase.recap => 'Итоги раунда',
-      DealsPhase.finished => 'Итоги партии',
-    };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [NightColors.raised, NightColors.surface],
+  Widget _status() {
+    final phase = _game.phase;
+    final seconds = (widget.controller.remaining.inMilliseconds + 999) ~/ 1000;
+    final timer =
+        '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+    return Row(
+      children: [
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (phase != DealsPhase.goals && phase != DealsPhase.finished)
+                _Chip('Раунд ${_game.round}/5'),
+              if (_game.deadline != null)
+                _Chip('Осталось $timer', icon: Icons.timer_outlined),
+            ],
+          ),
         ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: NightColors.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+        if (phase != DealsPhase.finished &&
+            widget.controller.online &&
+            _me.goal != null)
+          IconButton(
+            tooltip: 'Тайная цель',
+            icon: const Icon(Icons.lock_outline_rounded),
+            onPressed: _showGoal,
+          ),
+        if (phase != DealsPhase.finished && widget.controller.online)
+          _Chip(
+            '${_me.balance}',
+            icon: Icons.toll_rounded,
+            semantics: '${_me.balance} монет',
+          ),
+      ],
+    );
+  }
+
+  List<Widget> _goals() {
+    if (_ready || _me.goalOptions.isEmpty) {
+      return [const _Heading('Цель выбрана'), _waitForTable()];
+    }
+    final goal = _me.goalOptions[_goalIndex];
+    return [
+      const _Heading('Твоя тайная цель'),
+      NightPanel(
+        padding: 20,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const NightEyebrow('МУТНЫЕ СДЕЛКИ', color: NightColors.accent),
-            const SizedBox(height: 8),
-            Semantics(
-              header: true,
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            if (inRound) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Раунд ${_game.round} из 5',
-                style: const TextStyle(color: NightColors.muted),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                spacing: 4,
-                children: [
-                  for (var round = 1; round <= 5; round++)
-                    Expanded(
-                      child: Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color: round <= _game.round
-                              ? NightColors.accent
-                              : NightColors.divider,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-            if (!finished) ...[
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (_game.deadline != null)
-                    _DealsTag(
-                      icon: Icons.timer_outlined,
-                      label: _timerLabel(seconds),
-                      semanticsLabel:
-                          'Осталось ${seconds ~/ 60} мин ${seconds % 60} сек',
-                      tone: seconds <= 10
-                          ? NightColors.error
-                          : NightColors.accent,
-                    ),
-                  if (widget.controller.online)
-                    _DealsTag(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: 'Ваш баланс · ${_coinAmount(_personal.balance)}',
-                    ),
-                ],
-              ),
-              if (phase != DealsPhase.trading) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Готовы ${_game.readyIds.length} из ${_snapshot.players.length}',
-                  style: const TextStyle(color: NightColors.muted),
+            Row(
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  color: NightColors.accent,
                 ),
+                const Spacer(),
+                _Chip('+${goal.bonus} очков'),
               ],
-            ],
+            ),
+            const SizedBox(height: 16),
+            Text(goal.title, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 6),
+            Text(goal.text),
           ],
         ),
       ),
-    );
-  }
-
-  int get _remainingSeconds {
-    final remaining = widget.controller.remaining.inMilliseconds;
-    return (remaining + 999) ~/ 1000;
-  }
-
-  String _timerLabel(int seconds) {
-    final minutes = seconds ~/ 60;
-    final part = (seconds % 60).toString().padLeft(2, '0');
-    return 'Осталось $minutes:$part';
-  }
-
-  Widget _details(String title, List<Widget> children) => ExpansionTile(
-    tilePadding: EdgeInsets.zero,
-    childrenPadding: const EdgeInsets.only(bottom: 8),
-    expandedCrossAxisAlignment: CrossAxisAlignment.start,
-    title: Text(title),
-    children: [
-      if (children.isEmpty) const Text('Пока пусто.'),
-      for (final child in children)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Align(alignment: Alignment.centerLeft, child: child),
+      const SizedBox(height: 16),
+      NightButton(
+        label: 'В игру',
+        onPressed: _enabled ? () => _play('choose', {'goalId': goal.id}) : null,
+      ),
+      if (_me.goalOptions.length > 1)
+        TextButton(
+          onPressed: _enabled
+              ? () => setState(() => _goalIndex = 1 - _goalIndex)
+              : null,
+          child: Text(_goalIndex == 0 ? 'Другая цель' : 'Первая цель'),
         ),
-    ],
-  );
-
-  String _itemLabel(DealsItem item) =>
-      '${item.name} · ${item.category.label}, стоимость ${item.value}';
-
-  String _goalLabel(DealsGoal goal) => '${goal.text} · Бонус +${goal.bonus}';
-
-  String _purchaseLabel(DealsPurchase purchase) {
-    final seller = purchase.sellerId;
-    final source = seller == null ? 'Рынок' : _name(seller);
-    return '$source · ${_itemLabel(purchase.item)} · Цена ${purchase.price}';
+    ];
   }
 
-  List<Widget> _goals() => [
-    if (_ready || _personal.goal != null)
-      const Text('Цель выбрана. Ждём остальных игроков.')
-    else ...[
-      const Text('Выберите одну из двух. Остальные увидят вашу цель в финале.'),
-      for (final goal in _personal.goalOptions) ...[
-        const SizedBox(height: 12),
-        _DealsCard(
-          icon: Icons.lock_outline,
-          title: goal.title,
-          description: _goalLabel(goal),
-          actions: [
-            NightButton(
-              label: 'Выбрать «${goal.title}»',
-              onPressed: _canAct
-                  ? () => _play('choose', {'goalId': goal.id})
-                  : null,
-            ),
-          ],
-        ),
-      ],
-    ],
-  ];
+  void _pick(DealsItem item) {
+    setState(() {
+      _item = item;
+      _claim = item.category;
+      _declaredValue = item.value;
+      _price = item.value + 1;
+    });
+  }
 
   List<Widget> _listing() {
-    final inventory = _personal.inventory;
-    final enabled = _canAct && !_ready;
-    final canList =
-        enabled && _itemId != null && _category != null && _value != null;
-    return [
-      if (_ready)
-        const Text('Решение принято. Ждём остальных игроков.')
-      else ...[
-        const Text(
-          'Выберите товар. Покупатели увидят только заявленные категорию, стоимость и цену. Заявление может отличаться от содержимого.',
-        ),
-        if (inventory.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            itemHeight: null,
-            initialValue: _itemId,
-            decoration: const InputDecoration(labelText: 'Ваш товар'),
-            items: [
-              for (final item in inventory)
-                DropdownMenuItem(value: item.id, child: Text(_itemLabel(item))),
-            ],
-            onChanged: enabled
-                ? (id) {
-                    final item = inventory.firstWhere((item) => item.id == id);
-                    setState(() {
-                      _itemId = item.id;
-                      _category = item.category;
-                      _value = item.value;
-                    });
-                  }
-                : null,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<DealsCategory>(
-            key: ValueKey(('listing-category', _itemId)),
-            isExpanded: true,
-            itemHeight: null,
-            initialValue: _category,
-            decoration: const InputDecoration(
-              labelText: 'Категория в объявлении',
-            ),
-            items: [
-              for (final category in DealsCategory.values)
-                DropdownMenuItem(value: category, child: Text(category.label)),
-            ],
-            onChanged: enabled
-                ? (category) => setState(() => _category = category)
-                : null,
-          ),
-          const SizedBox(height: 12),
-          _numberField(
-            key: ValueKey(('listing-value', _itemId)),
-            label: 'Стоимость в объявлении',
-            value: _value,
-            values: const [2, 5, 8],
-            onChanged: enabled
-                ? (value) => setState(() => _value = value)
-                : null,
-          ),
-          const SizedBox(height: 12),
-          _numberField(
-            label: 'Цена продажи',
-            value: _price,
-            values: List.generate(15, (index) => index + 1),
-            onChanged: enabled
-                ? (price) => setState(() => _price = price)
-                : null,
-          ),
-          const SizedBox(height: 12),
-          NightButton(
-            label: 'Выставить лот',
-            onPressed: canList
-                ? () => _play('list', {
-                    'itemId': _itemId,
-                    'category': _category!.name,
-                    'value': _value,
-                    'price': _price,
-                  })
-                : null,
-          ),
-        ] else
-          const Text('У вас нет товаров для продажи.'),
-        TextButton(
-          onPressed: enabled
-              ? () => _play('list', {
-                  'itemId': null,
-                  'category': null,
-                  'value': null,
-                  'price': null,
-                })
-              : null,
-          child: const Text('Пропустить продажу'),
-        ),
-      ],
-      if (_game.market.isNotEmpty) _details('Товары на рынке', _marketItems()),
-    ];
-  }
-
-  List<Widget> _trading() {
-    final offers = _personal.incomingOffers;
-    final outgoing = _personal.outgoingOffer;
-    final inspection = _personal.inspection;
-    final playerLots = _game.lots.where(
-      (lot) => lot.sellerId != _snapshot.selfId,
-    );
-    final ownLots = _game.lots.where((lot) => lot.sellerId == _snapshot.selfId);
-    return [
-      if (_personal.purchased) ...[
-        ..._roundPurchases(),
-        const SizedBox(height: 12),
-        const Text('Вы уже купили товар в этом раунде.'),
-        const SizedBox(height: 16),
-      ],
-      const Text(
-        'Обсуждайте цену вслух. Подтверждайте покупки и встречные предложения на телефоне.',
-      ),
-      for (final lot in ownLots) ...[
-        const SizedBox(height: 12),
-        _DealsCard(
-          icon: lot.sold ? Icons.check_rounded : Icons.work_outline_rounded,
-          title: 'Ваш лот',
-          caption: lot.sold ? 'Продан' : 'Цена · ${_coinAmount(lot.price)}',
-          description:
-              'Заявлено · ${lot.category.label}, стоимость ${lot.value}',
-          children: [
-            if (_personal.ownLotItem case final item?)
-              Text('В чемодане · ${_itemLabel(item)}'),
-          ],
-        ),
-      ],
-      if (offers.isNotEmpty) ...[
-        const SizedBox(height: 16),
-        _DealsCard(
-          icon: Icons.swap_horiz_rounded,
-          title: 'Встречные предложения вам',
-          highlighted: true,
-          actions: [
-            for (final offer in offers)
-              OutlinedButton(
-                onPressed: _canAct
-                    ? () => _confirmTrade(
-                        'Принять предложение?',
-                        '${_name(offer.buyerId)} купит ваш товар за ${offer.price}.',
-                        'Принять',
-                        'accept',
-                        {'buyerId': offer.buyerId},
-                      )
-                    : null,
-                child: Text(
-                  'Принять · ${_name(offer.buyerId)} · ${offer.price}',
-                ),
-              ),
-          ],
-        ),
-      ],
-      if (outgoing != null) ...[
-        const SizedBox(height: 12),
-        _DealsCard(
-          icon: Icons.swap_horiz_rounded,
-          title: 'Ваше предложение',
-          description:
-              'Вы предложили ${outgoing.price} за лот игрока ${_name(outgoing.sellerId)}${outgoing.insured ? ' · со страховкой' : ''}.',
-          actions: [
-            OutlinedButton(
-              onPressed: _canAct && _canBuy
-                  ? () => _play('offer', {
-                      'sellerId': null,
-                      'price': null,
-                      'insured': false,
-                    })
-                  : null,
-              child: const Text('Отозвать предложение'),
-            ),
-          ],
-        ),
-      ],
-      if (inspection != null) ...[
-        const SizedBox(height: 12),
-        _DealsCard(
-          icon: Icons.search_rounded,
-          title: 'Проверка лота',
-          caption: _name(inspection.sellerId),
-          description: [
-            if (inspection.category case final category?)
-              'Категория · ${category.label}',
-            if (inspection.value case final value?) 'Стоимость · $value',
-            if (inspection.matches case final matches?)
-              matches ? 'Категория совпадает' : 'Категория отличается',
-          ].join(' · '),
-        ),
-      ],
-      const SizedBox(height: 20),
-      _sectionHeading('Чемоданы на торгах'),
-      if (playerLots.isEmpty) ...[
-        const SizedBox(height: 12),
-        const Text('У других игроков нет лотов.'),
-      ],
-      for (final lot in playerLots) ...[
-        const SizedBox(height: 12),
-        _playerLot(lot),
-      ],
-      if (_game.market.isNotEmpty) _details('Товары на рынке', _marketItems()),
-      const SizedBox(height: 12),
-      if (_ready)
-        const Text('Вы завершили торги. Ждём остальных игроков.')
-      else
-        OutlinedButton(
-          onPressed: _canAct
-              ? () => _confirmTrade(
-                  'Завершить торги?',
-                  'Ваше встречное предложение будет отозвано. Если вы ещё ничего не купили, сможете выбрать товар на рынке.',
-                  'Завершить торги',
-                  'done',
-                )
-              : null,
-          child: const Text('Завершить торги'),
-        ),
-    ];
-  }
-
-  Widget _playerLot(DealsLot lot) {
-    final available = _canAct && _canBuy && !lot.sold;
-    final balance = _personal.balance;
-    return _DealsCard(
-      icon: lot.sold ? Icons.check_rounded : Icons.work_outline_rounded,
-      title: _name(lot.sellerId),
-      caption: lot.sold ? 'Продан' : 'Закрытый лот',
-      description: 'Заявлено · ${lot.category.label}, стоимость ${lot.value}',
-      tag: lot.sold ? null : 'Цена · ${_coinAmount(lot.price)}',
-      actions: [
-        if (!lot.sold && _canBuy) ...[
-          NightButton(
-            label: 'Купить',
-            onPressed: available && balance >= lot.price
-                ? () => _purchase(lot, offer: false)
-                : null,
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton(
-                onPressed: available && balance > 0
-                    ? () => _purchase(lot, offer: true)
-                    : null,
-                child: const Text(
-                  'Предложить цену',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              if (_personal.inspection == null)
-                TextButton(
-                  onPressed: available && balance >= _lowestInspectionCost()
-                      ? () => _inspect(lot)
-                      : null,
-                  child: const Text('Проверить', textAlign: TextAlign.center),
-                ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-
-  int _lowestInspectionCost() =>
-      _game.event?.id == 'e-05' ? 1 : _game.inspectionCost;
-
-  Future<void> _purchase(DealsLot lot, {required bool offer}) async {
-    final intent = _snapshot;
-    final cost = _game.insuranceCost;
-    final payout = _game.insurancePayout;
-    final balance = _personal.balance;
-    final maxPrice = balance > 15 ? 15 : balance;
-    final insurance = _personal.insuranceAvailable;
-    final outgoing = _personal.outgoingOffer;
-    final replacing = outgoing?.sellerId == lot.sellerId && offer;
-    var price = offer
-        ? (replacing ? outgoing!.price : lot.price).clamp(1, maxPrice)
-        : lot.price;
-    var insured = replacing && outgoing!.insured;
-    final title = offer
-        ? 'Встречное предложение'
-        : 'Покупка по заявленной цене';
-    final label = offer ? 'Отправить предложение' : 'Подтвердить покупку';
-    final decision = await showDialog<({int price, bool insured})>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, refresh) => AlertDialog(
-          title: Text(title),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_name(lot.sellerId)),
-                Text(
-                  'Заявлено · ${lot.category.label}, стоимость ${lot.value}',
-                ),
-                const SizedBox(height: 12),
-                if (offer)
-                  _numberField(
-                    label: 'Ваша цена',
-                    value: price,
-                    values: List.generate(maxPrice, (index) => index + 1),
-                    onChanged: (value) => refresh(() => price = value),
-                  )
-                else
-                  Text('Цена · $price'),
-                if (offer && outgoing != null)
-                  const Text('Новое предложение заменит предыдущее.'),
-                if (insurance)
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: insured,
-                    onChanged: (value) =>
-                        refresh(() => insured = value == true),
-                    title: Text('Застраховать · ${_coinAmount(cost)}'),
-                    subtitle: Text(
-                      'Один полис за партию. Если товар стоит 2, выплата составит ${_coinAmount(payout)}.',
-                    ),
-                  ),
-                if (price + (insured ? cost : 0) > balance)
-                  const Text('На покупку со страховкой не хватает монет.'),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Назад'),
-            ),
-            TextButton(
-              onPressed: price + (insured ? cost : 0) <= balance
-                  ? () => Navigator.pop(dialogContext, (
-                      price: price,
-                      insured: insured,
-                    ))
-                  : null,
-              child: Text(label),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (decision != null && mounted) {
-      await _play(offer ? 'offer' : 'buy', {
-        'sellerId': lot.sellerId,
-        if (offer) 'price': decision.price,
-        'insured': decision.insured,
-      }, intent);
+    if (_ready) {
+      return [
+        _Heading(_me.ownLotItem == null ? 'Ты пасуешь' : 'Чемодан выставлен'),
+        _waitForTable(),
+      ];
     }
-  }
-
-  Future<void> _inspect(DealsLot lot) async {
-    final intent = _snapshot;
-    final cost = _game.inspectionCost;
-    final balance = _personal.balance;
-    final modes = [
-      (id: 'category', label: 'Узнать категорию', price: cost),
-      (id: 'value', label: 'Узнать стоимость', price: cost),
-      if (_game.event?.id == 'e-05')
-        (id: 'match', label: 'Сверить заявленную категорию', price: 1),
-      if (_game.event?.id == 'e-06')
-        (id: 'both', label: 'Узнать категорию и стоимость', price: 3),
-    ];
-    final mode = await showDialog<String>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Одна проверка за раунд'),
-        children: [
-          for (final mode in modes)
-            SimpleDialogOption(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              onPressed: balance >= mode.price
-                  ? () => Navigator.pop(context, mode.id)
-                  : null,
-              child: Text('${mode.label} · ${_coinAmount(mode.price)}'),
-            ),
-          SimpleDialogOption(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Назад'),
-          ),
-        ],
-      ),
-    );
-    if (mode != null && mounted) {
-      await _play('inspect', {'sellerId': lot.sellerId, 'mode': mode}, intent);
-    }
-  }
-
-  List<Widget> _marketItems() => [
-    for (final lot in _game.market)
-      Text('${_itemLabel(lot.item)} · Цена ${lot.price}'),
-  ];
-
-  List<Widget> _market() => [
-    if (_personal.purchased) ...[
-      ..._roundPurchases(),
-      const SizedBox(height: 12),
-      const Text('Вы уже купили товар в этом раунде.'),
-    ] else if (_ready)
-      const Text('Решение принято. Ждём остальных игроков.')
-    else ...[
-      Text(
-        'Если несколько игроков выберут один товар, первым право покупки получит ${_name(_game.marketPriorityId)}. Приоритет меняется каждый раунд.',
-      ),
-      for (final lot in _game.market) ...[
-        const SizedBox(height: 12),
-        _DealsCard(
-          icon: Icons.storefront_outlined,
-          title: lot.item.name,
-          description:
-              '${lot.item.category.label} · Стоимость ${lot.item.value}',
-          tag: 'Цена · ${_coinAmount(lot.price)}',
-          actions: [
-            NightButton(
-              label: 'Выбрать «${lot.item.name}»',
-              onPressed: _canAct && _personal.balance >= lot.price
-                  ? () => _play('market', {'itemId': lot.item.id})
-                  : null,
-            ),
-          ],
-        ),
+    if (_item case final item?) return _confirmListing(item);
+    return [
+      const _Heading('Что продаёшь?'),
+      if (_me.inventory.isEmpty) const _Waiting('Пока нечего продавать'),
+      for (final item in _me.inventory) ...[
+        _ItemTile(item: item, onTap: _enabled ? () => _pick(item) : null),
+        const SizedBox(height: 8),
       ],
       TextButton(
-        onPressed: _canAct ? () => _play('market', {'itemId': null}) : null,
-        child: const Text('Пропустить покупку'),
+        onPressed: _enabled ? () => _play('list', _pass) : null,
+        child: const Text('Не выставлять'),
       ),
-    ],
-  ];
+    ];
+  }
 
-  List<Widget> _roundPurchases() => [
-    for (final purchase in _personal.purchases)
-      if (purchase.round == _game.round)
-        NightEntrance(
-          key: ValueKey(('purchase', purchase.item.id)),
-          child: _DealsCard(
-            icon: Icons.receipt_long_outlined,
-            title: purchase.item.name,
-            caption: 'Ваша покупка',
-            description:
-                '${purchase.item.category.label} · Стоимость ${purchase.item.value}\n'
-                'Продавец · ${purchase.sellerId == null ? 'Рынок' : _name(purchase.sellerId!)}',
-            tag: 'Уплачено · ${_coinAmount(purchase.price)}',
-            highlighted: true,
-          ),
+  List<Widget> _confirmListing(DealsItem item) {
+    final bluff = item.category != _claim || item.value != _declaredValue;
+    return [
+      const _Heading('Твой чемодан'),
+      _ItemTile(item: item),
+      const SizedBox(height: 12),
+      NightPanel(
+        padding: 16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(child: Text('Просишь')),
+                _step('Снизить цену', Icons.remove, _price > 1 ? -1 : null),
+                SizedBox(
+                  width: 38,
+                  child: Text(
+                    '$_price',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                _step('Повысить цену', Icons.add, _price < 15 ? 1 : null),
+              ],
+            ),
+            const Divider(),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bluff
+                        ? 'Блеф · ${_claim!.label}, $_declaredValue'
+                        : 'Честное объявление',
+                    style: TextStyle(
+                      color: bluff ? NightColors.lilac : NightColors.muted,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _enabled ? () => _bluff(item) : null,
+                  child: Text(bluff ? 'Изменить' : 'Блефовать'),
+                ),
+              ],
+            ),
+          ],
         ),
-  ];
+      ),
+      const SizedBox(height: 16),
+      NightButton(
+        label: 'Выставить за $_price',
+        onPressed: _enabled
+            ? () => _play('list', {
+                'itemId': item.id,
+                'category': _claim!.name,
+                'value': _declaredValue,
+                'price': _price,
+              })
+            : null,
+      ),
+      TextButton(
+        onPressed: _enabled ? () => setState(() => _item = null) : null,
+        child: const Text('Другой товар'),
+      ),
+    ];
+  }
+
+  Widget _step(String label, IconData icon, int? change) => IconButton.outlined(
+    tooltip: label,
+    icon: Icon(icon),
+    onPressed: !_enabled || change == null
+        ? null
+        : () => setState(() => _price += change),
+  );
+
+  Future<void> _bluff(DealsItem item) async {
+    var category = _claim!;
+    var value = _declaredValue!;
+    final choice =
+        await showModalBottomSheet<({DealsCategory category, int value})>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: true,
+          useSafeArea: true,
+          builder: (sheet) => StatefulBuilder(
+            builder: (context, setSheetState) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _Heading('Что сказать покупателям?'),
+                  const Text('Товар останется в чемодане.'),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final option in DealsCategory.values)
+                        ChoiceChip(
+                          label: Text(option.label),
+                          avatar: Icon(_categoryIcon(option), size: 16),
+                          selected: category == option,
+                          onSelected: (_) =>
+                              setSheetState(() => category = option),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Скажи, сколько он стоит'),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final amount in [2, 5, 8])
+                        ChoiceChip(
+                          label: Text('$amount мон.'),
+                          selected: amount == value,
+                          onSelected: (_) =>
+                              setSheetState(() => value = amount),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  NightButton(
+                    label: 'Сохранить объявление',
+                    onPressed: () => Navigator.pop(sheet, (
+                      category: category,
+                      value: value,
+                    )),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(sheet, (
+                      category: item.category,
+                      value: item.value,
+                    )),
+                    child: const Text('Сказать правду'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+    if (choice != null && mounted) {
+      setState(() {
+        _claim = choice.category;
+        _declaredValue = choice.value;
+      });
+    }
+  }
+
+  List<Widget> _market() {
+    if (_ready) {
+      final purchase = _me.purchases
+          .where((entry) => entry.round == _game.round)
+          .firstOrNull;
+      return [
+        if (purchase == null)
+          const _Heading('Рынок')
+        else ...[
+          const _Heading('Твоя покупка'),
+          _ItemTile(item: purchase.item),
+          Text('Заплатил: ${purchase.price} мон.'),
+        ],
+        _waitForTable(),
+      ];
+    }
+    return [
+      const _Heading('Открытый рынок'),
+      for (final lot in _game.market) ...[
+        _ItemTile(item: lot.item),
+        const SizedBox(height: 10),
+        NightButton(
+          label: 'Взять за ${lot.price}',
+          onPressed: _enabled && _me.balance >= lot.price
+              ? () => _play('market', {'itemId': lot.item.id})
+              : null,
+        ),
+        const SizedBox(height: 10),
+      ],
+      TextButton(
+        onPressed: _enabled ? () => _play('market', {'itemId': null}) : null,
+        child: const Text('Пропустить рынок'),
+      ),
+      Text(
+        'При совпадении первым покупает ${_name(_game.marketPriorityId)}.',
+        style: const TextStyle(color: NightColors.muted),
+        textAlign: TextAlign.center,
+      ),
+    ];
+  }
+
+  Widget _waitForTable() {
+    final waiting = _view.players
+        .where(
+          (player) =>
+              player.id != _view.selfId && !_game.readyIds.contains(player.id),
+        )
+        .toList();
+    return _Waiting(
+      waiting.length == 1
+          ? 'Ждём · ${waiting.single.name}'
+          : 'Ждём остальных · ${_game.readyIds.length}/${_view.players.length}',
+    );
+  }
 
   List<Widget> _recap() {
-    final sales = _game.sales.where((sale) => sale.round == _game.round);
+    final sales = _game.sales
+        .where((sale) => sale.round == _game.round)
+        .toList();
+    final purchases = _me.purchases.where((sale) => sale.round == _game.round);
     return [
-      ..._roundPurchases(),
-      if (_personal.purchased) const SizedBox(height: 16),
-      if (sales.isEmpty)
-        const Text('В этом раунде покупок не было.')
-      else ...[
-        _sectionHeading('Сделки раунда'),
-        for (final sale in sales) ...[
-          const SizedBox(height: 8),
-          _DealsCard(
-            icon: Icons.swap_horiz_rounded,
-            title:
-                '${sale.sellerId == null ? 'Рынок' : _name(sale.sellerId!)} → ${_name(sale.buyerId)}',
-            description: '${sale.category.label} · Заявлено ${sale.value}',
-            tag: 'Цена · ${_coinAmount(sale.price)}',
-          ),
-        ],
+      const _Heading('Раунд закрыт'),
+      if (sales.isEmpty) const Text('Сделок не было.'),
+      for (final purchase in purchases) ...[
+        _ItemTile(item: purchase.item),
+        const SizedBox(height: 8),
       ],
+      if (sales.isNotEmpty)
+        Text(
+          'Сделок за раунд · ${sales.length}',
+          style: const TextStyle(color: NightColors.muted),
+        ),
       const SizedBox(height: 16),
       if (_ready)
-        const Text('Ждём остальных игроков.')
+        _waitForTable()
       else
         NightButton(
-          label: _game.round == 5 ? 'Показать итоги партии' : 'Следующий раунд',
-          onPressed: _canAct ? () => _play('next') : null,
+          label: _game.round == 5 ? 'К итогам' : 'Следующий раунд',
+          onPressed: _enabled ? () => _play('next') : null,
         ),
     ];
   }
@@ -753,39 +447,63 @@ class _DealsPanelState extends State<DealsPanel> {
   List<Widget> _finished() {
     final results = [..._game.results!]
       ..sort((a, b) => b.total.compareTo(a.total));
-    final winners = results
-        .where((result) => result.total == results.first.total)
-        .toList();
+    final winners = results.where(
+      (result) => result.total == results.first.total,
+    );
     return [
-      _DealsCard(
-        icon: Icons.emoji_events_outlined,
-        title: winners.map((result) => _name(result.playerId)).join(', '),
-        caption: winners.length == 1 ? 'Победа' : 'Ничья',
-        tag: '${winners.first.total} очков',
-        highlighted: true,
-      ),
-      const SizedBox(height: 16),
-      _sectionHeading('Очки игроков'),
-      for (final result in results)
-        _details('${_name(result.playerId)} · ${result.total} очков', [
-          Text(
-            'Монеты ${result.balance} + товары ${result.goodsValue} + бонус ${result.bonus}',
-          ),
-          Text(
-            result.goal.title,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          Text(_goalLabel(result.goal)),
-          for (final item in result.inventory) Text(_itemLabel(item)),
-        ]),
-      if (_game.revealedSales case final sales? when sales.isNotEmpty)
-        _details('Что было в лотах', [
-          for (final sale in sales)
-            Text(
-              'Раунд ${sale.purchase.round} · ${_name(sale.buyerId)} купил товар · ${_purchaseLabel(sale.purchase)}'
-              '${sale.purchase.sellerId == null ? '' : ' · Заявлено ${sale.purchase.category.label}, ${sale.purchase.value}'}',
+      _Heading(winners.length == 1 ? 'Победа' : 'Ничья'),
+      NightPanel(
+        accent: true,
+        padding: 20,
+        child: Column(
+          children: [
+            const Icon(
+              Icons.emoji_events_outlined,
+              size: 40,
+              color: NightColors.ink,
             ),
-        ]),
+            const SizedBox(height: 8),
+            Text(
+              winners.map((result) => _name(result.playerId)).join(', '),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(color: NightColors.ink),
+              textAlign: TextAlign.center,
+            ),
+            Text('${results.first.total} очков'),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      for (final result in results)
+        ExpansionTile(
+          title: Text(_name(result.playerId)),
+          subtitle: Text(
+            'Монеты ${result.balance} · Товары ${result.goodsValue} · Цель +${result.bonus}',
+          ),
+          leading: const Icon(Icons.person_outline_rounded),
+          children: [
+            ListTile(
+              title: Text(result.goal.title),
+              subtitle: Text(result.goal.text),
+            ),
+            for (final item in result.inventory)
+              ListTile(title: Text(item.name)),
+          ],
+        ),
+      if (_game.revealedSales case final sales? when sales.isNotEmpty)
+        ExpansionTile(
+          title: const Text('Что было в чемоданах'),
+          children: [
+            for (final sale in sales)
+              ListTile(
+                title: Text(sale.purchase.item.name),
+                subtitle: Text(
+                  '${_name(sale.buyerId)} · Куплено за ${sale.purchase.price}',
+                ),
+              ),
+          ],
+        ),
       if (_host) ...[
         const SizedBox(height: 12),
         NightButton(
@@ -794,33 +512,140 @@ class _DealsPanelState extends State<DealsPanel> {
         ),
         TextButton(
           onPressed: _enabled ? widget.onChooseGame : null,
-          child: const Text('Выбрать другую игру'),
+          child: const Text('Другая игра'),
         ),
       ],
     ];
   }
 
-  Future<void> _cancel() => _confirmTrade(
-    'Отменить партию?',
-    'Все вернутся в лобби. Комната и её участники сохранятся.',
-    'Отменить партию',
-    'cancel',
+  Widget _tools() => Wrap(
+    spacing: 8,
+    runSpacing: 4,
+    alignment: WrapAlignment.center,
+    children: [
+      if (_game.phase != DealsPhase.finished) ...[
+        if (_game.phase != DealsPhase.listing)
+          TextButton.icon(
+            icon: const Icon(Icons.style_outlined, size: 18),
+            label: Text('Рука · ${_me.inventory.length}'),
+            onPressed: _showHand,
+          ),
+      ],
+      TextButton.icon(
+        icon: const Icon(Icons.help_outline, size: 18),
+        label: const Text('Правила'),
+        onPressed: _showRules,
+      ),
+    ],
   );
 
-  Future<void> _confirmTrade(
+  Future<void> _showRules() async {
+    final canCancel = _host && _enabled && _game.phase != DealsPhase.finished;
+    final cancel = await _sheet<bool>(
+      'Как играть',
+      [
+        const Text(
+          'Выставь товар. Покупатели увидят только цену и то, что ты объявил.',
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Торгуйтесь вслух. Купить, проверить и предложить свою цену можно на телефоне.',
+        ),
+        const SizedBox(height: 10),
+        const Text('Для тайной цели купи хотя бы один товар у соперника.'),
+        const SizedBox(height: 10),
+        const Text('Очки — монеты, стоимость товаров и бонус за цель.'),
+      ],
+      footer: canCancel
+          ? (sheet) => TextButton(
+              onPressed: () => Navigator.pop(sheet, true),
+              child: const Text('Отменить партию'),
+            )
+          : null,
+    );
+    if (cancel == true && mounted && _enabled) await _cancel();
+  }
+
+  Future<void> _showGoal() => _privateSheet(
+    'Тайная цель',
+    (personal) => [
+      if (personal.goal case final goal?) ...[
+        Text(goal.title),
+        const SizedBox(height: 8),
+        Text(goal.text),
+        const SizedBox(height: 8),
+        Text('Бонус +${goal.bonus}'),
+      ],
+    ],
+  );
+
+  Future<void> _showHand() => _privateSheet(
+    'Твои товары',
+    (personal) => [
+      if (personal.inventory.isEmpty) const Text('Рука пуста'),
+      for (final item in personal.inventory) ...[
+        _ItemTile(item: item),
+        const SizedBox(height: 8),
+      ],
+    ],
+  );
+
+  Future<void> _privateSheet(
     String title,
-    String text,
-    String submit,
-    String action, [
-    Map<String, dynamic> payload = const {},
-  ]) async {
-    final intent = _snapshot;
+    List<Widget> Function(DealsPrivate) content,
+  ) {
+    final controller = widget.controller;
+    final intent = _view;
+    return _sheet<void>(title, [
+      AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final current = controller.snapshot;
+          if (current?.roomId != intent.roomId ||
+              current?.selfId != intent.selfId ||
+              current?.sessionId != intent.sessionId) {
+            return const Text('Эта партия больше недоступна.');
+          }
+          final personal = current?.privateDeals;
+          if (!controller.online || personal == null) {
+            return const Text('Ждём восстановления связи.');
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: content(personal),
+          );
+        },
+      ),
+    ]);
+  }
+
+  Future<T?> _sheet<T>(
+    String title,
+    List<Widget> content, {
+    Widget Function(BuildContext)? footer,
+  }) => showModalBottomSheet<T>(
+    context: context,
+    useSafeArea: true,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (context) => SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Heading(title),
+          ...content,
+          if (footer != null) footer(context),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _cancel() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(text),
-        scrollable: true,
+        title: const Text('Отменить партию?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -828,182 +653,115 @@ class _DealsPanelState extends State<DealsPanel> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(submit),
+            child: const Text('Отменить партию'),
           ),
         ],
       ),
     );
-    if (confirmed == true && mounted) await _play(action, payload, intent);
+    if (confirmed == true && mounted && _enabled) await _play('cancel');
   }
-
-  Widget _sectionHeading(String label) => Semantics(
-    header: true,
-    child: Text(label, style: Theme.of(context).textTheme.titleLarge),
-  );
 }
 
-class _DealsTag extends StatelessWidget {
-  const _DealsTag({
-    required this.label,
-    this.icon,
-    this.semanticsLabel,
-    this.tone = NightColors.text,
-  });
+IconData _categoryIcon(DealsCategory category) => switch (category) {
+  DealsCategory.tech => Icons.memory_rounded,
+  DealsCategory.art => Icons.palette_outlined,
+  DealsCategory.jewelry => Icons.diamond_outlined,
+  DealsCategory.antiques => Icons.hourglass_bottom_rounded,
+  DealsCategory.toys => Icons.toys_outlined,
+  DealsCategory.music => Icons.music_note_rounded,
+};
 
-  final String label;
-  final IconData? icon;
-  final String? semanticsLabel;
-  final Color tone;
+class _ItemTile extends StatelessWidget {
+  const _ItemTile({required this.item, this.onTap});
+  final DealsItem item;
+  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: NightColors.ink,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: NightColors.border),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      child: Row(
+  Widget build(BuildContext context) => Material(
+    borderRadius: BorderRadius.circular(18),
+    color: NightColors.surface,
+    child: ListTile(
+      key: ValueKey('deals-item-${item.id}'),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: NightColors.divider),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+      onTap: onTap,
+      leading: Icon(_categoryIcon(item.category), color: NightColors.accent),
+      title: Text(item.name, style: Theme.of(context).textTheme.titleMedium),
+      subtitle: Text(item.category.label),
+      trailing: Row(
         mainAxisSize: MainAxisSize.min,
-        spacing: 6,
         children: [
-          if (icon case final symbol?)
-            ExcludeSemantics(child: Icon(symbol, size: 16, color: tone)),
-          Flexible(
-            child: Text(
-              label,
-              semanticsLabel: semanticsLabel,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: tone,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
+          _Chip(
+            'Стоит ${item.value}',
+            semantics: 'Стоимость ${item.value} монет',
           ),
+          if (onTap != null)
+            const Icon(Icons.chevron_right_rounded, color: NightColors.muted),
         ],
       ),
     ),
   );
 }
 
-class _DealsCard extends StatelessWidget {
-  const _DealsCard({
-    required this.icon,
-    required this.title,
-    this.caption,
-    this.description,
-    this.tag,
-    this.highlighted = false,
-    this.children = const [],
-    this.actions = const [],
-  });
-
-  final IconData icon;
-  final String title;
-  final String? caption;
-  final String? description;
-  final String? tag;
-  final bool highlighted;
-  final List<Widget> children;
-  final List<Widget> actions;
+class _Heading extends StatelessWidget {
+  const _Heading(this.text);
+  final String text;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
-    final tone = highlighted ? NightColors.accent : NightColors.muted;
-    return DecoratedBox(
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Semantics(
+      header: true,
+      child: Text(text, style: Theme.of(context).textTheme.headlineMedium),
+    ),
+  );
+}
+
+class _Waiting extends StatelessWidget {
+  const _Waiting(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    liveRegion: true,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(text, style: const TextStyle(color: NightColors.muted)),
+    ),
+  );
+}
+
+class _Chip extends StatelessWidget {
+  const _Chip(this.label, {this.icon, this.semantics});
+  final String label;
+  final IconData? icon;
+  final String? semantics;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: semantics,
+    excludeSemantics: semantics != null,
+    child: DecoratedBox(
       decoration: BoxDecoration(
-        color: highlighted ? NightColors.raised : NightColors.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: highlighted ? tone : NightColors.divider),
+        color: NightColors.raised,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 12,
-              children: [
-                ExcludeSemantics(
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: NightColors.ink,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(icon, color: tone, size: 22),
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (caption case final label?)
-                        Text(
-                          label,
-                          style: theme.labelLarge?.copyWith(color: tone),
-                        ),
-                      Text(title, style: theme.titleLarge),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (description case final body?) ...[
-              const SizedBox(height: 8),
-              Text(
-                body,
-                style: theme.bodyMedium?.copyWith(color: NightColors.muted),
-              ),
+            if (icon != null) ...[
+              Icon(icon, size: 15, color: NightColors.accent),
+              const SizedBox(width: 5),
             ],
-            if (tag case final label?) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: _DealsTag(label: label, tone: NightColors.accent),
-              ),
-            ],
-            for (final child in children) ...[const SizedBox(height: 8), child],
-            for (final action in actions) ...[
-              const SizedBox(height: 8),
-              action,
-            ],
+            Text(label, style: Theme.of(context).textTheme.labelMedium),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
-
-String _coinAmount(int amount) {
-  final lastTwo = amount % 100;
-  final unit = lastTwo >= 11 && lastTwo <= 14
-      ? 'монет'
-      : switch (amount % 10) {
-          1 => 'монета',
-          2 || 3 || 4 => 'монеты',
-          _ => 'монет',
-        };
-  return '$amount $unit';
-}
-
-Widget _numberField({
-  Key? key,
-  required String label,
-  required int? value,
-  required List<int> values,
-  required ValueChanged<int>? onChanged,
-}) => DropdownButtonFormField<int>(
-  key: key,
-  isExpanded: true,
-  initialValue: value,
-  decoration: InputDecoration(labelText: label),
-  items: [
-    for (final option in values)
-      DropdownMenuItem(value: option, child: Text('$option')),
-  ],
-  onChanged: onChanged == null ? null : (value) => onChanged(value!),
-);
