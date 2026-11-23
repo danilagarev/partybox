@@ -8,6 +8,7 @@ enum NightSceneKind {
   spy,
   tolerance,
   clues,
+  truth,
   starter,
   everyday,
   travel,
@@ -103,6 +104,7 @@ class _NightSceneState extends State<NightScene>
     NightSceneKind.spy => const Color(0xFF314438),
     NightSceneKind.tolerance => const Color(0xFF3F364E),
     NightSceneKind.clues => const Color(0xFF3B3D31),
+    NightSceneKind.truth => const Color(0xFF373346),
     NightSceneKind.starter => const Color(0xFF403B36),
     NightSceneKind.everyday => const Color(0xFF30443C),
     NightSceneKind.travel => const Color(0xFF35444A),
@@ -136,6 +138,8 @@ class _NightScenePainter extends CustomPainter {
         scene.tolerance();
       case NightSceneKind.clues:
         scene.clues();
+      case NightSceneKind.truth:
+        scene.truth();
       case NightSceneKind.starter:
         scene.starter();
       case NightSceneKind.everyday:
@@ -256,6 +260,7 @@ class _Scene {
     final color = switch (kind) {
       NightSceneKind.tolerance => _lilac,
       NightSceneKind.clues || NightSceneKind.starter => _gold,
+      NightSceneKind.truth => _lilac,
       NightSceneKind.everyday || NightSceneKind.spy => _lime,
       NightSceneKind.travel => _cream,
       NightSceneKind.unusual => _lilac,
@@ -438,6 +443,38 @@ class _Scene {
     });
     _circle(48, 98, 3, _gold);
     _circle(231, 68, 3, _gold);
+  }
+
+  void truth() {
+    // Two possible answers meet over a small stake: one is certain, one hides
+    // a twist. The deliberately unlabeled cards keep the art decorative.
+    _circle(137, 67, 47, _lilac.withAlpha(20));
+    _rotate(101 - 5 * remaining, 76, -.14 * progress, () {
+      _box(-35, -37, 70, 82, 7, _ink);
+      _box(-39, -41, 70, 82, 7, _sage);
+      _frame(-33, -35, 58, 70, 4, _cream.withAlpha(120));
+      _circle(-10, -9, 12, _moss);
+      _line(-16, -9, -11, -4, _cream, 2.2);
+      _line(-11, -4, -3, -14, _cream, 2.2);
+      _line(-20, 15, 10, 15, _moss.withAlpha(170), 2);
+      _line(-20, 22, 4, 22, _moss.withAlpha(120), 2);
+    });
+    _rotate(174 + 8 * remaining, 75, .16 * progress, () {
+      _box(-35, -37, 70, 82, 7, _ink);
+      _box(-39, -41, 70, 82, 7, _plum);
+      _frame(-33, -35, 58, 70, 4, _lilac.withAlpha(160));
+      _circle(-10, -10, 14, _lilac.withAlpha(210));
+      _line(-10, -19, -10, -2, _plum, 2.2);
+      _circle(-10, 5, 1.8, _plum);
+      _line(-20, 20, 10, 20, _lilac.withAlpha(160), 2);
+    });
+    // A few chips tucked below the answer cards suggest a wager.
+    _oval(112, 113, 47, 9, _ink);
+    _box(119, 104, 31, 8, 3, _gold);
+    _box(123, 99, 23, 7, 3, _paper);
+    _line(127, 102, 142, 102, _moss.withAlpha(190), 1.2);
+    _star(207, 43, 4, _lilac.withAlpha(190));
+    _circle(66, 103, 2, _gold.withAlpha(190));
   }
 
   void starter() {

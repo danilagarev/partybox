@@ -13,8 +13,19 @@ import 'design/night_scene.dart';
 import 'spy/spy_game_screen.dart';
 import 'storage/spy_setup.dart';
 import 'rooms/room_controller.dart';
+import 'rooms/room_invitation.dart';
+import 'rooms/room_invitation_navigation_stub.dart'
+    if (dart.library.js_interop) 'rooms/room_invitation_navigation_web.dart'
+    as invitation_navigation;
+import 'rooms/room_qr_scanner.dart';
 import 'rooms/room_screen.dart';
 import 'truth/truth_rules_screen.dart';
+
+typedef RoomControllerResolver =
+    Future<RoomController?> Function(
+      BuildContext context, {
+      String? invitationOrigin,
+    });
 
 class PartyBoxApp extends StatelessWidget {
   const PartyBoxApp({
@@ -28,7 +39,7 @@ class PartyBoxApp extends StatelessWidget {
   final String? initialRoomPin;
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
-  final Future<RoomController?> Function(BuildContext)? resolveRoomController;
+  final RoomControllerResolver? resolveRoomController;
   final Future<void> Function(BuildContext)? onConfigureServer;
 
   @override
@@ -64,7 +75,7 @@ class CatalogScreen extends StatefulWidget {
   final String? initialRoomPin;
   final SpySetupStore? setupStore;
   final RoomController Function()? roomControllerFactory;
-  final Future<RoomController?> Function(BuildContext)? resolveRoomController;
+  final RoomControllerResolver? resolveRoomController;
   final Future<void> Function(BuildContext)? onConfigureServer;
 
   @override
@@ -72,6 +83,10 @@ class CatalogScreen extends StatefulWidget {
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
+  static final _entryButtonStyle = OutlinedButton.styleFrom(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+  );
+
   // A connection resolver may await storage or configuration before pushing a
   // route. Keep one navigation intent across all entry points during that gap.
   bool _openingConnection = false;
@@ -107,13 +122,34 @@ class _CatalogScreenState extends State<CatalogScreen> {
     String? game,
     bool joining = false,
     String? pin,
+    bool scan = false,
   }) async {
     if (_openingConnection || ModalRoute.of(context)?.isCurrent != true) return;
     _openingConnection = true;
     try {
+      final invitation = scan
+          ? await Navigator.of(context).push<RoomInvitation>(
+              MaterialPageRoute(builder: (_) => const RoomQrScanner()),
+            )
+          : null;
+      if (!mounted ||
+          !context.mounted ||
+          ModalRoute.of(context)?.isCurrent != true ||
+          (scan && invitation == null)) {
+        return;
+      }
+      if (kIsWeb &&
+          invitation != null &&
+          invitation.origin != Uri.base.origin) {
+        await _confirmInvitationNavigation(context, invitation);
+        return;
+      }
       final controller =
           widget.roomControllerFactory?.call() ??
-          await widget.resolveRoomController?.call(context);
+          await widget.resolveRoomController?.call(
+            context,
+            invitationOrigin: invitation?.origin,
+          );
       if (!mounted ||
           !context.mounted ||
           ModalRoute.of(context)?.isCurrent != true) {
@@ -126,13 +162,44 @@ class _CatalogScreenState extends State<CatalogScreen> {
           builder: (_) => RoomScreen(
             controller: controller,
             initialGame: game,
-            initialJoining: joining,
-            initialPin: pin,
+            initialJoining: joining || invitation != null,
+            initialPin: invitation?.pin ?? pin,
           ),
         ),
       );
     } finally {
       _openingConnection = false;
+    }
+  }
+
+  Future<void> _confirmInvitationNavigation(
+    BuildContext context,
+    RoomInvitation invitation,
+  ) async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Открыть приглашение?'),
+        content: SingleChildScrollView(
+          child: Text('Комната находится на сервере ${invitation.origin}.'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Открыть'),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true &&
+        mounted &&
+        context.mounted &&
+        ModalRoute.of(context)?.isCurrent == true) {
+      invitation_navigation.open(invitation.uri);
     }
   }
 
@@ -159,13 +226,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 style: TextStyle(color: NightColors.muted),
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => _openRoom(context, joining: true),
-                icon: const Icon(Icons.meeting_room_outlined),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Войти по коду'),
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    style: _entryButtonStyle,
+                    onPressed: () => _openRoom(context, joining: true),
+                    icon: const Icon(Icons.meeting_room_outlined),
+                    label: const Text('Войти по коду'),
+                  ),
+                  OutlinedButton.icon(
+                    style: _entryButtonStyle,
+                    onPressed: () => _openRoom(context, scan: true),
+                    icon: const Icon(Icons.qr_code_scanner_rounded),
+                    label: const Text('Сканировать QR'),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               const Wrap(

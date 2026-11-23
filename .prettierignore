@@ -14,3 +14,5 @@ apps/mobile/.metadata
 **/*.dart
 # Flutter replaces these template tokens before JavaScript is executed.
 apps/mobile/web/flutter_bootstrap.js
+# Pinned upstream browser decoder.
+apps/mobile/web/assets/vendor/zxing-reader-3.1.6.min.js

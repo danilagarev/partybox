@@ -18,6 +18,17 @@ final class RoomInvitation {
         RegExp(r'^127\.').hasMatch(host);
   }
 
+  static RoomInvitation? fromQr(String? value, {required bool allowInsecure}) {
+    final uri = value == null ? null : Uri.tryParse(value.trim());
+    if (uri == null || (!allowInsecure && uri.scheme != 'https')) return null;
+    try {
+      final invitation = parse(uri);
+      return invitation == null || invitation.isLoopback ? null : invitation;
+    } on FormatException {
+      return null;
+    }
+  }
+
   static RoomInvitation? parse(Uri uri) {
     if (!const {'http', 'https'}.contains(uri.scheme) ||
         !uri.hasAuthority ||

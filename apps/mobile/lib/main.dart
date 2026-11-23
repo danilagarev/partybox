@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'src/rooms/room_api.dart';
 import 'src/rooms/room_invitation.dart';
 import 'src/rooms/room_controller.dart';
@@ -14,6 +15,11 @@ import 'src/storage/preferences_spy_setup_store.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    MobileScannerPlatform.instance
+      ..setWebBarcodeReader(WebBarcodeReader.zxingWasm)
+      ..setBarcodeLibraryScriptUrl('assets/vendor/zxing-reader-3.1.6.min.js');
+  }
   runApp(createPartyBoxApp());
 }
 
@@ -49,17 +55,21 @@ Widget createPartyBoxApp({
     );
   }
 
-  Future<RoomController?> resolveController(BuildContext context) async {
+  Future<RoomController?> resolveController(
+    BuildContext context, {
+    String? invitationOrigin,
+  }) async {
     await loaded;
     if (!context.mounted || ModalRoute.of(context)?.isCurrent != true) {
       return null;
     }
-    if (settings.origin == null && invitation == null) {
+    final inviteServer = invitationOrigin ?? invitation?.origin;
+    if (settings.origin == null && inviteServer == null) {
       await configureServer(context);
     }
     // An invitation belongs to its web origin. Never redirect it to a saved
     // custom server; the vault still requires explicit handling of old access.
-    final server = invitation?.origin ?? settings.origin;
+    final server = inviteServer ?? settings.origin;
     if (!context.mounted || server == null) return null;
     return RoomController(
       api: HttpRoomApi(server, allowInsecure: !kReleaseMode),

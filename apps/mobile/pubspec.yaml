@@ -19,6 +19,7 @@ dependencies:
   flutter_secure_storage: 9.2.4
   web: 1.1.1
   qr_flutter: 4.1.0
+  mobile_scanner: 7.5.0
 dev_dependencies:
   shared_preferences_platform_interface: 2.4.2
   flutter_test:
