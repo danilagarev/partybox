@@ -37,6 +37,7 @@ test('duel supports a bluff, inspection, competing price and round transition', 
   assert.equal(dealsPrivate(state, 'buyer').ownLotItem, null);
   const pass = { itemId: null, category: null, value: null, price: null };
   play('buyer', move('deals.list', pass));
+  assert.equal(state.phase, 'trading');
   assert.equal(state.deadline, 185000);
   assert.equal(advanceDeals(state, 184999), state);
   assert.throws(() => play('seller', move('deals.buy', { sellerId: 'seller', insured: false })));
@@ -63,6 +64,38 @@ test('duel supports a bluff, inspection, competing price and round transition', 
   const timedOut = advanceDeals(state, 185000);
   assert.equal(timedOut.phase, 'market');
   assert.deepEqual(dealsPublic(timedOut, 'duel').readyIds, ['buyer']);
+});
+
+test('all players passing listing opens the market immediately', () => {
+  const ids = ['a', 'b'];
+  let state = createDeals(ids, choose);
+  for (const id of ids) {
+    state = playDeals(
+      state,
+      id,
+      move('deals.choose', { goalId: dealsPrivate(state, id).goalOptions[0]!.id }),
+      5000,
+    );
+  }
+  const pass = move('deals.list', { itemId: null, category: null, value: null, price: null });
+  const waiting = playDeals(state, 'a', pass, 5000);
+  assert.equal(waiting.phase, 'listing');
+  assert.deepEqual(dealsPublic(waiting, 'duel').readyIds, ['a']);
+
+  const market = playDeals(waiting, 'b', pass, 5000);
+  const view = dealsPublic(market, 'duel');
+  assert.equal(view.phase, 'market');
+  assert.equal(view.deadline, null);
+  assert.deepEqual(view.readyIds, []);
+  assert.deepEqual(view.lots, []);
+  assert.deepEqual(market.market, waiting.market);
+  assert.equal(waiting.phase, 'listing');
+
+  const itemId = view.market[0]!.item.id;
+  const picked = playDeals(market, 'a', move('deals.market', { itemId }), 5000);
+  const recap = playDeals(picked, 'b', move('deals.market', { itemId: null }), 5000);
+  assert.equal(recap.phase, 'recap');
+  assert.equal(dealsPrivate(recap, 'a').purchases[0]!.item.id, itemId);
 });
 
 test('room game supports every size from two to six and shuffles balanced inventory', () => {

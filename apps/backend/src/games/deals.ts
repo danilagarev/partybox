@@ -408,6 +408,7 @@ export function playDeals(
       }
       const next = updatePlayer(state, { ...player, lot, ready: true });
       if (!everyoneReady(next)) return next;
+      if (next.players.every((entry) => entry.lot === null)) return endTrading(next);
       return {
         ...next,
         phase: 'trading',
