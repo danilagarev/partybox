@@ -3,9 +3,11 @@ import '../design/night_components.dart';
 import '../design/night_theme.dart';
 import '../design/role_peek_card.dart';
 import 'room_controller.dart';
+import 'room_models.dart' show roomProtocolVersion;
 import 'tolerance_panel.dart';
 import 'clues_panel.dart';
 import 'truth_panel.dart';
+import 'deals_panel.dart';
 import '../truth/truth_topics.dart';
 import '../spy/local_session_adapter.dart';
 import '../spy/spy_question_help.dart';
@@ -109,6 +111,15 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     final host = snapshot.hostId == snapshot.selfId;
     final enabled =
         !controller.busy && !controller.hasPending && controller.online;
+    final deals = snapshot.deals;
+    if (deals != null && !_chooseNextGame) {
+      return DealsPanel(
+        key: ValueKey((deals.sessionId, deals.round, deals.phase)),
+        controller: controller,
+        snapshot: snapshot,
+        onChooseGame: () => setState(() => _chooseNextGame = true),
+      );
+    }
     final truth = snapshot.truth;
     if (truth != null && !_chooseNextGame) {
       return TruthPanel(
@@ -192,6 +203,18 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                       ? (_) => setState(() => _selectedGame = 'tolerance')
                       : null,
                 ),
+                if (snapshot.protocolVersion >= roomProtocolVersion ||
+                    _selectedGame == 'deals')
+                  ChoiceChip(
+                    label: const Text('Мутные сделки'),
+                    selected: _selectedGame == 'deals',
+                    onSelected:
+                        host &&
+                            enabled &&
+                            snapshot.protocolVersion >= roomProtocolVersion
+                        ? (_) => setState(() => _selectedGame = 'deals')
+                        : null,
+                  ),
                 if (snapshot.protocolVersion >= 6 || _selectedGame == 'truth')
                   ChoiceChip(
                     label: const Text('Не может быть!'),
@@ -204,6 +227,44 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
             ),
           )
         : const SizedBox.shrink();
+    if (choosing && _selectedGame == 'deals') {
+      final supported = snapshot.protocolVersion >= roomProtocolVersion;
+      final playerCount = snapshot.players.length;
+      return NightPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            chooser,
+            Text(
+              'Мутные сделки',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Выбирайте тайную цель, выставляйте закрытые чемоданы и торгуйтесь голосом.',
+            ),
+            const SizedBox(height: 12),
+            const Text('2–6 игроков · пять раундов'),
+            if (!supported) ...[
+              const SizedBox(height: 12),
+              const Text('Для этой игры нужна новая версия сервера комнат.'),
+            ] else if (host) ...[
+              const SizedBox(height: 16),
+              NightButton(
+                label: 'Начать «Мутные сделки»',
+                onPressed: enabled && playerCount >= 2 && playerCount <= 6
+                    ? () => controller.play('deals.start')
+                    : null,
+              ),
+              if (playerCount < 2)
+                const Text('Пригласите хотя бы одного участника.'),
+              if (playerCount > 6)
+                const Text('В этой игре могут участвовать до шести человек.'),
+            ],
+          ],
+        ),
+      );
+    }
     if (choosing && _selectedGame == 'truth') {
       final supported = snapshot.protocolVersion >= 6;
       return NightPanel(

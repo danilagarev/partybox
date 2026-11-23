@@ -8,33 +8,40 @@ import 'package:partybox_mobile/src/rooms/room_models.dart';
 import 'support.dart';
 
 void main() {
-  test('missing v6 and v5 endpoints explain required server update', () async {
-    final paths = <String>[];
-    final api = HttpRoomApi(
-      'https://rooms.example',
-      client: MockClient((request) async {
-        paths.add(request.url.path);
-        return http.Response(
-          jsonEncode({'statusCode': 404, 'message': 'Not Found'}),
-          404,
-        );
-      }),
-    );
-    addTearDown(api.close);
-    await expectLater(
-      api.snapshot(saved()),
-      throwsA(
-        isA<RoomFailure>().having(
-          (f) => f.code,
-          'code',
-          'SERVER_UPGRADE_REQUIRED',
+  test(
+    'missing v7, v6 and v5 endpoints explain required server update',
+    () async {
+      final paths = <String>[];
+      final api = HttpRoomApi(
+        'https://rooms.example',
+        client: MockClient((request) async {
+          paths.add(request.url.path);
+          return http.Response(
+            jsonEncode({'statusCode': 404, 'message': 'Not Found'}),
+            404,
+          );
+        }),
+      );
+      addTearDown(api.close);
+      await expectLater(
+        api.snapshot(saved()),
+        throwsA(
+          isA<RoomFailure>().having(
+            (f) => f.code,
+            'code',
+            'SERVER_UPGRADE_REQUIRED',
+          ),
         ),
-      ),
-    );
-    expect(paths, ['/v6/rooms/$roomId', '/v5/rooms/$roomId']);
-  });
+      );
+      expect(paths, [
+        '/v7/rooms/$roomId',
+        '/v6/rooms/$roomId',
+        '/v5/rooms/$roomId',
+      ]);
+    },
+  );
 
-  test('missing v6 endpoint reads a compatible v5 snapshot', () async {
+  test('missing v7 and v6 endpoints read a compatible v5 snapshot', () async {
     final paths = <String>[];
     final examples =
         jsonDecode(
@@ -48,7 +55,7 @@ void main() {
       client: MockClient((request) async {
         final path = request.url.path;
         paths.add(path);
-        if (path.startsWith('/v6/')) {
+        if (path.startsWith('/v7/') || path.startsWith('/v6/')) {
           return http.Response(
             jsonEncode({'statusCode': 404, 'message': 'Cannot GET $path'}),
             404,
@@ -64,17 +71,21 @@ void main() {
     final snapshot = await api.snapshot(saved());
     expect(snapshot.protocolVersion, 5);
     expect(snapshot.truth, isNull);
-    expect(paths, ['/v6/rooms/$roomId', '/v5/rooms/$roomId']);
+    expect(paths, [
+      '/v7/rooms/$roomId',
+      '/v6/rooms/$roomId',
+      '/v5/rooms/$roomId',
+    ]);
   });
 
-  test('structured v6 room errors never trigger downgrade', () async {
+  test('structured v7 room errors never trigger downgrade', () async {
     var requests = 0;
     final api = HttpRoomApi(
       'https://rooms.example',
       client: MockClient((request) async {
         requests++;
         return http.Response(
-          jsonEncode({'protocolVersion': 6, 'code': 'ROOM_UNAVAILABLE'}),
+          jsonEncode({'protocolVersion': 7, 'code': 'ROOM_UNAVAILABLE'}),
           404,
         );
       }),

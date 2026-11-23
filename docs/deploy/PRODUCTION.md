@@ -87,9 +87,10 @@ UID/GID. Повторный запуск не заменяет секреты. �
 
 ## 2. GitHub Secrets: имена как у Baza
 
-В **репозитории PartyBox** создайте Environment `production`, разрешите deployment
-только ветки `main`. При желании включите required reviewers. Workflow должен
-попасть в default branch `main`, чтобы появилась кнопка Run workflow.
+В **репозитории PartyBox** создайте Environment `production` и разрешите deployment
+только ветки `main`. Если включены required reviewers, автоматический запуск CD будет
+ожидать их подтверждения. Workflow должен находиться в default branch `main`,
+чтобы работали запуск из Checks и кнопка Run workflow.
 
 Добавьте Secrets в этот Environment; GitHub не переносит их из соседнего репозитория:
 
@@ -121,8 +122,9 @@ Host key сверяйте через доверенную консоль VPS, н
   доступ к новому package; GHCR_PAT можно не задавать.
 - Либо задайте GHCR_PAT: workflow авторизует VPS через stdin в отдельный
   `DEPLOY_PATH/docker-auth/config.json`, сохраняя Docker login Baza. PAT не попадает
-  в аргументы SSH/образ/bundle. Имя пользователя берётся из github.actor, как в Baza;
-  запускать workflow должен владелец используемого PAT.
+  в аргументы SSH, образ или bundle. В Environment variable `GHCR_USER` укажите
+  владельца PAT. Если переменная пуста, используется `github.actor`, который для
+  автоматического запуска зависит от автора исходного запуска Checks.
 - Либо один раз выполните
   `docker --config /srv/partybox/docker-auth login ghcr.io -u YOUR_GITHUB_USER`
   от SSH_USER на VPS и введите read:packages PAT через prompt. Это удобнее для общей команды.
@@ -139,29 +141,40 @@ plugin должен находиться в системном каталоге 
 Telegram и чужие уведомления не копируются. GitHub Secrets Baza не читаются
 и не изменяются этим комплектом.
 
-## 3. CI и ручной production-деплой
+## 3. CI и production-деплой
 
-Как в production Baza, деплой запускается **вручную**, push сам сервер не обновляет:
+Push или merge в `main` запускает **Checks** (`node`, `flutter`, `https`). После
+успеха всех проверок **Deploy backend** автоматически берёт SHA, ID запуска и
+номер попытки из события Checks. Только успешный push Checks в `main` этого
+репозитория может запустить автоматический деплой. Если за это время `main`
+продвинулся, автоматический запуск пропускает прежний SHA. Перед обращением
+к VPS проверка актуальности повторяется.
 
-1. Push/merge в `main` → дождаться зелёного **Checks** (`node`, `flutter`, `https`).
-2. Actions → **Deploy backend** → Run workflow → branch **main**.
-3. Поле `sha` пустое означает текущий main. Для проверенного старого commit
-   укажите полный SHA из 40 строчных hex-символов.
-4. Workflow требует успешный Checks push того же SHA и его принадлежность истории
-   main, собирает точный commit, публикует GHCR image и отправляет immutable digest
-   по SSH. Одновременные деплои сериализованы, на VPS используется flock.
+Для повторной выкладки откройте Actions → **Deploy backend** → Run workflow →
+branch **main**. Пустое поле `sha` берёт `main` на момент запуска. Для проверенного
+старого коммита укажите полный SHA из 40 строчных hex-символов. Нужен успешный
+Checks push того же SHA с сохранённым веб-бандлом. SHA должен входить в историю
+`main` и содержать совместимый Caddy deployment layout.
 
-В отличие от Baza сборка image расположена внутри ручного Deploy backend после
-проверки CI. Это оставляет обычные PR-проверки без публикации image и не требует
-разрешений packages write в Checks. Повтор деплоя/первый запуск выполняется той же
-кнопкой. SHA должен содержать текущий Caddy deployment layout; коммиты до него
-workflow отклоняет до изменения VPS.
+CD собирает выбранный коммит и проверенный веб-бандл, публикует образ GHCR с
+меткой SHA и отправляет immutable digest по SSH. Право `packages: write` есть
+у задания CD. GitHub ставит выкладки в очередь, на VPS используется `flock`.
+Checks и CD могут проверять несколько коммитов, при этом записи в production
+выполняются последовательно.
 
 На сервер передаётся bundle, затем: pull → ожидание БД → миграция → обновление API
 → `/ready`. Ошибка миграции сохраняет прежний API; ошибка readiness обновления
 возвращает предыдущий immutable image. Первый неудачный запуск останавливает
 только PartyBox API и сохраняет БД. Обычное обновление кратко разрывает WebSocket;
 клиент восстанавливает комнату. Zero downtime не обещается.
+
+После записи релиза CD проверяет публичные `/health`, `/ready`, `/version.json`
+и байты `/main.dart.js` через HTTPS. По умолчанию используется
+`https://partybox.sorima.tech`. Для другого origin задайте Environment variable
+`PRODUCTION_URL`, укажите HTTPS origin без пути. При ошибке публичной проверки
+CD завершится с ошибкой, а записанный релиз останется на VPS. Проверьте DNS/TLS,
+конфигурацию Caddy и статус контейнера. Если нужен возврат к предыдущему образу,
+выполните команду из раздела rollback ниже.
 
 ## 4. Standalone Docker Caddy и partybox.sorima.tech
 
@@ -278,23 +291,27 @@ host-сценарий, для текущей схемы не используе�
 [Caddy reverse_proxy/WebSocket/headers](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy),
 [Docker Compose networking](https://docs.docker.com/compose/how-tos/networking/),
 [GitHub manual workflow](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow).
+Автоматический запуск и очередь сверены 2026-11-23.
+[GitHub workflow_run](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run),
+[GitHub concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency).
 Локальный Docker smoke проверяет изолированный Caddy с тестовым CA, TLS/Socket.IO,
 пересоздание API и сохранение БД; он не является внешним VPS/DNS-плейтестом.
 
 ## Веб-клиент и три игры — PB-048
 
-После публикации новой версии и успешного Checks тот же ручной **Deploy backend**
+После успешного Checks в `main` автоматический **Deploy backend**
 развёртывает backend и общий Flutter Web. Отдельный контейнер, DNS, порт или новое
 правило reverse_proxy не требуются: `https://partybox.sorima.tech/` станет каталогом,
 `/health`, `/ready`, `/rooms`, `/v2/rooms`, `/v3/rooms`, `/v4/rooms`
 и Socket.IO продолжают обслуживаться там же.
 
-Workflow Flutter собирает `scripts/build-web.sh`, проверяет полный набор assets и
-публикует artifact `partybox-web-<SHA>`. HTTPS job проверяет именно этот bundle.
-CD скачивает bundle точного успешного push-run выбранного main SHA, повторно
-проверяет хеши и включает его в `/app/public` Docker-образа. Отсутствующий или
-повреждённый bundle останавливает CD. Старые коммиты без такого artifact этим
-новым workflow не разворачивать; для rollback используется сохранённый image.
+Задание Flutter собирает `scripts/build-web.sh` и передаёт bundle в HTTPS job.
+После HTTPS-проверок основная ветка сохраняет `partybox-release-web-<SHA>-<ATTEMPT>`
+на 30 дней. CD скачивает artifact по ID успешного Checks run и имени с номером
+попытки, повторно проверяет хеши и включает bundle в `/app/public` Docker-образа.
+Ручной запуск также поддерживает прежний `partybox-web-<SHA>` из соответствующего
+успешного run. При отсутствующем или повреждённом bundle CD останавливается,
+а немедленный откат использует сохранённый image digest.
 
 На текущем VPS новые SQL-миграции для clues не нужны. Migration job всё равно
 выполняется штатно. Пример Caddy теперь включает `encode zstd gzip`; для сжатия

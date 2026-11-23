@@ -40,7 +40,7 @@ final class HttpRoomApi implements RoomApi {
   late final String origin;
   final http.Client _client;
   io.Socket? _socket;
-  int _watchProtocol = 6;
+  int _watchProtocol = roomProtocolVersion;
   Future<Object?> _request(
     String path, {
     Map<String, dynamic>? body,
@@ -74,7 +74,8 @@ final class HttpRoomApi implements RoomApi {
             RoomContract.accepts('V3Error', value) ||
             RoomContract.accepts('V4Error', value) ||
             RoomContract.accepts('V5Error', value) ||
-            RoomContract.accepts('V6Error', value))) {
+            RoomContract.accepts('V6Error', value) ||
+            RoomContract.accepts('V7Error', value))) {
           throw RoomFailure((value as Map)['code'] as String);
         }
         if (response.statusCode == 404 &&
@@ -82,7 +83,9 @@ final class HttpRoomApi implements RoomApi {
             value['statusCode'] == 404 &&
             (value['message'] == 'Not Found' ||
                 value['message'] == 'Cannot ${request.method} $path') &&
-            (path.startsWith('/v5/') || path.startsWith('/v6/'))) {
+            (path.startsWith('/v5/') ||
+                path.startsWith('/v6/') ||
+                path.startsWith('/v7/'))) {
           throw const RoomFailure('SERVER_UPGRADE_REQUIRED');
         }
         throw const RoomFailure('CONNECTION');
@@ -112,7 +115,8 @@ final class HttpRoomApi implements RoomApi {
       3 => 'V3EnrollmentResult',
       4 => 'V4EnrollmentResult',
       5 => 'V5EnrollmentResult',
-      _ => 'V6EnrollmentResult',
+      6 => 'V6EnrollmentResult',
+      _ => 'V7EnrollmentResult',
     }, value);
     final map = value as Map;
     final snapshot = RoomSnapshot.parse(map['snapshot']);
@@ -125,10 +129,12 @@ final class HttpRoomApi implements RoomApi {
   @override
   Future<RoomSnapshot> snapshot(RoomAccess access) async {
     _checkOrigin(access);
-    try {
-      return await _readSnapshot(access, 6);
-    } on RoomFailure catch (failure) {
-      if (failure.code != 'SERVER_UPGRADE_REQUIRED') rethrow;
+    for (var version = roomProtocolVersion; version > 5; version--) {
+      try {
+        return await _readSnapshot(access, version);
+      } on RoomFailure catch (failure) {
+        if (failure.code != 'SERVER_UPGRADE_REQUIRED') rethrow;
+      }
     }
     return _readSnapshot(access, 5);
   }
@@ -159,7 +165,8 @@ final class HttpRoomApi implements RoomApi {
       3 => 'V3Ack',
       4 => 'V4Ack',
       5 => 'V5Ack',
-      _ => 'V6Ack',
+      6 => 'V6Ack',
+      _ => 'V7Ack',
     }, value);
     if ((value as Map)['commandId'] != access.leave!['commandId']) {
       throw const RoomFailure('PROTOCOL');
@@ -209,7 +216,8 @@ final class HttpRoomApi implements RoomApi {
                   RoomContract.accepts('V3Error', value) ||
                   RoomContract.accepts('V4Error', value) ||
                   RoomContract.accepts('V5Error', value) ||
-                  RoomContract.accepts('V6Error', value))
+                  RoomContract.accepts('V6Error', value) ||
+                  RoomContract.accepts('V7Error', value))
               ? (value as Map)['code'] as String
               : 'PROTOCOL',
         ),
@@ -245,7 +253,8 @@ final class HttpRoomApi implements RoomApi {
     3 => '/v3',
     4 => '/v4',
     5 => '/v5',
-    _ => '/v6',
+    6 => '/v6',
+    _ => '/v7',
   };
 
   void _checkOrigin(RoomAccess access) {

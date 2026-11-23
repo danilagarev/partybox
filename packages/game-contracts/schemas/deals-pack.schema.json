@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "const": "deals-ru-base"
+    },
+    "gameId": {
+      "const": "deals"
+    },
+    "locale": {
+      "const": "ru"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "category": {
+            "type": "string",
+            "enum": ["tech", "art", "jewelry", "antiques", "toys", "music"]
+          },
+          "value": {
+            "type": "integer",
+            "enum": [2, 5, 8]
+          }
+        },
+        "required": ["id", "name", "category", "value"]
+      },
+      "minItems": 72
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 350
+          },
+          "rule": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "cheapAndRare",
+              "bargain",
+              "twoInspections",
+              "twoRare",
+              "threeCategories",
+              "falseCategory",
+              "twoHonest",
+              "priceRange",
+              "bothSides",
+              "bluffSale",
+              "honestSale",
+              "markupSale",
+              "counterofferSale",
+              "resale"
+            ]
+          },
+          "bonus": {
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 9
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["tech", "art", "jewelry", "antiques", "toys", "music"]
+            },
+            "minItems": 0,
+            "maxItems": 2,
+            "uniqueItems": true
+          }
+        },
+        "required": ["id", "title", "text", "rule", "bonus", "categories"]
+      },
+      "minItems": 24
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{1,40}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 350
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "marketDiscount",
+              "marketSurcharge",
+              "cheapInspection",
+              "expensiveInspection",
+              "matchInspection",
+              "bothInspection",
+              "freeInsurance",
+              "extraInsurance",
+              "directBonus",
+              "offerBonus",
+              "firstSale",
+              "doubleMarket"
+            ]
+          }
+        },
+        "required": ["id", "title", "text", "effect"]
+      },
+      "minItems": 12,
+      "maxItems": 12
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "gameId",
+    "locale",
+    "version",
+    "title",
+    "items",
+    "goals",
+    "events"
+  ]
+}

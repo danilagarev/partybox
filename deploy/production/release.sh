@@ -37,7 +37,10 @@ if ! compose up -d --no-deps --wait --wait-timeout 120 partybox-api; then
   rollback
   exit 1
 fi
-if [[ -n $previous ]]; then printf '%s\n' "$previous" > "$root/previous-image.tmp"; mv "$root/previous-image.tmp" "$root/previous-image"; fi
+if [[ -n $previous && $previous != "$image" ]]; then
+  printf '%s\n' "$previous" > "$root/previous-image.tmp"
+  mv "$root/previous-image.tmp" "$root/previous-image"
+fi
 printf '%s\n' "$image" > "$root/current-image.tmp"
 mv "$root/current-image.tmp" "$root/current-image"
 echo 'Backend is ready; release recorded.'

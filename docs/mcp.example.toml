@@ -2,3 +2,10 @@
 # Публичная официальная документация OpenAI, без ключа и доступа к проекту.
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
+
+# Локальный Serena; заменить абсолютный путь своим. Нужен uv в PATH клиента.
+# Wrapper хранит зависимости/пользовательское состояние в игнорируемом .tools/.
+[mcp_servers.serena]
+command = "bash"
+args = ["/home/sever/Projects/partybox/scripts/serena.sh", "start-mcp-server", "--project", "/home/sever/Projects/partybox", "--context", "codex", "--agent-interface", "tools", "--enable-web-dashboard", "false", "--open-web-dashboard", "false"]
+startup_timeout_sec = 120

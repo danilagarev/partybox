@@ -9,6 +9,15 @@ const privateRoomCommandTypes = {
   'spy.ballot',
   'truth.initial',
   'truth.bet',
+  'deals.choose',
+  'deals.list',
+  'deals.offer',
+  'deals.accept',
+  'deals.buy',
+  'deals.inspect',
+  'deals.done',
+  'deals.market',
+  'deals.next',
 };
 
 /// Only access/retry metadata. No snapshots, names of other players or game secrets.
@@ -65,7 +74,8 @@ final class RoomAccess {
           3 => 'V3Enrollment',
           4 => 'V4Enrollment',
           5 => 'V5Enrollment',
-          _ => 'V6Enrollment',
+          6 => 'V6Enrollment',
+          _ => 'V7Enrollment',
         }, map['enrollment']);
         if (map.containsKey('roomId') ||
             map.containsKey('token') ||
@@ -97,7 +107,8 @@ final class RoomAccess {
           3 => 'V3Command',
           4 => 'V4Command',
           5 => 'V5Command',
-          _ => 'V6Command',
+          6 => 'V6Command',
+          _ => 'V7Command',
         }, map['leave']);
       }
       return RoomAccess(

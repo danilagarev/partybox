@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:partybox_mobile/src/rooms/room_api.dart';
 import 'package:partybox_mobile/src/rooms/room_controller.dart';
+import 'package:partybox_mobile/src/rooms/room_models.dart';
 import 'package:partybox_mobile/src/rooms/room_vault.dart';
 
 import '../rooms/room_server_test.dart' show RealHttp, until;
@@ -36,7 +37,7 @@ void main() {
           final guest = players.last;
           await host.initialize();
           await host.enroll('Аня');
-          expect(host.snapshot?.protocolVersion, 6);
+          expect(host.snapshot?.protocolVersion, roomProtocolVersion);
           final pin = host.snapshot!.pin;
           for (final (index, player) in players.skip(1).indexed) {
             await player.initialize();

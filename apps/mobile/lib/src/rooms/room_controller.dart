@@ -5,9 +5,14 @@ import 'room_models.dart';
 import 'room_vault.dart';
 
 final class RoomController extends ChangeNotifier {
-  RoomController({required this.api, required this.vault});
+  RoomController({
+    required this.api,
+    required this.vault,
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
   final RoomApi api;
   final RoomVault vault;
+  final DateTime Function() _now;
   RoomAccess? _access;
   RoomSnapshot? snapshot;
   RoomFailure? error;
@@ -26,9 +31,9 @@ final class RoomController extends ChangeNotifier {
 
   Duration _serverOffset = Duration.zero;
   Duration get remaining {
-    final end = snapshot?.game?.deadline;
+    final end = snapshot?.deals?.deadline ?? snapshot?.game?.deadline;
     if (end == null) return Duration.zero;
-    final left = end.difference(DateTime.now().add(_serverOffset));
+    final left = end.difference(_now().add(_serverOffset));
     return left.isNegative ? Duration.zero : left;
   }
 
@@ -171,12 +176,12 @@ final class RoomController extends ChangeNotifier {
   Future<void> enroll(String name, {String? pin}) => _run(() async {
     if (!canEnroll) return;
     final request = <String, dynamic>{
-      'protocolVersion': 6,
+      'protocolVersion': roomProtocolVersion,
       'requestId': roomCommandId(),
       'retryKey': randomRoomKey(),
       'name': name.trim(),
     };
-    if (!RoomContract.accepts('V6Enrollment', request) ||
+    if (!RoomContract.accepts('V7Enrollment', request) ||
         (pin != null && !RegExp(r'^\d{6}$').hasMatch(pin))) {
       throw const RoomFailure('INVALID_REQUEST');
     }
@@ -207,14 +212,14 @@ final class RoomController extends ChangeNotifier {
       try {
         result = await api.enroll(access);
       } on RoomFailure catch (failure) {
-        if (failure.code != 'SERVER_UPGRADE_REQUIRED' ||
-            access.enrollment!['protocolVersion'] != 6) {
+        final version = access.enrollment!['protocolVersion'] as int;
+        if (failure.code != 'SERVER_UPGRADE_REQUIRED' || version <= 5) {
           rethrow;
         }
         if (_disposed) return;
         _access = RoomAccess(
           origin: access.origin,
-          enrollment: {...access.enrollment!, 'protocolVersion': 5},
+          enrollment: {...access.enrollment!, 'protocolVersion': version - 1},
           pin: access.pin,
         );
         await _recover();
@@ -230,7 +235,8 @@ final class RoomController extends ChangeNotifier {
       _access = joined;
       if (_disposed) return;
       _accept(result.snapshot);
-      if ((access.enrollment!['protocolVersion'] as int) < 6) {
+      if ((access.enrollment!['protocolVersion'] as int) <
+          roomProtocolVersion) {
         // A recovered registration keeps its old endpoint. Read the latest
         // protocol with the issued token before subscribing to room updates.
         final fresh = await api.snapshot(joined);
@@ -304,7 +310,7 @@ final class RoomController extends ChangeNotifier {
                 fresh.version < snapshot!.version))) {
       return;
     }
-    _serverOffset = fresh.serverTime.difference(DateTime.now());
+    _serverOffset = fresh.serverTime.difference(_now());
     if (fresh.truth != null
         ? fresh.truth?.sessionId != snapshot?.truth?.sessionId ||
               fresh.truth?.roundIndex != snapshot?.truth?.roundIndex ||
@@ -355,9 +361,11 @@ final class RoomController extends ChangeNotifier {
           error = null;
         }
         _notify();
-        // Truth revisions carry the complete round, including personal state.
+        // Truth and Deals revisions include the complete personal view.
         // Skipped intermediate revisions are normal when a room votes together.
-        if (gap && fresh.truth == null) unawaited(retry());
+        if (gap && fresh.truth == null && fresh.deals == null) {
+          unawaited(retry());
+        }
       },
       (failure) {
         if (_disposed || generation != _watchGeneration) return;
@@ -420,6 +428,10 @@ final class RoomController extends ChangeNotifier {
     final access = _access;
     final initial = snapshot;
     if (access == null || initial == null || hasPending) return;
+    final deals = type.startsWith('deals.');
+    if (deals && (!online || initial.protocolVersion < roomProtocolVersion)) {
+      return;
+    }
     if (intent != null &&
         (!online ||
             intent.roomId != initial.roomId ||
@@ -428,12 +440,24 @@ final class RoomController extends ChangeNotifier {
             intent.truth?.roundIndex != initial.truth?.roundIndex)) {
       return;
     }
+    if (deals && intent != null && intent.version != initial.version) {
+      final independent = const {
+        'deals.choose',
+        'deals.list',
+        'deals.done',
+        'deals.market',
+        'deals.next',
+      }.contains(type);
+      if (!independent ||
+          intent.deals?.phase != initial.deals?.phase ||
+          intent.deals?.round != initial.deals?.round) {
+        throw const RoomFailure('VERSION_CONFLICT');
+      }
+    }
     RoomSnapshot current = intent ?? initial;
     final sessionId = current.sessionId;
     if (privateRoomCommandTypes.contains(type)) {
-      // Truth has no visible secret card and its complete snapshots can be
-      // merged while a decision is in flight. Keep the healthy socket open.
-      if (!type.startsWith('truth.')) _stop();
+      if (!deals && !type.startsWith('truth.')) _stop();
       await _sendSecret(access, current, type, payload);
       return;
     }
@@ -562,8 +586,9 @@ final class RoomController extends ChangeNotifier {
       }
       if (!online) _watch();
       if (failure != null) {
-        notice =
-            'Проверили состояние на сервере. Если ответ не принят, отправьте его ещё раз.';
+        notice = type.startsWith('deals.')
+            ? 'Комната обновлена. Проверьте, применилось ли действие.'
+            : 'Проверили состояние на сервере. Если ответ не принят, отправьте его ещё раз.';
         if (failure.code != 'CONNECTION') throw failure;
       }
       return;

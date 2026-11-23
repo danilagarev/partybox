@@ -19,11 +19,15 @@ const validateClues = new Ajv({ allErrors: true, strict: true }).compile(cluesSc
 const truthSchema = await readJson(
   new URL('../../game-contracts/schemas/truth-pack.schema.json', import.meta.url),
 );
+const dealsSchema = await readJson(
+  new URL('../../game-contracts/schemas/deals-pack.schema.json', import.meta.url),
+);
 const packValidators = new Map([
   ['spy', validate],
   ['tolerance', validateTolerance],
   ['clues', validateClues],
   ['truth', new Ajv({ allErrors: true, strict: true }).compile(truthSchema)],
+  ['deals', new Ajv({ allErrors: true, strict: true }).compile(dealsSchema)],
 ]);
 const directory = new URL('../packs/', import.meta.url);
 
@@ -42,7 +46,8 @@ test('all bundled packs match the contract and have unique identifiers', async (
     assert.equal(new Set(itemIds).size, itemIds.length, `${file}: duplicate item ids`);
     assert.ok(
       pack.items.every(
-        (item) => (item.label ?? item.text ?? item.answer ?? item.statement).trim().length > 0,
+        (item) =>
+          (item.label ?? item.text ?? item.answer ?? item.statement ?? item.name).trim().length > 0,
       ),
     );
   }
