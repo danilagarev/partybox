@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../design/deals_cover.dart';
 import '../design/night_scene.dart';
 import '../design/night_components.dart';
 import '../design/night_theme.dart';
@@ -18,11 +19,13 @@ class CatalogGameCard extends StatelessWidget {
     required this.onPressed,
     this.clues = false,
     this.truth = false,
+    this.deals = false,
   });
   final String title, genre, description, metadata, mode, action;
   final bool tolerance;
   final bool clues;
   final bool truth;
+  final bool deals;
   final VoidCallback onPressed;
 
   @override
@@ -31,7 +34,9 @@ class CatalogGameCard extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: truth
+        colors: deals
+            ? const [Color(0xFF40382E), Color(0xFF272823)]
+            : truth
             ? const [Color(0xFF373346), Color(0xFF24252F)]
             : clues
             ? const [Color(0xFF394337), Color(0xFF202C2A)]
@@ -71,7 +76,12 @@ class CatalogGameCard extends StatelessWidget {
               const SizedBox(width: 12),
               SizedBox(
                 width: 104,
-                child: truth
+                child: deals
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: const SizedBox(height: 76, child: DealsCover()),
+                      )
+                    : truth
                     ? const SizedBox(
                         height: 76,
                         child: ExcludeSemantics(

@@ -1,0 +1,235 @@
+{
+  "V7Enrollment": {
+    "protocolVersion": 7,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "V7Command": {
+    "protocolVersion": 7,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": "00000000-0000-4000-8000-000000000020",
+    "type": "deals.offer",
+    "payload": {
+      "sellerId": "00000000-0000-4000-8000-000000000010",
+      "price": 6,
+      "insured": false
+    }
+  },
+  "V7Snapshot": {
+    "protocolVersion": 7,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        }
+      ],
+      "game": null,
+      "tolerance": null,
+      "clues": null,
+      "truth": null,
+      "deals": {
+        "sessionId": "00000000-0000-4000-8000-000000000020",
+        "packVersion": 1,
+        "phase": "trading",
+        "round": 1,
+        "deadline": "2026-11-08T12:03:00.000Z",
+        "readyIds": [],
+        "lots": [
+          {
+            "sellerId": "00000000-0000-4000-8000-000000000010",
+            "category": "art",
+            "value": 8,
+            "price": 9,
+            "sold": false
+          }
+        ],
+        "market": [
+          {
+            "item": {
+              "id": "g-t-501",
+              "name": "Карманная метеостанция",
+              "category": "tech",
+              "value": 5
+            },
+            "price": 7
+          }
+        ],
+        "event": null,
+        "marketPriorityId": "00000000-0000-4000-8000-000000000002",
+        "sales": [],
+        "results": null,
+        "revealedSales": null
+      }
+    },
+    "privateState": null,
+    "selfId": "00000000-0000-4000-8000-000000000002",
+    "privateTolerance": null,
+    "privateClues": null,
+    "privateTruth": null,
+    "privateDeals": {
+      "balance": 38,
+      "inventory": [],
+      "goalOptions": [
+        {
+          "id": "g-01",
+          "title": "Коллекция",
+          "text": "Сохраните технику и искусство. Один товар купите у соперника.",
+          "bonus": 6
+        },
+        {
+          "id": "g-02",
+          "title": "Коллекция",
+          "text": "Сохраните искусство и украшения. Один товар купите у соперника.",
+          "bonus": 6
+        }
+      ],
+      "goal": {
+        "id": "g-01",
+        "title": "Коллекция",
+        "text": "Сохраните технику и искусство. Один товар купите у соперника.",
+        "bonus": 6
+      },
+      "ownLotItem": null,
+      "outgoingOffer": null,
+      "incomingOffers": [],
+      "inspection": {
+        "sellerId": "00000000-0000-4000-8000-000000000010",
+        "mode": "category",
+        "category": "jewelry",
+        "value": null,
+        "matches": null
+      },
+      "insuranceAvailable": true,
+      "purchased": false,
+      "purchases": []
+    }
+  },
+  "V7EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 7,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          }
+        ],
+        "game": null,
+        "tolerance": null,
+        "clues": null,
+        "truth": null,
+        "deals": {
+          "sessionId": "00000000-0000-4000-8000-000000000020",
+          "packVersion": 1,
+          "phase": "trading",
+          "round": 1,
+          "deadline": "2026-11-08T12:03:00.000Z",
+          "readyIds": [],
+          "lots": [
+            {
+              "sellerId": "00000000-0000-4000-8000-000000000010",
+              "category": "art",
+              "value": 8,
+              "price": 9,
+              "sold": false
+            }
+          ],
+          "market": [
+            {
+              "item": {
+                "id": "g-t-501",
+                "name": "Карманная метеостанция",
+                "category": "tech",
+                "value": 5
+              },
+              "price": 7
+            }
+          ],
+          "event": null,
+          "marketPriorityId": "00000000-0000-4000-8000-000000000002",
+          "sales": [],
+          "results": null,
+          "revealedSales": null
+        }
+      },
+      "privateState": null,
+      "selfId": "00000000-0000-4000-8000-000000000002",
+      "privateTolerance": null,
+      "privateClues": null,
+      "privateTruth": null,
+      "privateDeals": {
+        "balance": 38,
+        "inventory": [],
+        "goalOptions": [
+          {
+            "id": "g-01",
+            "title": "Коллекция",
+            "text": "Сохраните технику и искусство. Один товар купите у соперника.",
+            "bonus": 6
+          },
+          {
+            "id": "g-02",
+            "title": "Коллекция",
+            "text": "Сохраните искусство и украшения. Один товар купите у соперника.",
+            "bonus": 6
+          }
+        ],
+        "goal": {
+          "id": "g-01",
+          "title": "Коллекция",
+          "text": "Сохраните технику и искусство. Один товар купите у соперника.",
+          "bonus": 6
+        },
+        "ownLotItem": null,
+        "outgoingOffer": null,
+        "incomingOffers": [],
+        "inspection": {
+          "sellerId": "00000000-0000-4000-8000-000000000010",
+          "mode": "category",
+          "category": "jewelry",
+          "value": null,
+          "matches": null
+        },
+        "insuranceAvailable": true,
+        "purchased": false,
+        "purchases": []
+      }
+    }
+  },
+  "V7Ack": {
+    "protocolVersion": 7,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "V7Error": {
+    "protocolVersion": 7,
+    "code": "FORBIDDEN"
+  }
+}

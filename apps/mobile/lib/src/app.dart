@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'catalog/game_card.dart';
+import 'design/deals_cover.dart';
 import 'clues/clues_game_screen.dart';
 import 'design/night_components.dart';
 import 'design/night_gallery.dart';
@@ -248,6 +249,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              CatalogGameCard(
+                title: 'Мутные сделки',
+                genre: 'ТОРГ И БЛЕФ',
+                tolerance: false,
+                deals: true,
+                description:
+                    'У каждого чемодан с секретом. Договоритесь о цене.',
+                metadata: '2–6 игроков · пять раундов',
+                mode: 'У каждого свой телефон',
+                action: 'Играть в «Мутные сделки»',
+                onPressed: () => _showDetails(
+                  context,
+                  (detailsContext) => DealsRulesScreen(
+                    onOpenRoom: () => _openRoom(detailsContext, game: 'deals'),
+                  ),
+                ),
+              ),
               if (widget.onConfigureServer != null) ...[
                 const SizedBox(height: 20),
                 TextButton.icon(
@@ -256,6 +275,59 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   label: const Text('Подключение комнат'),
                 ),
               ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class DealsRulesScreen extends StatelessWidget {
+  const DealsRulesScreen({super.key, required this.onOpenRoom});
+  final VoidCallback onOpenRoom;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Мутные сделки')),
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: const AspectRatio(
+                  aspectRatio: 2.15,
+                  child: DealsCover(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Что в чемодане?',
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              const SizedBox(height: 16),
+              const Text('2–6 игроков · у каждого свой телефон'),
+              const SizedBox(height: 20),
+              const Text(
+                'Выберите тайную цель. В каждом из пяти раундов выставьте один товар '
+                'и назовите его категорию, стоимость и цену. Содержимое знаете только вы.',
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Торгуйтесь голосом. Покупатель может предложить свою цену, оплатить '
+                'проверку или приберечь покупку для открытого рынка. '
+                'За партию можно один раз застраховать покупку у соперника.',
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Побеждает тот, у кого больше очков за монеты, оставшиеся товары и тайную цель.',
+              ),
+              const SizedBox(height: 24),
+              NightButton(label: 'Создать комнату', onPressed: onOpenRoom),
             ],
           ),
         ),

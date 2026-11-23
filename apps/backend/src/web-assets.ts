@@ -12,6 +12,7 @@ const mime: Record<string, string> = {
   '.css': 'text/css',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',

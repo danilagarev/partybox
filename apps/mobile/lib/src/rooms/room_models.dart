@@ -6,6 +6,10 @@ import 'generated/room_tolerance_schema.dart';
 import 'generated/room_clues_schema.dart';
 import 'generated/room_ballot_schema.dart';
 import 'generated/room_truth_schema.dart';
+import 'generated/room_deals_schema.dart';
+import 'deals_models.dart';
+
+const roomProtocolVersion = 7;
 
 final class RoomFailure implements Exception {
   const RoomFailure(this.code);
@@ -62,6 +66,9 @@ final class RoomContract {
     );
     (base[r'$defs'] as Map).addAll(
       (jsonDecode(roomTruthSchemaJson) as Map)[r'$defs'] as Map,
+    );
+    (base[r'$defs'] as Map).addAll(
+      (jsonDecode(roomDealsSchemaJson) as Map)[r'$defs'] as Map,
     );
     return base;
   })();
@@ -209,9 +216,12 @@ final class RoomSnapshot {
     this.privateClues,
     this.truth,
     this.privateTruth,
+    this.deals,
+    this.privateDeals,
   );
   factory RoomSnapshot.parse(Object? json) {
     RoomContract.require(switch (json is Map ? json['protocolVersion'] : null) {
+      7 => 'V7Snapshot',
       6 => 'V6Snapshot',
       5 => 'V5Snapshot',
       4 => 'V4Snapshot',
@@ -316,6 +326,22 @@ final class RoomSnapshot {
       map['selfId'] as String,
       gameValue != null || tolerance != null || clues != null,
     );
+    final deals = state['deals'] as Map<String, dynamic>?;
+    final privateDeals = map['privateDeals'] as Map<String, dynamic>?;
+    final dealsGame = deals == null ? null : DealsGame(deals);
+    if (deals?['deadline'] != null && dealsGame?.deadline == null) {
+      throw const RoomFailure('PROTOCOL');
+    }
+    final dealsPersonal = privateDeals == null
+        ? null
+        : DealsPrivate(privateDeals);
+    _validateDeals(
+      dealsGame,
+      dealsPersonal,
+      ids,
+      map['selfId'] as String,
+      gameValue != null || tolerance != null || clues != null || truth != null,
+    );
     return RoomSnapshot._(
       map['roomId'] as String,
       map['version'] as int,
@@ -338,6 +364,8 @@ final class RoomSnapshot {
       privateClues == null ? null : CluesPrivate(privateClues),
       truthGame,
       truthChoices,
+      dealsGame,
+      dealsPersonal,
     );
   }
   final String roomId, selfId, hostId, pin;
@@ -353,11 +381,74 @@ final class RoomSnapshot {
   final CluesPrivate? privateClues;
   final TruthGame? truth;
   final TruthPrivate? privateTruth;
+  final DealsGame? deals;
+  final DealsPrivate? privateDeals;
   String? get sessionId =>
+      deals?.sessionId ??
       truth?.sessionId ??
       clues?.sessionId ??
       tolerance?.sessionId ??
       game?.sessionId;
+
+  static void _validateDeals(
+    DealsGame? game,
+    DealsPrivate? personal,
+    Set<String> players,
+    String self,
+    bool otherGame,
+  ) {
+    if (game == null && personal == null) return;
+    if (game == null ||
+        personal == null ||
+        otherGame ||
+        players.length < 2 ||
+        players.length > 6) {
+      throw const RoomFailure('PROTOCOL');
+    }
+
+    bool validIds(Iterable<String> ids) =>
+        ids.toSet().length == ids.length && ids.every(players.contains);
+
+    final finished = game.phase == DealsPhase.finished;
+    final results = game.results;
+    final listingHidden =
+        game.phase == DealsPhase.goals || game.phase == DealsPhase.listing;
+    if (!validIds(game.readyIds) ||
+        !validIds(game.lots.map((lot) => lot.sellerId)) ||
+        !players.contains(game.marketPriorityId) ||
+        (listingHidden && game.lots.isNotEmpty) ||
+        finished != (results != null && game.revealedSales != null) ||
+        (!finished && (results != null || game.revealedSales != null)) ||
+        (finished && game.round != 5) ||
+        (results != null &&
+            (results.length != players.length ||
+                !validIds(results.map((result) => result.playerId)))) ||
+        game.sales.any(
+          (sale) =>
+              !players.contains(sale.buyerId) ||
+              sale.sellerId != null && !players.contains(sale.sellerId),
+        ) ||
+        (game.revealedSales?.any(
+              (sale) =>
+                  !players.contains(sale.buyerId) ||
+                  sale.purchase.sellerId != null &&
+                      !players.contains(sale.purchase.sellerId),
+            ) ??
+            false) ||
+        !validIds(personal.incomingOffers.map((offer) => offer.buyerId)) ||
+        personal.incomingOffers.any(
+          (offer) => offer.sellerId != self || offer.buyerId == self,
+        ) ||
+        (personal.outgoingOffer != null &&
+            (personal.outgoingOffer!.buyerId != self ||
+                personal.outgoingOffer!.sellerId == self ||
+                !players.contains(personal.outgoingOffer!.sellerId))) ||
+        (personal.inspection != null &&
+            (personal.inspection!.sellerId == self ||
+                !players.contains(personal.inspection!.sellerId)))) {
+      throw const RoomFailure('PROTOCOL');
+    }
+  }
 
   static void _validateTruth(
     TruthGame? game,

@@ -45,7 +45,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted &&
           _foreground &&
-          controller.snapshot?.game?.phase == 'discussion') {
+          (controller.snapshot?.game?.phase == 'discussion' ||
+              controller.snapshot?.deals?.deadline != null)) {
         setState(() {});
       }
     });
@@ -129,7 +130,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
             snapshot.tolerance != null &&
                 snapshot.tolerance!.phase != 'finished' ||
             snapshot.clues != null && snapshot.clues!.phase != 'finished' ||
-            snapshot.truth != null);
+            snapshot.truth != null ||
+            snapshot.deals != null);
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) controller.hideRole();
@@ -178,6 +180,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
                                     ? (widget.initialPin != null
                                           ? 'Код из приглашения уже заполнен. Введите своё имя, чтобы присоединиться.'
                                           : 'Введите имя и код от ведущего. Сохранённое место восстановится автоматически.')
+                                    : widget.initialGame == 'deals'
+                                    ? 'Играем в «Мутные сделки». Создайте комнату и пригласите друзей по коду.'
                                     : widget.initialGame == 'truth'
                                     ? 'Играем в «Не может быть!». Создайте комнату и пригласите друзей по коду.'
                                     : widget.initialGame == 'clues'
@@ -370,7 +374,9 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
               );
             }
             return ListView(
-              key: snapshot.truth == null
+              key: snapshot.deals != null
+                  ? ValueKey((snapshot.deals!.round, snapshot.deals!.phase))
+                  : snapshot.truth == null
                   ? null
                   : ValueKey((
                       snapshot.truth!.roundIndex,
@@ -471,7 +477,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       if (snapshot.game == null &&
           snapshot.tolerance == null &&
           snapshot.clues == null &&
-          snapshot.truth == null) ...[
+          snapshot.truth == null &&
+          snapshot.deals == null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],
@@ -486,7 +493,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       if (snapshot.game != null ||
           snapshot.tolerance != null ||
           snapshot.clues != null ||
-          snapshot.truth != null) ...[
+          snapshot.truth != null ||
+          snapshot.deals != null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],

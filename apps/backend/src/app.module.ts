@@ -1,3 +1,4 @@
+import { DealsRoomController } from './rooms/deals-room-controller.js';
 import { TruthRoomController } from './rooms/truth-room-controller.js';
 import { BallotRoomController } from './rooms/ballot-room-controller.js';
 import { CluesRoomController } from './rooms/clues-room-controller.js';
@@ -42,6 +43,7 @@ export class AppModule {
         CluesRoomController,
         BallotRoomController,
         TruthRoomController,
+        DealsRoomController,
       ],
       providers: [{ provide: RoomRuntime, useValue: runtime }],
     };

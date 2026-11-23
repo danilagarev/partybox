@@ -1,3 +1,13 @@
+import type { V7Command, V7Snapshot, V7Ack } from '@partybox/game-contracts/rooms-v7';
+import {
+  advanceDeals,
+  createDeals,
+  dealsPrivate,
+  dealsPublic,
+  DealsRuleError,
+  playDeals,
+  type DealsState,
+} from '../games/deals.js';
 import type { V6Command, V6Snapshot, V6Ack } from '@partybox/game-contracts/rooms-v6';
 import {
   createTruth,
@@ -73,6 +83,7 @@ interface Member {
   cluesClient?: boolean;
   ballotClient?: boolean;
   truthClient?: boolean;
+  dealsClient?: boolean;
 }
 interface Room {
   id: string;
@@ -86,6 +97,7 @@ interface Room {
   spyHistory?: Record<string, string[]>;
   tolerance?: { id: string; state: ToleranceState };
   truth?: { id: string; packVersion: number; phaseVersion: number; state: TruthState };
+  deals?: { id: string; phaseVersion: number; state: DealsState };
   clues?: { id: string; packVersion: number; state: CluesState };
 }
 function inProgress(room: Room) {
@@ -93,7 +105,8 @@ function inProgress(room: Room) {
     (room.game && room.game.state.phase !== 'results') ||
     (room.tolerance && room.tolerance.state.phase !== 'finished') ||
     (room.clues && room.clues.state.phase !== 'finished') ||
-    (room.truth && room.truth.state.phase !== 'finished')
+    (room.truth && room.truth.state.phase !== 'finished') ||
+    (room.deals && room.deals.state.phase !== 'finished')
   );
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -246,6 +259,7 @@ export class RoomService {
         delete room.tolerance;
         delete room.clues;
         delete room.truth;
+        delete room.deals;
         room.members.push(member);
         room.version++;
       } else {
@@ -322,6 +336,7 @@ export class RoomService {
       delete room.tolerance;
       delete room.clues;
       delete room.truth;
+      delete room.deals;
       member.left = true;
       const remaining = room.members.filter((m) => !m.left);
       if (!remaining.length) room.closed = true;
@@ -342,10 +357,17 @@ export class RoomService {
     });
   }
   private advanceGame(room: Room) {
-    if (!room.game) return false;
-    const next = advanceSpy(room.game.state, this.now().getTime());
-    if (next === room.game.state) return false;
-    room.game.state = next;
+    const now = this.now().getTime();
+    if (room.deals) {
+      const next = advanceDeals(room.deals.state, now);
+      if (next === room.deals.state) return false;
+      room.deals.state = next;
+      room.deals.phaseVersion = room.version + 1;
+    } else if (room.game) {
+      const next = advanceSpy(room.game.state, now);
+      if (next === room.game.state) return false;
+      room.game.state = next;
+    } else return false;
     room.version++;
     return true;
   }
@@ -388,11 +410,14 @@ export class RoomService {
   async snapshotV6(roomId: string, token: string): Promise<V6Snapshot> {
     return this.snapshotBoth(roomId, token, 6) as Promise<V6Snapshot>;
   }
+  async snapshotV7(roomId: string, token: string): Promise<V7Snapshot> {
+    return this.snapshotBoth(roomId, token, 7) as Promise<V7Snapshot>;
+  }
   private async snapshotBoth(
     roomId: string,
     token: string,
-    protocol: 2 | 3 | 4 | 5 | 6,
-  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot | V5Snapshot | V6Snapshot> {
+    protocol: 2 | 3 | 4 | 5 | 6 | 7,
+  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot | V5Snapshot | V6Snapshot | V7Snapshot> {
     let changed = false;
     const snapshot = await this.transaction(async (client) => {
       const room = await this.read(client, roomId);
@@ -407,14 +432,16 @@ export class RoomService {
         (protocol >= 3 && !member.toleranceClient) ||
         (protocol >= 4 && !member.cluesClient) ||
         (protocol >= 5 && !member.ballotClient) ||
-        (protocol === 6 && !member.truthClient) ||
+        (protocol >= 6 && !member.truthClient) ||
+        (protocol >= 7 && !member.dealsClient) ||
         advanced
       ) {
         member.gameClient = true;
         if (protocol >= 3) member.toleranceClient = true;
         if (protocol >= 4) member.cluesClient = true;
         if (protocol >= 5) member.ballotClient = true;
-        if (protocol === 6) member.truthClient = true;
+        if (protocol >= 6) member.truthClient = true;
+        if (protocol >= 7) member.dealsClient = true;
         await client.query('UPDATE pb_rooms SET state=$2 WHERE id=$1', [roomId, room]);
       }
       const view = this.gameView(room, member);
@@ -460,7 +487,7 @@ export class RoomService {
           : null,
       };
       if (protocol === 5) return v5;
-      return {
+      const v6 = {
         ...v5,
         protocolVersion: 6 as const,
         publicState: {
@@ -468,6 +495,16 @@ export class RoomService {
           truth: room.truth ? truthPublic(room.truth.state, room.truth.id) : null,
         },
         privateTruth: room.truth ? truthPrivate(room.truth.state, member.id) : null,
+      };
+      if (protocol === 6) return v6;
+      return {
+        ...v6,
+        protocolVersion: 7 as const,
+        publicState: {
+          ...v6.publicState,
+          deals: room.deals ? dealsPublic(room.deals.state, room.deals.id) : null,
+        },
+        privateDeals: room.deals ? dealsPrivate(room.deals.state, member.id) : null,
       };
     });
     if (changed) this.onChanged?.(roomId);
@@ -488,11 +525,14 @@ export class RoomService {
   async commandV6(roomId: string, token: string, command: V6Command): Promise<V6Ack> {
     return this.commandBoth(roomId, token, command) as Promise<V6Ack>;
   }
+  async commandV7(roomId: string, token: string, command: V7Command): Promise<V7Ack> {
+    return this.commandBoth(roomId, token, command) as Promise<V7Ack>;
+  }
   private async commandBoth(
     roomId: string,
     token: string,
-    command: GameCommand | V3Command | V4Command | V5Command | V6Command,
-  ): Promise<GameAck | V3Ack | V4Ack | V5Ack | V6Ack> {
+    command: GameCommand | V3Command | V4Command | V5Command | V6Command | V7Command,
+  ): Promise<GameAck | V3Ack | V4Ack | V5Ack | V6Ack | V7Ack> {
     return this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token, true);
@@ -518,7 +558,11 @@ export class RoomService {
               ? { answer: command.payload.answer, clueIndex: command.payload.clueIndex }
               : command.type === 'truth.bet'
                 ? { answer: command.payload.answer, stake: command.payload.stake }
-                : command.payload,
+                : command.type.startsWith('deals.')
+                  ? Object.fromEntries(
+                      Object.entries(command.payload).sort(([a], [b]) => a.localeCompare(b)),
+                    )
+                  : command.payload,
       );
       // Earlier receipts stored the caller's field order. Accept equivalent
       // legacy payload orders, while changed values still conflict.
@@ -542,7 +586,7 @@ export class RoomService {
             : [fingerprint];
       const previous = await client.query<{
         fingerprint: string;
-        ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack;
+        ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack | V7Ack;
       }>(
         'SELECT fingerprint,ack FROM pb_room_commands WHERE room_id=$1 AND player_id=$2 AND command_id=$3',
         [roomId, member.id, command.commandId],
@@ -568,12 +612,32 @@ export class RoomService {
           (command.type === 'truth.bet' && room.truth.state.phase === 'betting')) &&
         command.expectedVersion >= room.truth.phaseVersion &&
         command.expectedVersion <= room.version;
-      if (command.expectedVersion !== room.version && !independentBallot && !independentTruth)
+      const dealsPhase = room.deals?.state.phase;
+      const independentDeals =
+        room.deals &&
+        command.expectedVersion >= room.deals.phaseVersion &&
+        command.expectedVersion <= room.version &&
+        ((command.type === 'deals.choose' && dealsPhase === 'goals') ||
+          (command.type === 'deals.list' && dealsPhase === 'listing') ||
+          (command.type === 'deals.done' && dealsPhase === 'trading') ||
+          (command.type === 'deals.market' && dealsPhase === 'market') ||
+          (command.type === 'deals.next' && dealsPhase === 'recap'));
+      if (
+        command.expectedVersion !== room.version &&
+        !independentBallot &&
+        !independentTruth &&
+        !independentDeals
+      )
         throw new RoomError('VERSION_CONFLICT', 409);
-      if (room.truth && command.protocolVersion < 6 && command.type !== 'room.leave')
+      if (
+        ((room.truth && command.protocolVersion < 6) ||
+          (room.deals && command.protocolVersion < 7)) &&
+        command.type !== 'room.leave'
+      )
         throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
       const expectedSession =
-        (command.protocolVersion === 6 ? room.truth?.id : undefined) ??
+        (command.protocolVersion === 7 ? room.deals?.id : undefined) ??
+        (command.protocolVersion >= 6 ? room.truth?.id : undefined) ??
         (command.protocolVersion === 2 && command.type === 'room.leave'
           ? (room.game?.id ?? null)
           : command.protocolVersion >= 4
@@ -587,9 +651,49 @@ export class RoomService {
           delete room.tolerance;
           delete room.clues;
           delete room.truth;
+          delete room.deals;
           const remaining = room.members.filter((m) => !m.left);
           if (!remaining.length) room.closed = true;
           else if (room.hostId === member.id) room.hostId = remaining[0]!.id;
+        } else if (command.type === 'deals.start') {
+          if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          const players = room.members.filter((m) => !m.left);
+          if (inProgress(room) || players.length < 2 || players.length > 6)
+            throw new RoomError('INVALID_PHASE', 409);
+          if (players.some((m) => !m.dealsClient))
+            throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          delete room.game;
+          delete room.tolerance;
+          delete room.clues;
+          delete room.truth;
+          room.deals = {
+            id: randomUUID(),
+            phaseVersion: room.version + 1,
+            state: createDeals(
+              players.map((player) => player.id),
+              randomInt,
+            ),
+          };
+        } else if (command.type === 'deals.cancel') {
+          if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          if (!room.deals) throw new RoomError('INVALID_PHASE', 409);
+          delete room.deals;
+        } else if (
+          command.type === 'deals.choose' ||
+          command.type === 'deals.list' ||
+          command.type === 'deals.offer' ||
+          command.type === 'deals.accept' ||
+          command.type === 'deals.buy' ||
+          command.type === 'deals.inspect' ||
+          command.type === 'deals.done' ||
+          command.type === 'deals.market' ||
+          command.type === 'deals.next'
+        ) {
+          const game = room.deals;
+          if (!game) throw new RoomError('INVALID_PHASE', 409);
+          const phase = game.state.phase;
+          game.state = playDeals(game.state, member.id, command, this.now().getTime());
+          if (game.state.phase !== phase) game.phaseVersion = room.version + 1;
         } else if (command.type === 'truth.start') {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
           const players = room.members.filter((m) => !m.left);
@@ -608,6 +712,7 @@ export class RoomService {
           delete room.game;
           delete room.tolerance;
           delete room.clues;
+          delete room.deals;
         } else if (
           command.type === 'truth.initial' ||
           command.type === 'truth.bet' ||
@@ -641,6 +746,7 @@ export class RoomService {
           if (players.some((m) => !m.cluesClient))
             throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
           delete room.truth;
+          delete room.deals;
           room.clues = {
             id: randomUUID(),
             packVersion: cluesPackVersion,
@@ -680,6 +786,7 @@ export class RoomService {
           if (players.some((m) => !m.toleranceClient))
             throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
           delete room.truth;
+          delete room.deals;
           room.tolerance = {
             id: randomUUID(),
             state: createTolerance(
@@ -755,6 +862,7 @@ export class RoomService {
             delete room.tolerance;
             delete room.clues;
             delete room.truth;
+            delete room.deals;
             room.game = {
               id: randomUUID(),
               packId: pack.id,
@@ -786,7 +894,11 @@ export class RoomService {
           }
         }
       } catch (error) {
-        if (error instanceof CluesRuleError || error instanceof TruthRuleError)
+        if (
+          error instanceof CluesRuleError ||
+          error instanceof TruthRuleError ||
+          error instanceof DealsRuleError
+        )
           throw new RoomError(
             error.code,
             error.code === 'FORBIDDEN' ? 403 : error.code === 'INVALID_REQUEST' ? 400 : 409,
@@ -800,7 +912,7 @@ export class RoomService {
         throw error;
       }
       room.version++;
-      const ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack = {
+      const ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack | V7Ack = {
         protocolVersion: command.protocolVersion,
         commandId: command.commandId,
         accepted: true,
@@ -816,7 +928,10 @@ export class RoomService {
   }
   async advanceDueGames(): Promise<string[]> {
     const rows = await this.pool.query<{ id: string }>(
-      `SELECT id FROM pb_rooms WHERE expires_at>$1 AND state->'game'->'state'->>'phase'='discussion' AND (state->'game'->'state'->>'deadline')::bigint <= $2`,
+      `SELECT id FROM pb_rooms WHERE expires_at>$1 AND (
+        (state->'game'->'state'->>'phase'='discussion' AND (state->'game'->'state'->>'deadline')::bigint <= $2)
+        OR (state->'deals'->'state'->>'phase'='trading' AND (state->'deals'->'state'->>'deadline')::bigint <= $2)
+      )`,
       [this.now(), this.now().getTime()],
     );
     const changed: string[] = [];
