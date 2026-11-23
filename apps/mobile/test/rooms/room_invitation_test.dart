@@ -82,6 +82,32 @@ void main() {
     );
   });
 
+  test('scanned invitations preserve origin and enforce release transport', () {
+    final invitation = RoomInvitation.fromQr(
+      'https://partybox.example:8443/?room=001234',
+      allowInsecure: false,
+    );
+    expect(invitation?.origin, 'https://partybox.example:8443');
+    expect(invitation?.pin, '001234');
+    for (final code in [
+      null,
+      '001234',
+      'https://partybox.example/?room=123456&room=654321',
+      'https://partybox.example/?room=%FF',
+      'https://localhost/?room=001234',
+      'http://192.168.1.10:8729/?room=001234',
+    ]) {
+      expect(RoomInvitation.fromQr(code, allowInsecure: false), isNull);
+    }
+    expect(
+      RoomInvitation.fromQr(
+        'http://192.168.1.10:8729/?room=001234',
+        allowInsecure: true,
+      )?.pin,
+      '001234',
+    );
+  });
+
   testWidgets('QR and clipboard carry the same public invitation', (
     tester,
   ) async {

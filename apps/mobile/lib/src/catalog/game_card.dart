@@ -82,16 +82,7 @@ class CatalogGameCard extends StatelessWidget {
                         child: const SizedBox(height: 76, child: DealsCover()),
                       )
                     : truth
-                    ? const SizedBox(
-                        height: 76,
-                        child: ExcludeSemantics(
-                          child: Icon(
-                            Icons.fact_check_outlined,
-                            size: 52,
-                            color: NightColors.lilac,
-                          ),
-                        ),
-                      )
+                    ? const NightScene(kind: NightSceneKind.truth, height: 76)
                     : NightScene(
                         kind: clues
                             ? NightSceneKind.clues

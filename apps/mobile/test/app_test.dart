@@ -148,7 +148,7 @@ void main() {
       var resolved = 0;
       await tester.pumpWidget(
         PartyBoxApp(
-          resolveRoomController: (context) async {
+          resolveRoomController: (context, {invitationOrigin}) async {
             resolved++;
             return RoomController(api: api, vault: TestVault());
           },
@@ -227,7 +227,7 @@ void main() {
       final pending = <Completer<RoomController?>>[];
       await tester.pumpWidget(
         PartyBoxApp(
-          resolveRoomController: (_) {
+          resolveRoomController: (_, {invitationOrigin}) {
             final result = Completer<RoomController?>();
             pending.add(result);
             return result.future;
@@ -260,7 +260,7 @@ void main() {
       final api = FakeRoomApi();
       await tester.pumpWidget(
         PartyBoxApp(
-          resolveRoomController: (_) {
+          resolveRoomController: (_, {invitationOrigin}) {
             calls++;
             return pending.future;
           },
@@ -290,7 +290,7 @@ void main() {
           settingsCalls++;
           return configured.future;
         },
-        resolveRoomController: (_) async {
+        resolveRoomController: (_, {invitationOrigin}) async {
           roomCalls++;
           return null;
         },
