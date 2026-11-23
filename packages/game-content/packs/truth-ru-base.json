@@ -1,0 +1,2566 @@
+{
+  "schemaVersion": 1,
+  "id": "truth-ru-base",
+  "gameId": "truth",
+  "locale": "ru",
+  "version": 1,
+  "title": "Не может быть!",
+  "topics": [
+    {
+      "id": "animals",
+      "title": "Животные чудят",
+      "description": "От морских глубин до верхушек деревьев."
+    },
+    {
+      "id": "human",
+      "title": "Что за человек",
+      "description": "Как устроено тело и как работают наши чувства."
+    },
+    {
+      "id": "food",
+      "title": "Съедобно или нет",
+      "description": "Сюрпризы на кухне и история привычных продуктов."
+    },
+    {
+      "id": "history",
+      "title": "История учудила",
+      "description": "Люди, изобретения и неожиданные подробности прошлого."
+    },
+    {
+      "id": "science",
+      "title": "Наука, ты серьёзно?",
+      "description": "Земля, космос и законы природы."
+    },
+    {
+      "id": "everyday",
+      "title": "Бытовой абсурд",
+      "description": "Секреты вещей, которыми мы часто пользуемся."
+    }
+  ],
+  "items": [
+    {
+      "id": "truth-001",
+      "topic": "animals",
+      "statement": "Ленивец умеет плавать.",
+      "truth": true,
+      "explanation": "На суше ленивец движется неловко, зато в воде уверенно гребёт длинными лапами.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Ленивцы",
+          "url": "https://nationalzoo.si.edu/animals/news/why-are-sloths-so-slow-and-other-sloth-facts"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-002",
+      "topic": "human",
+      "statement": "Зрелые эритроциты человека обходятся без клеточного ядра.",
+      "truth": true,
+      "explanation": "В процессе созревания эритроцит теряет ядро. Основной объём зрелой клетки занимает гемоглобин, связывающий кислород.",
+      "sources": [
+        {
+          "title": "OpenStax · Эритроциты",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/18-3-erythrocytes"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-003",
+      "topic": "food",
+      "statement": "В кофе без кофеина его содержание всегда равно нулю.",
+      "truth": false,
+      "explanation": "Декофеинизация убирает большую часть кофеина. По данным FDA, в чашке такого кофе объёмом около 240 мл обычно остаётся от 2 до 15 мг.",
+      "sources": [
+        {
+          "title": "FDA · Кофеин в напитках",
+          "url": "https://www.fda.gov/consumers/consumer-updates/spilling-beans-how-much-caffeine-too-much"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-004",
+      "topic": "history",
+      "statement": "Все подписанты Декларации независимости США поставили подписи 4 июля 1776 года.",
+      "truth": false,
+      "explanation": "Текст утвердили 4 июля. Большая часть делегатов подписала пергаментный экземпляр 2 августа, а часть — позднее.",
+      "sources": [
+        {
+          "title": "Национальный архив США · Подписание Декларации независимости",
+          "url": "https://www.archives.gov/milestone-documents/declaration-of-independence"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-005",
+      "topic": "science",
+      "statement": "Меркурий горячее Венеры, потому что ближе к Солнцу.",
+      "truth": false,
+      "explanation": "У Венеры плотная атмосфера, которая удерживает тепло. Средняя температура на её поверхности выше, чем на Меркурии.",
+      "sources": [
+        {
+          "title": "NASA · Температуры планет",
+          "url": "https://science.nasa.gov/resource/solar-system-temperatures/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-006",
+      "topic": "everyday",
+      "statement": "Стрелка обычного компаса в любом месте показывает точно на географический север.",
+      "truth": false,
+      "explanation": "Стрелка ориентируется по магнитному полю Земли. Угол между магнитным и географическим севером зависит от места.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Север на топографической карте",
+          "url": "https://www.usgs.gov/faqs/what-do-different-north-arrows-a-usgs-topographic-map-mean"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-007",
+      "topic": "animals",
+      "statement": "Птенцы фламинго вылупляются розовыми.",
+      "truth": false,
+      "explanation": "У птенцов серовато-белый пух. Розовый цвет появляется позже благодаря каротиноидам из пищи.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Фламинго",
+          "url": "https://www.nationalzoo.si.edu/animals/news/why-are-flamingos-pink-and-other-flamingo-facts"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-008",
+      "topic": "human",
+      "statement": "Горькое можно почувствовать только у корня языка.",
+      "truth": false,
+      "explanation": "Клетки, реагирующие на разные вкусы, распределены по языку. Строгого деления языка на отдельные зоны вкуса нет.",
+      "sources": [
+        {
+          "title": "NIDCD · Вкусовое восприятие",
+          "url": "https://www.nidcd.nih.gov/sites/default/files/taste-disorders.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-009",
+      "topic": "food",
+      "statement": "Цвет яичного желтка может зависеть от того, чем кормили курицу.",
+      "truth": true,
+      "explanation": "Жёлто-оранжевые пигменты из корма влияют на цвет желтка. Например, лепестки бархатцев в корме могут сделать его ярче.",
+      "sources": [
+        {
+          "title": "USDA · Цвет яичного желтка",
+          "url": "https://www.fsa.usda.gov/Internet/FSA_File/color_coloringbook.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-010",
+      "topic": "history",
+      "statement": "В полёте «Аполлона-11» один из трёх астронавтов остался на лунной орбите.",
+      "truth": true,
+      "explanation": "Майкл Коллинз управлял командным модулем на орбите, пока Нил Армстронг и Базз Олдрин спускались на поверхность.",
+      "sources": [
+        {
+          "title": "NASA · Полёт «Аполлона-11»",
+          "url": "https://www.nasa.gov/missions/apollo/apollo-11-mission-overview/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-011",
+      "topic": "science",
+      "statement": "Уран вращается как будто лёжа на боку.",
+      "truth": true,
+      "explanation": "Ось Урана наклонена почти на 98° к перпендикуляру к плоскости его орбиты.",
+      "sources": [
+        {
+          "title": "NASA · Планеты",
+          "url": "https://science.nasa.gov/solar-system/planets/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-012",
+      "topic": "everyday",
+      "statement": "Первым товаром, пробитым на кассе по штрихкоду UPC, стала жевательная резинка.",
+      "truth": true,
+      "explanation": "В 1974 году в магазине в городе Трой, штат Огайо, по UPC отсканировали пачку Wrigley’s Juicy Fruit.",
+      "sources": [
+        {
+          "title": "GS1 · История штрихкодов",
+          "url": "https://support.gs1.org/support/solutions/articles/43000734073-gs1-historical-timeline"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-013",
+      "topic": "animals",
+      "statement": "У гигантского тихоокеанского осьминога три сердца.",
+      "truth": true,
+      "explanation": "Два сердца гонят кровь к жабрам, а третье снабжает кровью остальное тело.",
+      "sources": [
+        {
+          "title": "Национальный аквариум США · Гигантский тихоокеанский осьминог",
+          "url": "https://aqua.org/explore/animals/giant-pacific-octopus"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-014",
+      "topic": "human",
+      "statement": "Во время быстрого сна глаза под веками остаются неподвижными.",
+      "truth": false,
+      "explanation": "Для этой фазы характерны быстрые движения глаз под закрытыми веками.",
+      "sources": [
+        {
+          "title": "NINDS · Фазы сна",
+          "url": "https://www.ninds.nih.gov/sites/default/files/2025-05/understanding-sleep.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-015",
+      "topic": "food",
+      "statement": "Кристаллы в мёде доказывают, что в него добавили сахар.",
+      "truth": false,
+      "explanation": "Натуральный мёд тоже может кристаллизоваться. Скорость процесса зависит, в частности, от соотношения сахаров и температуры хранения.",
+      "sources": [
+        {
+          "title": "USDA · Описание мёда, раздел 6.1",
+          "url": "https://www.ams.usda.gov/sites/default/files/media/AA20380_Honey.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-016",
+      "topic": "history",
+      "statement": "Один и тот же указ на Розеттском камне записан тремя видами письма.",
+      "truth": true,
+      "explanation": "Египетский текст вырезан иероглифами и демотическим письмом, а третья версия записана по-древнегречески. Это помогло прочитать иероглифы.",
+      "sources": [
+        {
+          "title": "Британский музей · Как расшифровали иероглифы",
+          "url": "https://www.britishmuseum.org/sites/default/files/2022-10/Hieroglyphs_unlocking_ancient_Egypt_large_print_guide_The_British_Museum.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-017",
+      "topic": "science",
+      "statement": "Лёд тонет, потому что замёрзшая вода плотнее жидкой.",
+      "truth": false,
+      "explanation": "У обычного льда плотность ниже, чем у жидкой воды. Поэтому он всплывает.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Свойства воды",
+          "url": "https://www.usgs.gov/special-topics/water-science-school/properties-water"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-018",
+      "topic": "everyday",
+      "statement": "При определении местоположения GPS-приёмник отправляет запрос спутникам.",
+      "truth": false,
+      "explanation": "Спутники передают данные, а приёмник слушает сигналы и по ним рассчитывает своё положение.",
+      "sources": [
+        {
+          "title": "GPS.gov · Как работает GPS",
+          "url": "https://www.gps.gov/gps"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-019",
+      "topic": "animals",
+      "statement": "У всех морских звёзд по пять лучей.",
+      "truth": false,
+      "explanation": "Пять лучей встречаются часто, но у некоторых видов их гораздо больше.",
+      "sources": [
+        {
+          "title": "NOAA · Морские звёзды",
+          "url": "https://oceanservice.noaa.gov/facts/starfish.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-020",
+      "topic": "human",
+      "statement": "На ладонях наружный слой кожи устроен иначе, чем на веках.",
+      "truth": true,
+      "explanation": "На ладонях эпидермис толще и содержит дополнительный слой клеток. На веках эпидермис тонкий.",
+      "sources": [
+        {
+          "title": "OpenStax · Слои кожи",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/5-1-layers-of-the-skin"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-021",
+      "topic": "food",
+      "statement": "При нарезке лука образуется летучее вещество, из-за которого текут слёзы.",
+      "truth": true,
+      "explanation": "Когда клетки лука повреждаются, в результате действия ферментов возникает раздражитель. При контакте с глазами он вызывает слёзы.",
+      "sources": [
+        {
+          "title": "Plant Physiology · Эксперимент с ферментом лука",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2492635/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-022",
+      "topic": "history",
+      "statement": "Древний город Петра построили на берегу моря, чтобы принимать корабли.",
+      "truth": false,
+      "explanation": "Петра находится во внутренней части современной Иордании. Город вырос на пересечении сухопутных торговых путей.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Петра",
+          "url": "https://whc.unesco.org/en/list/326/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-023",
+      "topic": "science",
+      "statement": "Значение скорости света используют для определения метра.",
+      "truth": true,
+      "explanation": "Метр задают через расстояние, которое свет в вакууме проходит за определённую долю секунды.",
+      "sources": [
+        {
+          "title": "NIST · Основные единицы СИ",
+          "url": "https://www.nist.gov/si-redefinition/definitions-si-base-units"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-024",
+      "topic": "everyday",
+      "statement": "Кварц в наручных часах помогает отмерять секунды благодаря колебаниям.",
+      "truth": true,
+      "explanation": "Электрическая цепь поддерживает колебания кварцевого резонатора. Часы отсчитывают эти колебания и переводят их в единицы времени.",
+      "sources": [
+        {
+          "title": "NIST · Часы и измерение времени",
+          "url": "https://www.nist.gov/pml/time-and-frequency-division/timekeeping-and-clocks-faqs"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-025",
+      "topic": "animals",
+      "statement": "Электрический угорь должен подниматься к поверхности за воздухом.",
+      "truth": true,
+      "explanation": "Он получает кислород из атмосферного воздуха через богатую кровеносными сосудами слизистую рта.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Электрический угорь",
+          "url": "https://nationalzoo.si.edu/animals/electric-eel"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-026",
+      "topic": "human",
+      "statement": "Все кости черепа соединены неподвижными швами.",
+      "truth": false,
+      "explanation": "Нижняя челюсть двигается благодаря височно-нижнечелюстному суставу.",
+      "sources": [
+        {
+          "title": "OpenStax · Череп",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/7-2-the-skull"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-027",
+      "topic": "food",
+      "statement": "Для белого шоколада по стандарту FDA какао-масло необязательно.",
+      "truth": false,
+      "explanation": "Стандарт США предусматривает не менее 20% какао-масла по массе. Именно это масло связывает белый шоколад с какао-бобами.",
+      "sources": [
+        {
+          "title": "FDA · Стандарт белого шоколада",
+          "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/small-entity-compliance-guide-standard-identity-white-chocolate"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-028",
+      "topic": "history",
+      "statement": "На вершине скалы в Шри-Ланке сохранились руины древней столицы.",
+      "truth": true,
+      "explanation": "Столицу царя Кашьяпы устроили на скале и вокруг неё. Комплекс Сигирии включает остатки дворца и укреплений.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Сигирия",
+          "url": "https://whc.unesco.org/en/list/202/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-029",
+      "topic": "science",
+      "statement": "Радуга появляется только из-за отражения света от наружной поверхности капель.",
+      "truth": false,
+      "explanation": "Свет преломляется при входе в каплю, отражается внутри неё и снова преломляется на выходе. Разные цвета отклоняются под разными углами.",
+      "sources": [
+        {
+          "title": "NOAA · Как возникает радуга",
+          "url": "https://www.nesdis.noaa.gov/about/k-12-education/optical-phenomena/what-causes-rainbow"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-030",
+      "topic": "everyday",
+      "statement": "Обычный потолочный вентилятор охлаждает закрытую комнату, даже когда в ней никого нет.",
+      "truth": false,
+      "explanation": "Вентилятор создаёт поток воздуха, с которым человеку легче отдавать тепло. Сам воздух в комнате от этого обычно не охлаждается.",
+      "sources": [
+        {
+          "title": "Министерство энергетики США · Как охлаждаться летом",
+          "url": "https://www.energy.gov/indianenergy/articles/energy-saving-hacks-beat-summer-heat"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-031",
+      "topic": "animals",
+      "statement": "Китовая акула охотится на китов.",
+      "truth": false,
+      "explanation": "Крупнейшая рыба питается, фильтруя воду. В числе её добычи планктон и мелкие рыбы.",
+      "sources": [
+        {
+          "title": "NOAA · Китовая акула",
+          "url": "https://oceanservice.noaa.gov/facts/bigfish.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-032",
+      "topic": "human",
+      "statement": "Устья околоушных слюнных желёз находятся на внутренней стороне щёк.",
+      "truth": true,
+      "explanation": "Проток каждой околоушной железы открывается в щёку напротив второго верхнего коренного зуба.",
+      "sources": [
+        {
+          "title": "OpenStax · Рот, глотка и пищевод",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/23-3-the-mouth-pharynx-and-esophagus"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-033",
+      "topic": "food",
+      "statement": "Арахис цветёт над землёй, а его плоды формируются под землёй.",
+      "truth": true,
+      "explanation": "После опыления вырост с завязью направляется в почву. Там из завязи развивается боб с семенами.",
+      "sources": [
+        {
+          "title": "Университет Флориды · Как растёт арахис",
+          "url": "https://gardeningsolutions.ifas.ufl.edu/plants/edibles/vegetables/peanuts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-034",
+      "topic": "history",
+      "statement": "До Томаса Эдисона никто не пробовал делать электрические лампы накаливания.",
+      "truth": false,
+      "explanation": "В XIX веке лампы накаливания разрабатывали разные изобретатели. Джозеф Суон, например, параллельно работал над лампой в Великобритании.",
+      "sources": [
+        {
+          "title": "Музей американской истории · Соперничество изобретателей ламп",
+          "url": "https://americanhistory.si.edu/lighting/19thcent/comp19.htm"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-035",
+      "topic": "science",
+      "statement": "Гром возникает из-за резкого расширения разогретого воздуха возле молнии.",
+      "truth": true,
+      "explanation": "Разряд быстро нагревает воздух в своём канале. Расширение создаёт волну давления, которую слышно как гром.",
+      "sources": [
+        {
+          "title": "Национальная метеорологическая служба США · Гром",
+          "url": "https://www.weather.gov/safety/lightning-science-thunder"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-036",
+      "topic": "everyday",
+      "statement": "Световой поток лампочки измеряют в люменах.",
+      "truth": true,
+      "explanation": "Люмены описывают световой поток лампы, а ватты на упаковке показывают, сколько электрической мощности ей нужно.",
+      "sources": [
+        {
+          "title": "Министерство энергетики США · Выбор энергосберегающих ламп",
+          "url": "https://www.energy.gov/cmei/femp/purchasing-energy-efficient-light-bulbs"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-037",
+      "topic": "animals",
+      "statement": "Под водой дельфин дышит жабрами.",
+      "truth": false,
+      "explanation": "Дельфин дышит лёгкими и набирает воздух через дыхало на макушке.",
+      "sources": [
+        {
+          "title": "NOAA · Дельфины",
+          "url": "https://oceanservice.noaa.gov/facts/dolphin.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-038",
+      "topic": "human",
+      "statement": "Во внутреннем ухе есть органы, помогающие удерживать равновесие.",
+      "truth": true,
+      "explanation": "Вестибулярный аппарат улавливает положение и ускорение головы. Мозг использует эти сигналы для поддержания равновесия.",
+      "sources": [
+        {
+          "title": "OpenStax · Органы чувств",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/14-1-sensory-perception"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-039",
+      "topic": "food",
+      "statement": "У картофеля не бывает плодов, потому что он размножается клубнями.",
+      "truth": false,
+      "explanation": "Картофель может цвести и образовывать над землёй зелёные плоды с семенами. Привычные съедобные клубни растут под землёй.",
+      "sources": [
+        {
+          "title": "Университет штата Айова · Плоды картофеля",
+          "url": "https://yardandgarden.extension.iastate.edu/how-to/tomato-fruit-potato-plants"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-040",
+      "topic": "history",
+      "statement": "В 1894 году на киноплёнку сняли чихание человека.",
+      "truth": true,
+      "explanation": "На короткой записи Фред Отт нюхает табак и чихает. Съёмку сделали в лаборатории Эдисона.",
+      "sources": [
+        {
+          "title": "Библиотека Конгресса · Запись чихания 1894 года",
+          "url": "https://www.loc.gov/item/00694192/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-041",
+      "topic": "science",
+      "statement": "Кольца есть только у Сатурна.",
+      "truth": false,
+      "explanation": "Кольцами также обладают Юпитер, Уран и Нептун. У Сатурна кольца особенно заметны.",
+      "sources": [
+        {
+          "title": "NASA · Планеты",
+          "url": "https://science.nasa.gov/solar-system/planets/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-042",
+      "topic": "everyday",
+      "statement": "GPS одинаково точно работает на открытой площадке и между высокими домами.",
+      "truth": false,
+      "explanation": "Здания могут перекрывать и отражать сигналы спутников. Поэтому между ними координаты обычно определяются с большей погрешностью.",
+      "sources": [
+        {
+          "title": "GPS.gov · Точность навигации",
+          "url": "https://www.gps.gov/gps-accuracy"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-043",
+      "topic": "animals",
+      "statement": "Большая панда берёт бамбук лапой с помощью «ложного большого пальца».",
+      "truth": true,
+      "explanation": "Роль дополнительного пальца выполняет разросшаяся кость запястья. Она помогает удерживать стебель.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Большая панда",
+          "url": "https://nationalzoo.si.edu/animals/giant-panda"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-044",
+      "topic": "human",
+      "statement": "Ушная сера никак не защищает слуховой проход.",
+      "truth": false,
+      "explanation": "Ушная сера помогает задерживать грязь и защищает слуховой проход от микробов.",
+      "sources": [
+        {
+          "title": "NHS · Ушная сера",
+          "url": "https://www.nhs.uk/conditions/earwax-build-up/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-045",
+      "topic": "food",
+      "statement": "Пузырьки газа, который выделяют дрожжи, поднимают хлебное тесто.",
+      "truth": true,
+      "explanation": "Дрожжи перерабатывают сахара и выделяют углекислый газ. Тесто удерживает его в пузырьках и увеличивается в объёме.",
+      "sources": [
+        {
+          "title": "Университет штата Нью-Мексико · Выпечка хлеба",
+          "url": "https://pubs.nmsu.edu/_e/E206/index.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-046",
+      "topic": "history",
+      "statement": "Первый искусственный объект, достигший поверхности Луны, был американским.",
+      "truth": false,
+      "explanation": "Советская «Луна-2» достигла поверхности Луны в 1959 году. Этот полёт завершился ударом о поверхность.",
+      "sources": [
+        {
+          "title": "NASA · Исследование Луны",
+          "url": "https://science.nasa.gov/moon/exploration/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-047",
+      "topic": "science",
+      "statement": "На Нептуне ветры могут двигаться быстрее звука в земном воздухе.",
+      "truth": true,
+      "explanation": "По данным NASA, скорость ветра на Нептуне превышает 1900 км/ч. Это заметно выше скорости звука у поверхности Земли.",
+      "sources": [
+        {
+          "title": "NASA · Нептун",
+          "url": "https://science.nasa.gov/neptune/neptune-facts/"
+        },
+        {
+          "title": "OpenStax · Скорость звука",
+          "url": "https://openstax.org/books/university-physics-volume-1/pages/17-2-speed-of-sound"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-048",
+      "topic": "everyday",
+      "statement": "Двумерный штрихкод может содержать срок годности товара.",
+      "truth": true,
+      "explanation": "В розничных двумерных кодах могут передаваться дополнительные поля, например срок годности или номер партии.",
+      "sources": [
+        {
+          "title": "GS1 · Двумерные коды в магазинах",
+          "url": "https://ref.gs1.org/guidelines/2d-in-retail/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-049",
+      "topic": "animals",
+      "statement": "Дикий комодский варан встречается на всех крупных островах Индонезии.",
+      "truth": false,
+      "explanation": "Его естественный ареал ограничен несколькими индонезийскими островами, включая Комодо и Флорес.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Комодский варан",
+          "url": "https://nationalzoo.si.edu/animals/komodo-dragon"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-050",
+      "topic": "human",
+      "statement": "Эритроцит человека может протиснуться сквозь сосуд уже самого себя.",
+      "truth": true,
+      "explanation": "Красные кровяные клетки гибкие. Они деформируются, когда проходят по узким капиллярам.",
+      "sources": [
+        {
+          "title": "OpenStax · Эритроциты",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/18-3-erythrocytes"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-051",
+      "topic": "food",
+      "statement": "Чёрный перец вызывает чихание благодаря тому же веществу, которое жжётся в чили.",
+      "truth": false,
+      "explanation": "В чёрном перце раздражитель — пиперин. Остроту перцу чили придаёт капсаицин.",
+      "sources": [
+        {
+          "title": "Библиотека Конгресса · Почему перец вызывает чихание",
+          "url": "https://www.loc.gov/everyday-mysteries/categories/food-and-nutrition/item/why-does-pepper-make-you-sneeze/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-052",
+      "topic": "history",
+      "statement": "Белл записал в лабораторной тетради первые слова, которые передал Уотсону по телефону.",
+      "truth": true,
+      "explanation": "В записи от 10 марта 1876 года Белл описал, как позвал Уотсона к себе, а тот пришёл и сообщил, что услышал фразу.",
+      "sources": [
+        {
+          "title": "Библиотека Конгресса · Бумаги Александра Белла",
+          "url": "https://www.loc.gov/collections/alexander-graham-bell-papers/articles-and-essays/timeline/1870-to-1879/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-053",
+      "topic": "science",
+      "statement": "Пояс астероидов расположен между Землёй и Марсом.",
+      "truth": false,
+      "explanation": "Основной пояс астероидов лежит между орбитами Марса и Юпитера.",
+      "sources": [
+        {
+          "title": "NASA · Солнечная система",
+          "url": "https://science.nasa.gov/solar-system/solar-system-facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-054",
+      "topic": "everyday",
+      "statement": "В цезиевых атомных часах эталонный ход задаёт движение маятника.",
+      "truth": false,
+      "explanation": "В таких часах сигнал сверяют с частотой перехода между уровнями энергии атома цезия.",
+      "sources": [
+        {
+          "title": "NIST · Часы и измерение времени",
+          "url": "https://www.nist.gov/pml/time-and-frequency-division/timekeeping-and-clocks-faqs"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-055",
+      "topic": "animals",
+      "statement": "У медуз нет сердца.",
+      "truth": true,
+      "explanation": "У медуз простое желеобразное тело без сердца и кровеносной системы.",
+      "sources": [
+        {
+          "title": "NOAA · Как устроены медузы",
+          "url": "https://oceanservice.noaa.gov/facts/jellyfish.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-056",
+      "topic": "human",
+      "statement": "Роговица различает цвета и отправляет картинку в мозг.",
+      "truth": false,
+      "explanation": "Роговица пропускает и преломляет свет. Цвет воспринимают колбочки сетчатки, а сигналы от сетчатки идут по зрительному нерву.",
+      "sources": [
+        {
+          "title": "OpenStax · Органы чувств",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/14-1-sensory-perception"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-057",
+      "topic": "food",
+      "statement": "Зёрна попкорна лопаются благодаря воде, которая уже есть внутри.",
+      "truth": true,
+      "explanation": "При нагревании вода превращается в пар. Когда оболочка больше не выдерживает давления, зерно лопается и крахмал вспенивается.",
+      "sources": [
+        {
+          "title": "Popcorn Board · Почему лопается попкорн",
+          "url": "https://www.popcorn.org/All-About-Popcorn/What-Makes-Popcorn-Pop"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-058",
+      "topic": "history",
+      "statement": "Высадка людей на Луну в программе «Аполлон» состоялась только один раз.",
+      "truth": false,
+      "explanation": "Шесть экспедиций «Аполлона» высадились на Луне. По её поверхности прошли двенадцать астронавтов.",
+      "sources": [
+        {
+          "title": "NASA · Программа «Аполлон»",
+          "url": "https://www.nasa.gov/the-apollo-program/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-059",
+      "topic": "science",
+      "statement": "Крупнейший вулкан Солнечной системы находится на Марсе.",
+      "truth": true,
+      "explanation": "Олимп на Марсе — огромный щитовой вулкан. По данным NASA, его высота примерно втрое больше высоты Эвереста.",
+      "sources": [
+        {
+          "title": "NASA · Марс",
+          "url": "https://science.nasa.gov/mars/facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-060",
+      "topic": "everyday",
+      "statement": "Современный пятизначный почтовый индекс США появился позже первой американской почтовой марки.",
+      "truth": true,
+      "explanation": "Первые почтовые марки США выпустили в 1847 году. Пятизначные индексы ZIP Code ввели в 1963 году.",
+      "sources": [
+        {
+          "title": "Почтовая служба США · Исторические даты",
+          "url": "https://about.usps.com/who/profile/history/significant-dates.htm"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-061",
+      "topic": "animals",
+      "statement": "Североамериканский дикобраз может выстрелить иглами в хищника.",
+      "truth": false,
+      "explanation": "Иглы легко отделяются при контакте и могут остаться в коже нападающего. На расстоянии дикобраз ими не стреляет.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Североамериканский дикобраз",
+          "url": "https://nationalzoo.si.edu/animals/north-american-porcupine"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-062",
+      "topic": "human",
+      "statement": "Волосы в ноздрях помогают задерживать частицы из воздуха.",
+      "truth": true,
+      "explanation": "Волоски на входе в нос задерживают более крупные частицы до того, как воздух попадёт глубже в дыхательные пути.",
+      "sources": [
+        {
+          "title": "OpenStax · Волосы, ногти и кожные железы",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/5-2-accessory-structures-of-the-skin"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-063",
+      "topic": "food",
+      "statement": "Один ананас образуется из множества цветков.",
+      "truth": true,
+      "explanation": "Плоды отдельных цветков срастаются друг с другом. Следы границ между ними видны снаружи как «глазки».",
+      "sources": [
+        {
+          "title": "Университет Миннесоты · Как формируются соплодия",
+          "url": "https://open.lib.umn.edu/horticulture/chapter/8-1-fruit-morphology/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-064",
+      "topic": "history",
+      "statement": "Тадж-Махал построили как мавзолей в память о супруге правителя.",
+      "truth": true,
+      "explanation": "Шах-Джахан приказал возвести мраморный мавзолей в Агре в память о Мумтаз-Махал.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Тадж-Махал",
+          "url": "https://whc.unesco.org/en/list/252/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-065",
+      "topic": "science",
+      "statement": "Один оборот вокруг оси у Венеры занимает больше времени, чем оборот вокруг Солнца.",
+      "truth": true,
+      "explanation": "Венера поворачивается вокруг оси примерно за 243 земных дня, а обходит Солнце примерно за 225 дней.",
+      "sources": [
+        {
+          "title": "NASA · Венера",
+          "url": "https://science.nasa.gov/venus/venus-facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-066",
+      "topic": "everyday",
+      "statement": "Ясное небо кажется голубым из-за того, что воздух сильнее рассеивает короткие световые волны.",
+      "truth": true,
+      "explanation": "Молекулы воздуха сильнее рассеивают синий свет, чем красный. Рассеянный свет приходит к нам из разных участков неба.",
+      "sources": [
+        {
+          "title": "NASA · Почему небо голубое",
+          "url": "https://spaceplace.nasa.gov/blue-sky/en/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-067",
+      "topic": "animals",
+      "statement": "В обычной колонии голых землекопов потомство приносит одна самка.",
+      "truth": true,
+      "explanation": "В колонии есть размножающаяся самка, которую называют королевой. Другие особи выполняют работу, например роют туннели.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Голый землекоп",
+          "url": "https://nationalzoo.si.edu/animals/naked-mole-rat"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-068",
+      "topic": "human",
+      "statement": "Кости человека вообще не участвуют в образовании крови.",
+      "truth": false,
+      "explanation": "В красном костном мозге образуются клетки крови, включая эритроциты.",
+      "sources": [
+        {
+          "title": "OpenStax · Функции скелета",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/6-1-the-functions-of-the-skeletal-system"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-069",
+      "topic": "food",
+      "statement": "Точки на поверхности клубники — голые семена.",
+      "truth": false,
+      "explanation": "Каждая такая точка — маленький сухой плод, семянка. Внутри семянки находится семя.",
+      "sources": [
+        {
+          "title": "Калифорнийский политехнический университет · Анатомия земляники",
+          "url": "https://strawberry.calpoly.edu/news/test-your-strawberry-anatomy-skills-part-2"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-070",
+      "topic": "history",
+      "statement": "Ангкор-Ват входил в состав столицы инков.",
+      "truth": false,
+      "explanation": "Храм находится в Камбодже. Он принадлежит к памятникам Кхмерской империи.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Ангкор",
+          "url": "https://whc.unesco.org/en/list/668/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-071",
+      "topic": "science",
+      "statement": "Световой год — единица времени.",
+      "truth": false,
+      "explanation": "Световой год измеряет расстояние. Это путь, который свет в вакууме проходит за год.",
+      "sources": [
+        {
+          "title": "NASA · Световой год",
+          "url": "https://science.nasa.gov/exoplanets/what-is-a-light-year/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-072",
+      "topic": "everyday",
+      "statement": "Облачко при выдохе на морозе состоит только из невидимого водяного пара.",
+      "truth": false,
+      "explanation": "Тёплый влажный воздух охлаждается. Часть водяного пара конденсируется в капли, которые и образуют видимое облачко.",
+      "sources": [
+        {
+          "title": "Университет Иллинойса · Почему на морозе видно дыхание",
+          "url": "https://van.physics.illinois.edu/ask/listing/1475"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-073",
+      "topic": "animals",
+      "statement": "У миссисипского аллигатора за жизнь могут смениться тысячи зубов.",
+      "truth": true,
+      "explanation": "Изношенные зубы заменяются новыми. По данным Смитсоновского зоопарка, за жизнь сменяется до трёх тысяч.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Миссисипский аллигатор",
+          "url": "https://nationalzoo.si.edu/animals/american-alligator"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-074",
+      "topic": "human",
+      "statement": "К сердечной мышце кровь доставляют отдельные артерии.",
+      "truth": true,
+      "explanation": "Коронарные артерии отходят от аорты и питают само сердце.",
+      "sources": [
+        {
+          "title": "OpenStax · Анатомия сердца",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-075",
+      "topic": "food",
+      "statement": "Чтобы получить литр кленового сиропа, может понадобиться около сорока литров сока.",
+      "truth": true,
+      "explanation": "В кленовом соке мало сахара. Чтобы получить густой сироп, из сока выпаривают большую часть воды.",
+      "sources": [
+        {
+          "title": "Университет штата Айова · Как делают кленовый сироп",
+          "url": "https://naturalresources.extension.iastate.edu/post/sweet-science-basics-making-maple-syrup"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-076",
+      "topic": "history",
+      "statement": "После средневекового пожара чешский город Тельч перестроили в камне.",
+      "truth": true,
+      "explanation": "Деревянная застройка пострадала от пожара в конце XIV века. Город восстановили из камня и укрепили.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Исторический центр Тельча",
+          "url": "https://whc.unesco.org/en/list/621/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-077",
+      "topic": "science",
+      "statement": "Луна поворачивается вокруг своей оси за то же время, за которое обходит Землю.",
+      "truth": true,
+      "explanation": "Такое вращение называется синхронным. Поэтому с Земли мы видим почти всё время одну и ту же сторону Луны.",
+      "sources": [
+        {
+          "title": "NASA · Луна",
+          "url": "https://science.nasa.gov/moon/facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-078",
+      "topic": "everyday",
+      "statement": "QR-код придумали, чтобы быстрее считывать информацию о деталях автомобилей.",
+      "truth": true,
+      "explanation": "Изначально код DENSO WAVE применяли на автомобильном производстве. Он позволял быстро читать больше данных, чем обычный линейный штрихкод.",
+      "sources": [
+        {
+          "title": "DENSO WAVE · История QR-кода",
+          "url": "https://www.qrcode.com/en/history/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-079",
+      "topic": "animals",
+      "statement": "Белоголовый орлан с первого оперения носит белую «шапку».",
+      "truth": false,
+      "explanation": "Молодые орланы пёстрые. Характерные белые голова и хвост появляются примерно к четырём-пяти годам.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Белоголовый орлан",
+          "url": "https://nationalzoo.si.edu/animals/bald-eagle"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-080",
+      "topic": "human",
+      "statement": "Все вены человека несут кровь с низким содержанием кислорода.",
+      "truth": false,
+      "explanation": "Лёгочные вены несут насыщенную кислородом кровь от лёгких к сердцу. Вену определяет направление потока к сердцу.",
+      "sources": [
+        {
+          "title": "OpenStax · Кровеносные сосуды",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/20-1-structure-and-function-of-blood-vessels"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-081",
+      "topic": "food",
+      "statement": "Кофейное «зерно» растёт в стручке, как фасолина.",
+      "truth": false,
+      "explanation": "Кофейное зерно — семя плода кофейного дерева. Обычно в одном таком плоде, который называют кофейной вишней, два семени.",
+      "sources": [
+        {
+          "title": "Оранжерея Индианского университета · Кофейное дерево",
+          "url": "https://greenhouse.biology.indiana.edu/features/crops/Coffea-arabica.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-082",
+      "topic": "history",
+      "statement": "Сиднейский оперный театр открылся ещё до Первой мировой войны.",
+      "truth": false,
+      "explanation": "Театр открыли в 1973 году. Проект датского архитектора Йорна Утзона выбрали по итогам конкурса в 1957 году.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Сиднейский оперный театр",
+          "url": "https://whc.unesco.org/en/list/166/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-083",
+      "topic": "science",
+      "statement": "Чтобы считаться торнадо, вихрь должен иметь видимую воронку от облака до земли.",
+      "truth": false,
+      "explanation": "Торнадо — вращающийся столб воздуха, который касается земли. Вихрь можно заметить по пыли и обломкам даже без видимой воронки.",
+      "sources": [
+        {
+          "title": "Национальная метеорологическая служба США · Определение торнадо",
+          "url": "https://www.weather.gov/phi/tornadodefinition"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-084",
+      "topic": "everyday",
+      "statement": "Если стереть хотя бы один чёрный квадратик QR-кода, его уже никогда не прочесть.",
+      "truth": false,
+      "explanation": "В QR-код заложены данные для исправления ошибок. Они позволяют восстановить часть повреждённого кода, если потери не слишком велики.",
+      "sources": [
+        {
+          "title": "DENSO WAVE · Исправление ошибок QR-кода",
+          "url": "https://www.qrcode.com/en/about/error_correction.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-085",
+      "topic": "animals",
+      "statement": "Хвост бинтуронга может хвататься за ветку.",
+      "truth": true,
+      "explanation": "При лазании зверь использует цепкий хвост как дополнительную опору.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Бинтуронг",
+          "url": "https://nationalzoo.si.edu/animals/binturong"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-086",
+      "topic": "human",
+      "statement": "Левое лёгкое человека разделено на меньшее число долей, чем правое.",
+      "truth": true,
+      "explanation": "В левом лёгком две доли, в правом — три. Слева часть пространства в грудной клетке занимает сердце.",
+      "sources": [
+        {
+          "title": "OpenStax · Лёгкие",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/22-2-the-lungs"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-087",
+      "topic": "food",
+      "statement": "При изготовлении йогурта бактерии превращают часть молочного сахара в молочную кислоту.",
+      "truth": true,
+      "explanation": "Бактерии перерабатывают лактозу. Рост кислотности меняет вкус молока и помогает ему загустеть.",
+      "sources": [
+        {
+          "title": "Университет Висконсина · Производство йогурта",
+          "url": "https://cdr.wisc.edu/yogurt-monograph-production"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-088",
+      "topic": "history",
+      "statement": "У норвежского города Рёрус история добычи меди длилась более трёх веков.",
+      "truth": true,
+      "explanation": "Рудники заработали в XVII веке. Добыча продолжалась 333 года и завершилась в 1977 году.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Рёрус",
+          "url": "https://whc.unesco.org/en/list/55/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-089",
+      "topic": "science",
+      "statement": "Солнечный свет добирается до Земли примерно восемь минут.",
+      "truth": true,
+      "explanation": "Свет проходит около 150 миллионов километров от Солнца до Земли. Поэтому мы видим Солнце таким, каким оно было примерно восемь минут назад.",
+      "sources": [
+        {
+          "title": "NASA · Солнце",
+          "url": "https://science.nasa.gov/sun/facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-090",
+      "topic": "everyday",
+      "statement": "В некоторых дымовых извещателях дым обнаруживают с помощью света.",
+      "truth": true,
+      "explanation": "Частицы дыма рассеивают свет так, что часть луча попадает на датчик. Извещатель регистрирует сигнал и подаёт тревогу.",
+      "sources": [
+        {
+          "title": "NIST · Как устроены дымовые извещатели",
+          "url": "https://www.nist.gov/how-do-you-measure-it/how-do-smoke-detectors-work"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-091",
+      "topic": "animals",
+      "statement": "Сейшельские гигантские черепахи впервые появились на Галапагосских островах.",
+      "truth": false,
+      "explanation": "Родина этого вида — атолл Альдабра в Индийском океане. На Галапагосах живут другие гигантские черепахи.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Сейшельская гигантская черепаха",
+          "url": "https://nationalzoo.si.edu/animals/aldabra-tortoise"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-092",
+      "topic": "human",
+      "statement": "При обычном вдохе диафрагма расслабляется и поднимается.",
+      "truth": false,
+      "explanation": "Диафрагма при вдохе сокращается и опускается. Объём грудной клетки увеличивается, и воздух поступает в лёгкие.",
+      "sources": [
+        {
+          "title": "OpenStax · Как мы дышим",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/22-3-the-process-of-breathing"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-093",
+      "topic": "food",
+      "statement": "Обычная хлебная закваска состоит из муки, воды и дрожжей, а бактерий в ней нет.",
+      "truth": false,
+      "explanation": "Наряду с дрожжами, в закваске живут молочнокислые бактерии. Они участвуют в ферментации теста.",
+      "sources": [
+        {
+          "title": "Университет штата Колорадо · Хлебная закваска",
+          "url": "https://extension.colostate.edu/resource/understanding-and-selecting-sourdough-for-health-benefits/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-094",
+      "topic": "history",
+      "statement": "В исторические Шёлковые пути входили только морские маршруты.",
+      "truth": false,
+      "explanation": "Шёлковые пути включали сухопутные дороги, перевалы и стоянки. Коридор от китайских столиц до Центральной Азии тянулся примерно на 5000 км.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Шёлковые пути",
+          "url": "https://whc.unesco.org/en/list/1442/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-095",
+      "topic": "science",
+      "statement": "Цунами возникает из-за особенно сильного обычного прилива.",
+      "truth": false,
+      "explanation": "Цунами возникает при резком смещении большой массы воды. Например, подводное землетрясение может резко поднять часть дна.",
+      "sources": [
+        {
+          "title": "NOAA · Как землетрясения вызывают цунами",
+          "url": "https://www.noaa.gov/jetstream/tsunamis/tsunami-generation-earthquakes"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-096",
+      "topic": "everyday",
+      "statement": "Толстый кусок еды в микроволновой печи всегда начинает нагреваться из самой середины.",
+      "truth": false,
+      "explanation": "В толстом куске микроволны нагревают в первую очередь наружные слои. Тепло доходит до центра за счёт теплопроводности.",
+      "sources": [
+        {
+          "title": "FDA · Микроволновые печи",
+          "url": "https://www.fda.gov/radiation-emitting-products/resources-you-radiation-emitting-products/microwave-ovens"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-097",
+      "topic": "animals",
+      "statement": "Зоологи узнают конкретного гепарда по пятнам и кольцам на хвосте.",
+      "truth": true,
+      "explanation": "Узор шерсти индивидуален. Исследователи могут опознать зверя по рисунку, как человека по отпечатку пальца.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Гепард",
+          "url": "https://nationalzoo.si.edu/animals/cheetah"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-098",
+      "topic": "human",
+      "statement": "У пустого желудка есть складки, которые расправляются при наполнении.",
+      "truth": true,
+      "explanation": "Внутренняя поверхность пустого желудка образует складки. Они позволяют стенке расправляться при наполнении.",
+      "sources": [
+        {
+          "title": "OpenStax · Строение желудка",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/23-4-the-stomach"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-099",
+      "topic": "food",
+      "statement": "На воздухе свежий срез яблока может потемнеть из-за реакции с кислородом.",
+      "truth": true,
+      "explanation": "После разрезания ферменты и другие вещества в мякоти контактируют с кислородом. На срезе образуются тёмные пигменты.",
+      "sources": [
+        {
+          "title": "Университет Небраски · Почему темнеют нарезанные фрукты",
+          "url": "https://food.unl.edu/article/how-prevent-cut-fruit-turning-brown/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-100",
+      "topic": "history",
+      "statement": "В храмовом комплексе Боробудур десятки статуй Будды помещены в ажурные ступы.",
+      "truth": true,
+      "explanation": "На круглых террасах стоит 72 ажурные ступы. В каждой находится статуя Будды.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Боробудур",
+          "url": "https://whc.unesco.org/en/list/592/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-101",
+      "topic": "science",
+      "statement": "Некоторые куски вулканической породы могут плавать.",
+      "truth": true,
+      "explanation": "Пемза содержит много пузырьков. Если пор достаточно, её средняя плотность оказывается меньше плотности воды.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Почему вулканические породы могут плавать",
+          "url": "https://www.usgs.gov/news/volcano-watch-rocks-float-briefly-where-lava-meets-the-sea"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-102",
+      "topic": "everyday",
+      "statement": "На индукционной плите тепло возникает в самой подходящей кастрюле.",
+      "truth": true,
+      "explanation": "Переменное магнитное поле плиты вызывает электрические токи в металле. Они нагревают дно посуды.",
+      "sources": [
+        {
+          "title": "Министерство энергетики США · Индукционные плиты",
+          "url": "https://www.energy.gov/articles/making-switch-induction-stoves-or-cooktops"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-103",
+      "topic": "animals",
+      "statement": "Сурикаты ищут пищу преимущественно по ночам.",
+      "truth": false,
+      "explanation": "Сурикаты активны днём. Они кормятся, ухаживают за шерстью и греются на солнце.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Сурикат",
+          "url": "https://nationalzoo.si.edu/animals/meerkat"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-104",
+      "topic": "human",
+      "statement": "Основное всасывание питательных веществ из еды происходит в толстой кишке.",
+      "truth": false,
+      "explanation": "Большинство питательных веществ всасывается в тонкой кишке. Толстая кишка, среди прочего, поглощает часть оставшейся воды.",
+      "sources": [
+        {
+          "title": "OpenStax · Тонкая и толстая кишка",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/23-5-the-small-and-large-intestines"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-105",
+      "topic": "food",
+      "statement": "Для приготовления обычного тофу створаживают коровье молоко.",
+      "truth": false,
+      "explanation": "Тофу готовят из соевых бобов. Соевое молоко свёртывают, после чего сгусток можно отжать и спрессовать.",
+      "sources": [
+        {
+          "title": "Университет штата Колорадо · Тофу",
+          "url": "https://www.chhs.colostate.edu/fsi/food-articles/complex-food/tofu/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-106",
+      "topic": "history",
+      "statement": "Киото основали уже после 1800 года.",
+      "truth": false,
+      "explanation": "Город построили в 794 году, ориентируясь на планировку древних столиц Китая. Долгое время он был столицей Японии.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Исторические памятники Киото",
+          "url": "https://whc.unesco.org/en/list/688/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-107",
+      "topic": "science",
+      "statement": "Расплавленную породу под поверхностью Земли уже называют лавой.",
+      "truth": false,
+      "explanation": "Под землёй расплав называют магмой. Лавой он становится, когда выходит на поверхность.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Магма и лава",
+          "url": "https://www.usgs.gov/faqs/what-difference-between-magma-and-lava"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-108",
+      "topic": "everyday",
+      "statement": "Обычное оконное стекло при производстве остаётся твёрдым на всех стадиях.",
+      "truth": false,
+      "explanation": "Сырьё разогревают до получения расплава. Горячее стекло формуют в листы и охлаждают.",
+      "sources": [
+        {
+          "title": "Corning · Как делают стекло",
+          "url": "https://www.corning.com/worldwide/en/innovation/materials-science/glass/how-glass-made.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-109",
+      "topic": "animals",
+      "statement": "У малой панды между подушечками лап есть пахучие железы.",
+      "truth": true,
+      "explanation": "Ноги помогают не только взбираться по деревьям. Малая панда оставляет пахучие метки и с помощью желёз на лапах.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Малая панда",
+          "url": "https://nationalzoo.si.edu/animals/red-panda"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-110",
+      "topic": "human",
+      "statement": "Правая почка у человека обычно расположена немного ниже левой.",
+      "truth": true,
+      "explanation": "Справа под диафрагмой находится печень. Она занимает часть пространства над правой почкой.",
+      "sources": [
+        {
+          "title": "OpenStax · Строение почек",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/25-3-gross-anatomy-of-the-kidney"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-111",
+      "topic": "food",
+      "statement": "На одном дереве могут расти зелёные и почти чёрные оливки.",
+      "truth": true,
+      "explanation": "Цвет свежих плодов меняется по мере созревания. Оливки могут пройти от зелёного через красноватый и фиолетовый к чёрному.",
+      "sources": [
+        {
+          "title": "Калифорнийский университет в Дейвисе · Созревание оливок",
+          "url": "https://postharvest.ucdavis.edu/produce-facts-sheets/olive"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-112",
+      "topic": "history",
+      "statement": "Историческая Венеция раскинулась более чем на ста небольших островах.",
+      "truth": true,
+      "explanation": "У ЮНЕСКО указано 118 островов в лагуне. В X веке Венеция стала крупной морской державой.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Венеция и её лагуна",
+          "url": "https://whc.unesco.org/en/list/394/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-113",
+      "topic": "science",
+      "statement": "У ледяного кристалла снежинки может быть шесть лучей.",
+      "truth": true,
+      "explanation": "В кристаллах льда молекулы воды образуют структуру с шестигранной симметрией. Она задаёт характерную форму многих снежинок.",
+      "sources": [
+        {
+          "title": "NOAA · Образование снежинок",
+          "url": "https://www.nesdis.noaa.gov/about/k-12-education/ice-snow/how-do-snowflakes-form"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-114",
+      "topic": "everyday",
+      "statement": "Один и тот же воздушный тепловой насос может отапливать и охлаждать дом.",
+      "truth": true,
+      "explanation": "Зимой он переносит тепло в дом, летом — из дома наружу. Для этого меняется направление работы холодильного контура.",
+      "sources": [
+        {
+          "title": "Министерство энергетики США · Воздушные тепловые насосы",
+          "url": "https://www.energy.gov/sites/default/files/2017/07/f35/About%20Air%20Source%20Heat%20Pumps%20Handout.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-115",
+      "topic": "animals",
+      "statement": "Дикий черноногий хорёк питается главным образом травой прерий.",
+      "truth": false,
+      "explanation": "Он охотится, прежде всего на луговых собачек. Их норы также дают ему укрытие.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Черноногий хорёк",
+          "url": "https://nationalzoo.si.edu/animals/black-footed-ferret"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-116",
+      "topic": "human",
+      "statement": "Плотная наружная часть кости не содержит кровеносных сосудов.",
+      "truth": false,
+      "explanation": "Через компактную костную ткань проходят каналы с кровеносными сосудами.",
+      "sources": [
+        {
+          "title": "OpenStax · Строение костей",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/6-3-bone-structure"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-117",
+      "topic": "food",
+      "statement": "Дрожжи никак не участвуют в приготовлении комбучи.",
+      "truth": false,
+      "explanation": "Сладкий чай ферментирует сообщество бактерий и дрожжей. Они выполняют разные роли в процессе.",
+      "sources": [
+        {
+          "title": "Университет штата Колорадо · Комбуча",
+          "url": "https://www.chhs.colostate.edu/fsi/food-articles/complex-food/kombucha/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-118",
+      "topic": "history",
+      "statement": "Альгамбра была загородной резиденцией правителей Португалии.",
+      "truth": false,
+      "explanation": "Альгамбра — крепость и резиденция правителей Гранады на юге Испании. Рядом разбиты сады Хенералифе.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Альгамбра и Хенералифе",
+          "url": "https://whc.unesco.org/en/list/314/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-119",
+      "topic": "science",
+      "statement": "Чёрная дыра втягивает всё вокруг, даже если объекты далеко от неё.",
+      "truth": false,
+      "explanation": "На большом расстоянии гравитация определяется массой чёрной дыры. Объекты могут обращаться вокруг неё по орбитам.",
+      "sources": [
+        {
+          "title": "NASA · Чёрные дыры",
+          "url": "https://science.nasa.gov/universe/black-holes/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-120",
+      "topic": "everyday",
+      "statement": "В обычном плоском зеркале изображение свечи находится прямо на поверхности стекла.",
+      "truth": false,
+      "explanation": "Изображение кажется находящимся за зеркалом на таком же расстоянии, на каком свеча стоит перед ним.",
+      "sources": [
+        {
+          "title": "OpenStax · Изображения в плоских зеркалах",
+          "url": "https://openstax.org/books/university-physics-volume-3/pages/2-1-images-formed-by-plane-mirrors"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-121",
+      "topic": "animals",
+      "statement": "Императорский тамарин носит длинные белые усы.",
+      "truth": true,
+      "explanation": "Светлые пучки волос расходятся от морды в стороны и напоминают усы. Они заметны на тёмной морде обезьяны.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Императорский тамарин",
+          "url": "https://nationalzoo.si.edu/animals/bearded-emperor-tamarin"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-122",
+      "topic": "human",
+      "statement": "В сетчатке есть участок, который не улавливает свет.",
+      "truth": true,
+      "explanation": "Там, где из глаза выходит зрительный нерв, нет фоторецепторов. В поле зрения этому участку соответствует слепое пятно.",
+      "sources": [
+        {
+          "title": "OpenStax · Органы чувств",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/14-1-sensory-perception"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-123",
+      "topic": "food",
+      "statement": "Кешью развивается снаружи сочного «яблока», которое видно на дереве.",
+      "truth": true,
+      "explanation": "Сочная часть образуется из разросшейся плодоножки. Снизу к ней прикреплён настоящий плод в твёрдой оболочке с семенем внутри.",
+      "sources": [
+        {
+          "title": "Университет Флориды · Кешью",
+          "url": "https://gardeningsolutions.ifas.ufl.edu/mastergardener/resources/plantid/fruits-and-nuts/cashew/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-124",
+      "topic": "history",
+      "statement": "У династии Цин был императорский дворец в Шэньяне ещё до переноса столицы в Пекин.",
+      "truth": true,
+      "explanation": "Дворец в Шэньяне появился при становлении династии. После переезда двора в Пекин он стал вспомогательной резиденцией.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Дворцы династий Мин и Цин",
+          "url": "https://whc.unesco.org/en/list/439/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-125",
+      "topic": "science",
+      "statement": "Полярное сияние бывает и в Южном полушарии.",
+      "truth": true,
+      "explanation": "Около южного магнитного полюса заряженные частицы тоже взаимодействуют с атмосферой. Возникает южное полярное сияние.",
+      "sources": [
+        {
+          "title": "NASA · Как возникают полярные сияния",
+          "url": "https://science.nasa.gov/solar-system/skywatching/night-sky-network/nsn-night-lights/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-126",
+      "topic": "everyday",
+      "statement": "Название Bluetooth позаимствовали у средневекового скандинавского короля.",
+      "truth": true,
+      "explanation": "Харальд Синезубый объединял земли. Его прозвище стало рабочим названием технологии, созданной для связи разных устройств, и закрепилось.",
+      "sources": [
+        {
+          "title": "Bluetooth SIG · Происхождение названия Bluetooth",
+          "url": "https://www.bluetooth.com/about-us/bluetooth-origin/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-127",
+      "topic": "animals",
+      "statement": "Лошадь Пржевальского отличается длинной чёлкой, падающей на глаза.",
+      "truth": false,
+      "explanation": "У неё короткая стоячая грива, а чёлки над лбом нет.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Лошадь Пржевальского",
+          "url": "https://nationalzoo.si.edu/animals/przewalskis-horse"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-128",
+      "topic": "human",
+      "statement": "Взрослый человек в норме имеет хотя бы один зуб в нёбе.",
+      "truth": false,
+      "explanation": "Постоянные зубы располагаются в зубных дугах верхней и нижней челюстей.",
+      "sources": [
+        {
+          "title": "OpenStax · Рот, глотка и пищевод",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/23-3-the-mouth-pharynx-and-esophagus"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-129",
+      "topic": "food",
+      "statement": "Коричневая скорлупа сама по себе означает, что яйцо питательнее белого.",
+      "truth": false,
+      "explanation": "По данным USDA, существенной разницы в содержании питательных веществ между яйцами с белой и коричневой скорлупой нет.",
+      "sources": [
+        {
+          "title": "USDA · Питательная ценность яиц при разном цвете скорлупы",
+          "url": "https://www.ars.usda.gov/ARSUserFiles/oc/aglab/learnexplore/eggsafety/eggsafety_buyingeggs.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-130",
+      "topic": "history",
+      "statement": "Санкт-Петербург основали уже в царствование Екатерины II.",
+      "truth": false,
+      "explanation": "Строительство города началось при Петре I в 1703 году.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Санкт-Петербург",
+          "url": "https://whc.unesco.org/en/list/540/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-131",
+      "topic": "science",
+      "statement": "Давление воды у дна океана такое же, как у поверхности.",
+      "truth": false,
+      "explanation": "Чем глубже, тем больше вес воды сверху. Примерно каждые 10 метров глубины добавляют ещё одну атмосферу давления.",
+      "sources": [
+        {
+          "title": "NOAA · Давление в океане",
+          "url": "https://oceanservice.noaa.gov/facts/pressure.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-132",
+      "topic": "everyday",
+      "statement": "У каждого пассажирского лифта кабина подвешена на тросах.",
+      "truth": false,
+      "explanation": "Есть гидравлические лифты, в которых кабину поднимает поршень. Конструкции лифтов могут существенно различаться.",
+      "sources": [
+        {
+          "title": "Schindler · Четыре типа лифтов",
+          "url": "https://www.schindler.com/en/media/news-press-releases/different-types-of-elevators.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-133",
+      "topic": "animals",
+      "statement": "В шерсти двупалого ленивца растут водоросли.",
+      "truth": true,
+      "explanation": "Волоски имеют бороздки, в которых живут водоросли. Из-за них во влажных условиях шерсть приобретает зеленоватый оттенок.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Двупалый ленивец",
+          "url": "https://nationalzoo.si.edu/animals/two-toed-sloth"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-134",
+      "topic": "human",
+      "statement": "За «гусиную кожу» отвечают крошечные мышцы возле волос.",
+      "truth": true,
+      "explanation": "При сокращении мышцы приподнимают волоски и образуют небольшие бугорки на коже.",
+      "sources": [
+        {
+          "title": "OpenStax · Волосы, ногти и кожные железы",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/5-2-accessory-structures-of-the-skin"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-135",
+      "topic": "food",
+      "statement": "Натуральную ваниль получают из плодов орхидеи.",
+      "truth": true,
+      "explanation": "После опыления у ванильной орхидеи развивается длинная коробочка. Характерный аромат появляется при обработке плодов.",
+      "sources": [
+        {
+          "title": "Ботанический сад Калифорнийского университета · Ванильная орхидея",
+          "url": "https://conservatory.ucdavis.edu/collections/tropical/vanilla"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-136",
+      "topic": "history",
+      "statement": "В долине Везер во Франции находится пещера Ласко с доисторическими рисунками.",
+      "truth": true,
+      "explanation": "Ласко входит в группу пещер и стоянок, сохранивших следы искусства людей верхнего палеолита.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Пещеры долины Везер",
+          "url": "https://whc.unesco.org/en/list/85/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-137",
+      "topic": "science",
+      "statement": "Водомерка удерживается на поверхности пруда благодаря поверхностному натяжению.",
+      "truth": true,
+      "explanation": "Поверхность воды под лапками прогибается. Силы поверхностного натяжения помогают поддерживать вес лёгкого насекомого.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Поверхностное натяжение воды",
+          "url": "https://www.usgs.gov/water-science-school/science/surface-tension-and-water"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-138",
+      "topic": "everyday",
+      "statement": "Застёжку-липучку придумали, изучив, как репей цепляется за шерсть.",
+      "truth": true,
+      "explanation": "Под увеличением Жорж де Местраль увидел, что мелкие крючки репья цепляются за петли. Он воспроизвёл принцип в застёжке.",
+      "sources": [
+        {
+          "title": "Смитсоновский институт · Изобретатель застёжки-липучки",
+          "url": "https://invention.si.edu/invention-stories/george-de-mestral-velcror-inventor"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-139",
+      "topic": "animals",
+      "statement": "У американских бизонов рога растут только у самцов.",
+      "truth": false,
+      "explanation": "Короткие заострённые рога есть и у самцов, и у самок.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Американский бизон",
+          "url": "https://nationalzoo.si.edu/animals/american-bison"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-140",
+      "topic": "human",
+      "statement": "У младенца кости свода черепа сразу соединены так же плотно, как у взрослого.",
+      "truth": false,
+      "explanation": "При рождении между костями есть мягкие участки, роднички. Они позволяют черепу менять форму в родах и расти.",
+      "sources": [
+        {
+          "title": "OpenStax · Череп",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/7-2-the-skull"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-141",
+      "topic": "food",
+      "statement": "Кислый вкус огурцам в банке может дать только добавленный уксус.",
+      "truth": false,
+      "explanation": "При ферментации молочнокислые бактерии перерабатывают сахара огурцов. Получившаяся молочная кислота даёт кислый вкус.",
+      "sources": [
+        {
+          "title": "Эксплораториум · Ферментация огурцов",
+          "url": "https://annex.exploratorium.edu/cooking/pickles/fermentation.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-142",
+      "topic": "history",
+      "statement": "Античная Сабрата расположена на территории современной Италии.",
+      "truth": false,
+      "explanation": "Сабрата находится на побережье современной Ливии. Город вырос из финикийской торговой колонии.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Сабрата",
+          "url": "https://whc.unesco.org/en/list/184/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-143",
+      "topic": "science",
+      "statement": "Лето наступает, когда Земля подходит ближе всего к Солнцу.",
+      "truth": false,
+      "explanation": "Главная причина смены сезонов — наклон земной оси. Когда полушарие наклонено к Солнцу, там дольше день и выше Солнце над горизонтом.",
+      "sources": [
+        {
+          "title": "NASA · Времена года",
+          "url": "https://spaceplace.nasa.gov/seasons/en/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-144",
+      "topic": "everyday",
+      "statement": "Аэратор на носике крана нагревает проходящую через него воду.",
+      "truth": false,
+      "explanation": "Аэратор подмешивает воздух в струю. Температуру задаёт вода, которая уже пришла к нему из крана.",
+      "sources": [
+        {
+          "title": "Агентство по охране окружающей среды США · Аэраторы, раздел 3.3",
+          "url": "https://www.epa.gov/system/files/documents/2023-06/ws-commercial-watersense-at-work_Section_3.3_Faucets.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-145",
+      "topic": "animals",
+      "statement": "Зрелого орангутана-самца иногда легко узнать по широким щёчным валикам.",
+      "truth": true,
+      "explanation": "У взрослых самцов могут вырастать широкие валики по бокам морды. Особенно заметны они у полностью развитых самцов.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Орангутан",
+          "url": "https://nationalzoo.si.edu/animals/orangutan"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-146",
+      "topic": "human",
+      "statement": "Кости пальцев в каждой кисти в сумме насчитывают 14 фаланг.",
+      "truth": true,
+      "explanation": "У большого пальца две фаланги. У каждого из четырёх остальных пальцев их по три.",
+      "sources": [
+        {
+          "title": "OpenStax · Кости верхней конечности",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/8-2-bones-of-the-upper-limb"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-147",
+      "topic": "food",
+      "statement": "Водяной рис, который продают как дикий рис, относится к злакам.",
+      "truth": true,
+      "explanation": "Зёрна получают от растений рода Цицания. Это злаки, как и привычный рис, но другого рода.",
+      "sources": [
+        {
+          "title": "Университет Флориды · Водяной рис",
+          "url": "https://plant-directory.ifas.ufl.edu/plant-directory/zizania-aquatica/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-148",
+      "topic": "history",
+      "statement": "В Лалибэле есть средневековые церкви, высеченные в скале.",
+      "truth": true,
+      "explanation": "Комплекс в Эфиопии включает одиннадцать церквей. Камень вокруг и внутри них вынимали, оставляя стены и другие части сооружений.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Скальные церкви Лалибэлы",
+          "url": "https://whc.unesco.org/en/list/18/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-149",
+      "topic": "science",
+      "statement": "Обычные волны на море могут передавать энергию без переноса основной массы воды.",
+      "truth": true,
+      "explanation": "Вода колеблется, пока волна идёт вперёд. Поэтому предмет на поверхности может заметно качаться на месте.",
+      "sources": [
+        {
+          "title": "NOAA · Океанские волны",
+          "url": "https://oceanservice.noaa.gov/facts/wavesinocean.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-150",
+      "topic": "everyday",
+      "statement": "Металлический зацеп на конце некоторых новых рулеток специально оставляют подвижным.",
+      "truth": true,
+      "explanation": "Зацеп сдвигается на собственную толщину в зависимости от того, упёрли его в поверхность или зацепили за край. Так сохраняется правильная точка отсчёта.",
+      "sources": [
+        {
+          "title": "Stanley · Подвижный зацеп рулетки",
+          "url": "https://support.stanleytools.com/hc/en-us/articles/360012682938-Why-does-the-hook-on-the-end-of-the-Stanley-tape-rule-move"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-151",
+      "topic": "animals",
+      "statement": "Дикие барханные кошки нуждаются во влажном лесу с густым подлеском.",
+      "truth": false,
+      "explanation": "Вид приспособлен к засушливым равнинам и каменистым долинам. От сильной жары или холода кошки прячутся в норах.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Барханная кошка",
+          "url": "https://nationalzoo.si.edu/animals/sand-cat"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-152",
+      "topic": "human",
+      "statement": "Волокно скелетной мышцы человека всегда содержит только одно ядро.",
+      "truth": false,
+      "explanation": "В процессе развития несколько клеток сливаются в одно мышечное волокно. Поэтому оно содержит много ядер.",
+      "sources": [
+        {
+          "title": "OpenStax · Скелетные мышцы",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/10-2-skeletal-muscle"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-153",
+      "topic": "food",
+      "statement": "Киви родом из Новой Зеландии.",
+      "truth": false,
+      "explanation": "Родина плодов киви — Восточная Азия. Новая Зеландия сыграла важную роль в их коммерческом выращивании.",
+      "sources": [
+        {
+          "title": "Университет Висконсина · Киви",
+          "url": "https://hort.extension.wisc.edu/articles/kiwifruit-actinidia-spp/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-154",
+      "topic": "history",
+      "statement": "Каменные фигуры моаи стоят в парке на Гавайях.",
+      "truth": false,
+      "explanation": "Моаи находятся на Рапа-Нуи, известном как остров Пасхи. Их создали жители острова.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Национальный парк Рапа-Нуи",
+          "url": "https://whc.unesco.org/en/list/715/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-155",
+      "topic": "science",
+      "statement": "Солнечное затмение возникает в каждое новолуние.",
+      "truth": false,
+      "explanation": "Орбита Луны наклонена. В большинстве новолуний лунная тень проходит мимо Земли.",
+      "sources": [
+        {
+          "title": "NASA · Геометрия затмений",
+          "url": "https://science.nasa.gov/eclipses/geometry/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-156",
+      "topic": "everyday",
+      "statement": "Поляризационные очки ослабляют блик от воды одинаково при любом повороте головы.",
+      "truth": false,
+      "explanation": "Отражённый от воды свет частично поляризован. Когда направление фильтра меняется относительно блика, очки пропускают другую долю света.",
+      "sources": [
+        {
+          "title": "OpenStax · Поляризационные очки",
+          "url": "https://openstax.org/books/university-physics-volume-3/pages/1-7-polarization"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-157",
+      "topic": "animals",
+      "statement": "У птицы киви ноздри находятся почти на кончике клюва.",
+      "truth": true,
+      "explanation": "Киви ищет пищу под опавшими листьями и в почве. Ноздри у кончика длинного клюва помогают ему пользоваться обонянием.",
+      "sources": [
+        {
+          "title": "Департамент охраны природы Новой Зеландии · Птицы киви",
+          "url": "https://www.doc.govt.nz/nature/native-animals/birds/birds-a-z/kiwi/facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-158",
+      "topic": "human",
+      "statement": "Для ощущения запаха молекулы должны раствориться в слизи в носу.",
+      "truth": true,
+      "explanation": "После этого они могут связаться с рецепторами обонятельных клеток. От них сигналы идут в мозг.",
+      "sources": [
+        {
+          "title": "OpenStax · Органы чувств",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/14-1-sensory-perception"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-159",
+      "topic": "food",
+      "statement": "Беловатый налёт на свежей голубике бывает естественным восковым покрытием.",
+      "truth": true,
+      "explanation": "На кожице ягод может быть тонкий восковой слой. Он придаёт свежей голубике характерный матовый оттенок.",
+      "sources": [
+        {
+          "title": "Университет штата Канзас · Налёт на голубике",
+          "url": "https://www.k-state.edu/news/you-asked-it/articles/2020/11/white-spots-on-home-canned-blueberries.html"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-160",
+      "topic": "history",
+      "statement": "Японский замок Химэдзи прозвали Замком белой цапли.",
+      "truth": true,
+      "explanation": "Своим прозвищем замок обязан белым стенам и силуэту, который напоминает птицу.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Замок Химэдзи",
+          "url": "https://whc.unesco.org/en/list/661/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-161",
+      "topic": "science",
+      "statement": "Юпитер успевает обернуться вокруг своей оси менее чем за половину земных суток.",
+      "truth": true,
+      "explanation": "Юпитер совершает оборот примерно за десять часов. Это самая короткая длительность суток среди планет Солнечной системы.",
+      "sources": [
+        {
+          "title": "NASA · Юпитер",
+          "url": "https://science.nasa.gov/jupiter/jupiter-facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-162",
+      "topic": "everyday",
+      "statement": "Штекер USB Type-C можно вставлять в обычное гнездо USB Type-C любой из двух сторон.",
+      "truth": true,
+      "explanation": "Форма разъёма и расположение контактов рассчитаны на подключение штекера в двух ориентациях.",
+      "sources": [
+        {
+          "title": "USB-IF · Устройство разъёма USB Type-C",
+          "url": "https://www.usb.org/sites/default/files/D1T1-2%20-%20USB%20Type-C%20System%20Overview.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-163",
+      "topic": "animals",
+      "statement": "У рыбы малоротой макропинны глаза торчат наружу из головы.",
+      "truth": false,
+      "explanation": "Её трубчатые глаза находятся внутри головы и защищены прозрачным куполом. Рыба может поворачивать их для поиска пищи.",
+      "sources": [
+        {
+          "title": "Аквариум Монтерей-Бей · Малоротая макропинна",
+          "url": "https://www.montereybayaquarium.org/animals-the-ocean/animals-a-to-z/barreleye"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-164",
+      "topic": "human",
+      "statement": "В самом наружном слое эпидермиса клетки живые и активно делятся.",
+      "truth": false,
+      "explanation": "Роговой слой состоит из отмерших клеток. Новые клетки образуются глубже, в базальном слое.",
+      "sources": [
+        {
+          "title": "OpenStax · Слои кожи",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/5-1-layers-of-the-skin"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-165",
+      "topic": "food",
+      "statement": "Изюм обязательно проходит брожение, как вино.",
+      "truth": false,
+      "explanation": "Изюм получают сушкой винограда. Когда из ягод уходит вода, они уменьшаются и сморщиваются.",
+      "sources": [
+        {
+          "title": "Университет штата Орегон · Изюм из винограда",
+          "url": "https://extension.oregonstate.edu/ask-extension/featured/how-do-i-turn-my-grapes-raisins"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-166",
+      "topic": "history",
+      "statement": "Мачу-Пикчу построили на равнине у моря.",
+      "truth": false,
+      "explanation": "Комплекс инков расположен в Андах, на высоте примерно 2400 метров. Его здания и террасы приспособлены к горному рельефу.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Мачу-Пикчу",
+          "url": "https://whc.unesco.org/en/list/274/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-167",
+      "topic": "science",
+      "statement": "Чистая вода проводит электрический ток так же хорошо, как солёная.",
+      "truth": false,
+      "explanation": "Растворённые соли дают воде подвижные ионы. В очень чистой воде таких ионов мало, поэтому она проводит ток гораздо хуже.",
+      "sources": [
+        {
+          "title": "Геологическая служба США · Чистая вода и электричество",
+          "url": "https://www.usgs.gov/water-science-school/science/conductivity-electrical-conductance-and-water"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-168",
+      "topic": "everyday",
+      "statement": "Мыло смывает жир потому, что делает его полностью растворимым в чистой воде.",
+      "truth": false,
+      "explanation": "У молекул мыла есть участки, которые притягиваются к воде и к жиру. Они помогают окружить частицы жира и унести их с водой при смывании.",
+      "sources": [
+        {
+          "title": "Йельский университет · Мыло и моющие средства",
+          "url": "https://teachers.yale.edu/curriculum/units/2011/5/1/3"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-169",
+      "topic": "animals",
+      "statement": "Во время кормления фламинго может переворачивать клюв кверху нижней челюстью.",
+      "truth": true,
+      "explanation": "Фламинго наклоняет голову к воде и фильтрует её гребенчатыми пластинками клюва. Движения языка помогают прокачивать воду.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Фламинго",
+          "url": "https://www.nationalzoo.si.edu/animals/news/why-are-flamingos-pink-and-other-flamingo-facts"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-170",
+      "topic": "human",
+      "statement": "Пища может двигаться по пищеводу за счёт волны мышечных сокращений.",
+      "truth": true,
+      "explanation": "Пищевод проталкивает проглоченный комок перистальтикой. Для этого ему не нужен свободный полёт под действием тяжести.",
+      "sources": [
+        {
+          "title": "OpenStax · Рот, глотка и пищевод",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/23-3-the-mouth-pharynx-and-esophagus"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-171",
+      "topic": "food",
+      "statement": "Соком краснокочанной капусты можно отличить кислый раствор от щелочного.",
+      "truth": true,
+      "explanation": "Пигменты капусты меняют цвет в зависимости от кислотности среды. В кислой среде сок краснеет, а в щелочной становится синеватым или зеленоватым.",
+      "sources": [
+        {
+          "title": "Университет Иллинойса · Краснокочанная капуста как индикатор",
+          "url": "https://www.igb.illinois.edu/sites/default/files/uploads/Cabbage%20pH%20indicator%20Activity.pdf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-172",
+      "topic": "history",
+      "statement": "Среди сохранившихся памятников Бухары есть мавзолей X века.",
+      "truth": true,
+      "explanation": "Мавзолей Исмаила Самани входит в исторический центр города на Шёлковом пути.",
+      "sources": [
+        {
+          "title": "ЮНЕСКО · Исторический центр Бухары",
+          "url": "https://whc.unesco.org/en/list/602/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-173",
+      "topic": "science",
+      "statement": "В воде звук распространяется быстрее, чем в воздухе.",
+      "truth": true,
+      "explanation": "При обычных температурах звук в воде проходит примерно полтора километра за секунду, а в воздухе — около трети километра.",
+      "sources": [
+        {
+          "title": "OpenStax · Скорость звука",
+          "url": "https://openstax.org/books/university-physics-volume-1/pages/17-2-speed-of-sound"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-174",
+      "topic": "everyday",
+      "statement": "Отражающее покрытие крыши может снизить её температуру на солнце.",
+      "truth": true,
+      "explanation": "Такие покрытия отражают больше солнечного света. При прочих равных крыша поглощает меньше энергии и нагревается слабее.",
+      "sources": [
+        {
+          "title": "Агентство по охране окружающей среды США · Отражающие крыши",
+          "url": "https://www.epa.gov/heatislands/using-cool-roofs-reduce-heat-islands"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-175",
+      "topic": "animals",
+      "statement": "Волчий вой слышен только в пределах нескольких метров.",
+      "truth": false,
+      "explanation": "По данным Смитсоновского зоопарка, вой можно услышать за несколько километров при подходящих условиях. Он помогает волкам поддерживать связь.",
+      "sources": [
+        {
+          "title": "Смитсоновский зоопарк · Серый волк",
+          "url": "https://nationalzoo.si.edu/animals/gray-wolf"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-176",
+      "topic": "human",
+      "statement": "Все четыре камеры сердца имеют одинаковую толщину стенок.",
+      "truth": false,
+      "explanation": "Левый желудочек проталкивает кровь через большой круг кровообращения. Его стенка толще стенки правого желудочка.",
+      "sources": [
+        {
+          "title": "OpenStax · Анатомия сердца",
+          "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/19-1-heart-anatomy"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-177",
+      "topic": "food",
+      "statement": "В ботанике каштан относится к тому же типу плодов, что и абрикос.",
+      "truth": false,
+      "explanation": "У каштана сухой плод — орех. У абрикоса сочный плод с косточкой посередине — костянка.",
+      "sources": [
+        {
+          "title": "Университет Миннесоты · Строение плодов и орехов",
+          "url": "https://open.lib.umn.edu/horticulture/chapter/8-1-fruit-morphology/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-178",
+      "topic": "history",
+      "statement": "Пони-экспресс существовал дольше десяти лет.",
+      "truth": false,
+      "explanation": "Курьеры Пони-экспресса возили почту около полутора лет, с апреля 1860 года по октябрь 1861-го.",
+      "sources": [
+        {
+          "title": "Почтовая служба США · Пони-экспресс",
+          "url": "https://facts.usps.com/pony-express-history/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-179",
+      "topic": "science",
+      "statement": "Большое Красное Пятно на Юпитере — неподвижный участок твёрдой поверхности.",
+      "truth": false,
+      "explanation": "Это огромный долгоживущий вихрь в атмосфере. У газового гиганта нет обычной твёрдой поверхности.",
+      "sources": [
+        {
+          "title": "NASA · Юпитер",
+          "url": "https://science.nasa.gov/jupiter/jupiter-facts/"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    },
+    {
+      "id": "truth-180",
+      "topic": "everyday",
+      "statement": "Пластиковая расчёска после трения о волосы никогда не притягивает нейтральные кусочки бумаги.",
+      "truth": false,
+      "explanation": "После трения расчёска может получить заряд. Он перераспределяет заряды в кусочке бумаги, и тот притягивается.",
+      "sources": [
+        {
+          "title": "OpenStax · Статическое электричество",
+          "url": "https://openstax.org/books/college-physics/pages/18-2-conductors-and-insulators"
+        }
+      ],
+      "checkedAt": "2026-11-23"
+    }
+  ]
+}

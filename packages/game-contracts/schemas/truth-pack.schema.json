@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "const": "truth-ru-base" },
+    "gameId": { "const": "truth" },
+    "locale": { "const": "ru" },
+    "version": { "type": "integer", "minimum": 1 },
+    "title": { "$ref": "#/definitions/title" },
+    "topics": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "$ref": "#/definitions/topicId" },
+          "title": { "$ref": "#/definitions/title" },
+          "description": { "type": "string", "minLength": 1, "maxLength": 200 }
+        },
+        "required": ["id", "title", "description"]
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 60,
+      "maxItems": 600,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^truth-[0-9]{3}$" },
+          "topic": { "$ref": "#/definitions/topicId" },
+          "statement": { "type": "string", "minLength": 8, "maxLength": 240 },
+          "truth": { "type": "boolean" },
+          "explanation": { "type": "string", "minLength": 8, "maxLength": 480 },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "title": { "$ref": "#/definitions/title" },
+                "url": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "pattern": "^https://[^\\s/]+(?:/[^\\s]*)?$"
+                }
+              },
+              "required": ["title", "url"]
+            }
+          },
+          "checkedAt": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+          }
+        },
+        "required": ["id", "topic", "statement", "truth", "explanation", "sources", "checkedAt"]
+      }
+    }
+  },
+  "required": ["schemaVersion", "id", "gameId", "locale", "version", "title", "topics", "items"],
+  "definitions": {
+    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "topicId": { "enum": ["animals", "human", "food", "history", "science", "everyday"] }
+  }
+}

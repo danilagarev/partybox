@@ -128,7 +128,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
         (snapshot.game != null && snapshot.game!.phase != 'results' ||
             snapshot.tolerance != null &&
                 snapshot.tolerance!.phase != 'finished' ||
-            snapshot.clues != null && snapshot.clues!.phase != 'finished');
+            snapshot.clues != null && snapshot.clues!.phase != 'finished' ||
+            snapshot.truth != null);
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) controller.hideRole();
@@ -177,6 +178,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
                                     ? (widget.initialPin != null
                                           ? 'Код из приглашения уже заполнен. Введите своё имя, чтобы присоединиться.'
                                           : 'Введите имя и код от ведущего. Сохранённое место восстановится автоматически.')
+                                    : widget.initialGame == 'truth'
+                                    ? 'Играем в «Не может быть!». Создайте комнату и пригласите друзей по коду.'
                                     : widget.initialGame == 'clues'
                                     ? 'Играем в «Что объединяет?». Можно начать одному или пригласить друзей по коду.'
                                     : widget.initialGame == 'tolerance'
@@ -367,9 +370,20 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
               );
             }
             return ListView(
+              key: snapshot.truth == null
+                  ? null
+                  : ValueKey((
+                      snapshot.truth!.roundIndex,
+                      snapshot.truth!.phase,
+                    )),
               padding: const EdgeInsets.all(20),
               children: [
                 panel,
+                if (controller.notice != null && controller.error == null)
+                  Text(
+                    controller.notice!,
+                    style: const TextStyle(color: NightColors.muted),
+                  ),
                 if (controller.error != null)
                   Text(
                     controller.error!.message,
@@ -456,7 +470,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
     children: [
       if (snapshot.game == null &&
           snapshot.tolerance == null &&
-          snapshot.clues == null) ...[
+          snapshot.clues == null &&
+          snapshot.truth == null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],
@@ -470,7 +485,8 @@ class _RoomScreenState extends State<RoomScreen> with WidgetsBindingObserver {
       const SizedBox(height: 20),
       if (snapshot.game != null ||
           snapshot.tolerance != null ||
-          snapshot.clues != null) ...[
+          snapshot.clues != null ||
+          snapshot.truth != null) ...[
         _roomCode(snapshot),
         const SizedBox(height: 20),
       ],

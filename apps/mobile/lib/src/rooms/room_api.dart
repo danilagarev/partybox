@@ -40,6 +40,7 @@ final class HttpRoomApi implements RoomApi {
   late final String origin;
   final http.Client _client;
   io.Socket? _socket;
+  int _watchProtocol = 6;
   Future<Object?> _request(
     String path, {
     Map<String, dynamic>? body,
@@ -72,10 +73,16 @@ final class HttpRoomApi implements RoomApi {
             RoomContract.accepts('GameError', value) ||
             RoomContract.accepts('V3Error', value) ||
             RoomContract.accepts('V4Error', value) ||
-            RoomContract.accepts('V5Error', value))) {
+            RoomContract.accepts('V5Error', value) ||
+            RoomContract.accepts('V6Error', value))) {
           throw RoomFailure((value as Map)['code'] as String);
         }
-        if (response.statusCode == 404 && path.startsWith('/v5/')) {
+        if (response.statusCode == 404 &&
+            value is Map &&
+            value['statusCode'] == 404 &&
+            (value['message'] == 'Not Found' ||
+                value['message'] == 'Cannot ${request.method} $path') &&
+            (path.startsWith('/v5/') || path.startsWith('/v6/'))) {
           throw const RoomFailure('SERVER_UPGRADE_REQUIRED');
         }
         throw const RoomFailure('CONNECTION');
@@ -104,21 +111,38 @@ final class HttpRoomApi implements RoomApi {
       2 => 'GameEnrollmentResult',
       3 => 'V3EnrollmentResult',
       4 => 'V4EnrollmentResult',
-      _ => 'V5EnrollmentResult',
+      5 => 'V5EnrollmentResult',
+      _ => 'V6EnrollmentResult',
     }, value);
     final map = value as Map;
-    return (
-      token: map['guestToken'] as String,
-      snapshot: RoomSnapshot.parse(map['snapshot']),
-    );
+    final snapshot = RoomSnapshot.parse(map['snapshot']);
+    if (snapshot.protocolVersion >= 5) {
+      _watchProtocol = snapshot.protocolVersion;
+    }
+    return (token: map['guestToken'] as String, snapshot: snapshot);
   }
 
   @override
   Future<RoomSnapshot> snapshot(RoomAccess access) async {
     _checkOrigin(access);
-    return RoomSnapshot.parse(
-      await _request('/v5/rooms/${access.roomId}', token: access.token),
+    try {
+      return await _readSnapshot(access, 6);
+    } on RoomFailure catch (failure) {
+      if (failure.code != 'SERVER_UPGRADE_REQUIRED') rethrow;
+    }
+    return _readSnapshot(access, 5);
+  }
+
+  Future<RoomSnapshot> _readSnapshot(RoomAccess access, int version) async {
+    final fresh = RoomSnapshot.parse(
+      await _request(
+        '${_prefix(version)}/rooms/${access.roomId}',
+        token: access.token,
+      ),
     );
+    if (fresh.protocolVersion != version) throw const RoomFailure('PROTOCOL');
+    _watchProtocol = version;
+    return fresh;
   }
 
   @override
@@ -134,7 +158,8 @@ final class HttpRoomApi implements RoomApi {
       2 => 'GameAck',
       3 => 'V3Ack',
       4 => 'V4Ack',
-      _ => 'V5Ack',
+      5 => 'V5Ack',
+      _ => 'V6Ack',
     }, value);
     if ((value as Map)['commandId'] != access.leave!['commandId']) {
       throw const RoomFailure('PROTOCOL');
@@ -162,7 +187,7 @@ final class HttpRoomApi implements RoomApi {
           .setAuth({
             'roomId': access.roomId,
             'guestToken': access.token,
-            'protocolVersion': 5,
+            'protocolVersion': _watchProtocol,
           })
           .setReconnectionAttempts(5)
           .setReconnectionDelay(2000)
@@ -183,7 +208,8 @@ final class HttpRoomApi implements RoomApi {
                   RoomContract.accepts('GameError', value) ||
                   RoomContract.accepts('V3Error', value) ||
                   RoomContract.accepts('V4Error', value) ||
-                  RoomContract.accepts('V5Error', value))
+                  RoomContract.accepts('V5Error', value) ||
+                  RoomContract.accepts('V6Error', value))
               ? (value as Map)['code'] as String
               : 'PROTOCOL',
         ),
@@ -218,7 +244,8 @@ final class HttpRoomApi implements RoomApi {
     2 => '/v2',
     3 => '/v3',
     4 => '/v4',
-    _ => '/v5',
+    5 => '/v5',
+    _ => '/v6',
   };
 
   void _checkOrigin(RoomAccess access) {

@@ -17,10 +17,12 @@ class CatalogGameCard extends StatelessWidget {
     required this.tolerance,
     required this.onPressed,
     this.clues = false,
+    this.truth = false,
   });
   final String title, genre, description, metadata, mode, action;
   final bool tolerance;
   final bool clues;
+  final bool truth;
   final VoidCallback onPressed;
 
   @override
@@ -29,7 +31,9 @@ class CatalogGameCard extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: clues
+        colors: truth
+            ? const [Color(0xFF373346), Color(0xFF24252F)]
+            : clues
             ? const [Color(0xFF394337), Color(0xFF202C2A)]
             : tolerance
             ? const [Color(0xFF303A39), Color(0xFF202C2A)]
@@ -52,7 +56,9 @@ class CatalogGameCard extends StatelessWidget {
                   children: [
                     NightEyebrow(
                       genre,
-                      color: tolerance ? NightColors.lilac : NightColors.accent,
+                      color: tolerance || truth
+                          ? NightColors.lilac
+                          : NightColors.accent,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -65,14 +71,25 @@ class CatalogGameCard extends StatelessWidget {
               const SizedBox(width: 12),
               SizedBox(
                 width: 104,
-                child: NightScene(
-                  kind: clues
-                      ? NightSceneKind.clues
-                      : tolerance
-                      ? NightSceneKind.tolerance
-                      : NightSceneKind.spy,
-                  height: 76,
-                ),
+                child: truth
+                    ? const SizedBox(
+                        height: 76,
+                        child: ExcludeSemantics(
+                          child: Icon(
+                            Icons.fact_check_outlined,
+                            size: 52,
+                            color: NightColors.lilac,
+                          ),
+                        ),
+                      )
+                    : NightScene(
+                        kind: clues
+                            ? NightSceneKind.clues
+                            : tolerance
+                            ? NightSceneKind.tolerance
+                            : NightSceneKind.spy,
+                        height: 76,
+                      ),
               ),
             ],
           ),

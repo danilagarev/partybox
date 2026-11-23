@@ -10,6 +10,7 @@ dependencies:
 flutter:
   assets:
     - packs/clues-ru-base.json
+    - packs/truth-ru-base.json
     - spy-catalog.json
     - packs/spy-ru-base.json
     - packs/spy-ru-travel.json

@@ -16,6 +16,15 @@ const cluesSchema = await readJson(
   new URL('../../game-contracts/schemas/clues-pack.schema.json', import.meta.url),
 );
 const validateClues = new Ajv({ allErrors: true, strict: true }).compile(cluesSchema);
+const truthSchema = await readJson(
+  new URL('../../game-contracts/schemas/truth-pack.schema.json', import.meta.url),
+);
+const packValidators = new Map([
+  ['spy', validate],
+  ['tolerance', validateTolerance],
+  ['clues', validateClues],
+  ['truth', new Ajv({ allErrors: true, strict: true }).compile(truthSchema)],
+]);
 const directory = new URL('../packs/', import.meta.url);
 
 test('all bundled packs match the contract and have unique identifiers', async () => {
@@ -24,19 +33,17 @@ test('all bundled packs match the contract and have unique identifiers', async (
   const packIds = new Set();
   for (const file of files) {
     const pack = await readJson(new URL(file, directory));
-    const check =
-      pack.gameId === 'clues'
-        ? validateClues
-        : pack.gameId === 'tolerance'
-          ? validateTolerance
-          : validate;
+    const check = packValidators.get(pack.gameId);
+    assert.ok(check, `${file}: unknown game ${pack.gameId}`);
     assert.ok(check(pack), `${file}: ${JSON.stringify(check.errors)}`);
     assert.ok(!packIds.has(pack.id), `duplicate pack id: ${pack.id}`);
     packIds.add(pack.id);
     const itemIds = pack.items.map((item) => item.id);
     assert.equal(new Set(itemIds).size, itemIds.length, `${file}: duplicate item ids`);
     assert.ok(
-      pack.items.every((item) => (item.label ?? item.text ?? item.answer).trim().length > 0),
+      pack.items.every(
+        (item) => (item.label ?? item.text ?? item.answer ?? item.statement).trim().length > 0,
+      ),
     );
   }
 });

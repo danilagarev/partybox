@@ -5,6 +5,8 @@ import '../design/role_peek_card.dart';
 import 'room_controller.dart';
 import 'tolerance_panel.dart';
 import 'clues_panel.dart';
+import 'truth_panel.dart';
+import '../truth/truth_topics.dart';
 import '../spy/local_session_adapter.dart';
 import '../spy/spy_question_help.dart';
 
@@ -26,6 +28,7 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
   int _minutes = 5;
   String _selectedGame = 'spy';
   bool _chooseNextGame = false;
+  final _truthTopics = <String>{};
   String _packId = 'spy-ru-base';
   List<SpyPack>? _packs;
   bool _packLoadFailed = false;
@@ -106,6 +109,14 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
     final host = snapshot.hostId == snapshot.selfId;
     final enabled =
         !controller.busy && !controller.hasPending && controller.online;
+    final truth = snapshot.truth;
+    if (truth != null && !_chooseNextGame) {
+      return TruthPanel(
+        key: ValueKey((truth.sessionId, truth.roundIndex, truth.phase)),
+        controller: controller,
+        onChooseGame: () => setState(() => _chooseNextGame = true),
+      );
+    }
     final clues = snapshot.clues;
     if (clues != null && !_chooseNextGame) {
       return CluesPanel(
@@ -181,10 +192,87 @@ class _RoomGamePanelState extends State<RoomGamePanel> {
                       ? (_) => setState(() => _selectedGame = 'tolerance')
                       : null,
                 ),
+                if (snapshot.protocolVersion >= 6 || _selectedGame == 'truth')
+                  ChoiceChip(
+                    label: const Text('Не может быть!'),
+                    selected: _selectedGame == 'truth',
+                    onSelected: host && enabled && snapshot.protocolVersion >= 6
+                        ? (_) => setState(() => _selectedGame = 'truth')
+                        : null,
+                  ),
               ],
             ),
           )
         : const SizedBox.shrink();
+    if (choosing && _selectedGame == 'truth') {
+      final supported = snapshot.protocolVersion >= 6;
+      return NightPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            chooser,
+            Text(
+              'Не может быть!',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Сначала ответьте тайно, затем обсудите утверждение и сделайте ставку от 1 до 3 очков. Верный ответ прибавит ставку к счёту, ошибка отнимет её.',
+            ),
+            const SizedBox(height: 12),
+            const Text('2–12 игроков · 10 раундов'),
+            if (host && supported) ...[
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Все темы'),
+                    selected: _truthTopics.isEmpty,
+                    onSelected: enabled
+                        ? (_) => setState(_truthTopics.clear)
+                        : null,
+                  ),
+                  for (final topic in truthTopicTitles.entries)
+                    FilterChip(
+                      label: Text(topic.value),
+                      selected: _truthTopics.contains(topic.key),
+                      onSelected: enabled
+                          ? (selected) => setState(() {
+                              if (selected) {
+                                _truthTopics.add(topic.key);
+                              } else {
+                                _truthTopics.remove(topic.key);
+                              }
+                            })
+                          : null,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              NightButton(
+                label: 'Начать «Не может быть!»',
+                onPressed: enabled && snapshot.players.length >= 2
+                    ? () {
+                        setState(() => _chooseNextGame = false);
+                        controller.play('truth.start', {
+                          'topics': _truthTopics.toList(),
+                        });
+                      }
+                    : null,
+              ),
+              if (snapshot.players.length < 2)
+                const Text('Для партии нужны два участника или больше.'),
+            ],
+            if (!supported) ...[
+              const SizedBox(height: 12),
+              const Text('Для этой игры нужна новая версия сервера комнат.'),
+            ],
+          ],
+        ),
+      );
+    }
     if (choosing && _selectedGame == 'clues') {
       return NightPanel(
         child: Column(

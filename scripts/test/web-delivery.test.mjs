@@ -34,6 +34,7 @@ const publicFiles = [
   'assets/packages/partybox_game_content/packs/spy-ru-travel.json',
   'assets/packages/partybox_game_content/packs/spy-ru-unusual.json',
   'assets/packages/partybox_game_content/packs/clues-ru-base.json',
+  'assets/packages/partybox_game_content/packs/truth-ru-base.json',
   'assets/extra-texture.png',
 ];
 const fixtureContent = (name) => `synthetic public content: ${name}`;

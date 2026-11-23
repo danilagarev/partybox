@@ -92,7 +92,13 @@ secrets:
   if (process.env.FLUTTER_BIN)
     await run(
       process.env.FLUTTER_BIN,
-      ['test', 'test/rooms/room_server_test.dart', '--reporter', 'expanded'],
+      [
+        'test',
+        'test/rooms/room_server_test.dart',
+        'test/truth/truth_server_test.dart',
+        '--reporter',
+        'expanded',
+      ],
       {
         cwd: join(root, 'apps/mobile'),
         env: { ...env, ROOM_TEST_SERVER: origin, ROOM_TEST_CA: cert },

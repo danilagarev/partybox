@@ -13,6 +13,7 @@ import 'spy/spy_game_screen.dart';
 import 'storage/spy_setup.dart';
 import 'rooms/room_controller.dart';
 import 'rooms/room_screen.dart';
+import 'truth/truth_rules_screen.dart';
 
 class PartyBoxApp extends StatelessWidget {
   const PartyBoxApp({
@@ -153,7 +154,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Три игры. Для себя и своей компании.',
+                'Игры для себя и своей компании.',
                 style: TextStyle(color: NightColors.muted),
               ),
               const SizedBox(height: 16),
@@ -226,6 +227,24 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   context,
                   (detailsContext) => CluesRulesScreen(
                     onOpenRoom: () => _openRoom(detailsContext, game: 'clues'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              CatalogGameCard(
+                title: 'Не может быть!',
+                genre: 'ПРАВДА С ПОДВОХОМ',
+                tolerance: false,
+                truth: true,
+                description:
+                    'Поспорьте, где правда, и поставьте очки на ответ.',
+                metadata: '2–12 игроков · 10 раундов',
+                mode: 'Один телефон или у каждого свой',
+                action: 'Играть в «Не может быть!»',
+                onPressed: () => _showDetails(
+                  context,
+                  (detailsContext) => TruthRulesScreen(
+                    onOpenRoom: () => _openRoom(detailsContext, game: 'truth'),
                   ),
                 ),
               ),

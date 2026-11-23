@@ -33,6 +33,22 @@ void main() {
     expect(find.text('Играть в «Шпиона»'), findsOneWidget);
   });
 
+  testWidgets('catalog opens Truth rules and the dedicated room entry', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      PartyBoxApp(
+        roomControllerFactory: () =>
+            RoomController(api: FakeRoomApi(), vault: TestVault()),
+      ),
+    );
+    await tapVisible(tester, find.text('Играть в «Не может быть!»'));
+    await showWidget(tester, find.text('На одном телефоне'));
+    await tapVisible(tester, find.text('На отдельных телефонах'));
+    expect(find.byType(RoomScreen), findsOneWidget);
+    expect(find.textContaining('Играем в «Не может быть!»'), findsOneWidget);
+  });
+
   testWidgets('room code entry is visible on the first screen of the catalog', (
     tester,
   ) async {

@@ -5,6 +5,7 @@ import 'generated/room_game_schema.dart';
 import 'generated/room_tolerance_schema.dart';
 import 'generated/room_clues_schema.dart';
 import 'generated/room_ballot_schema.dart';
+import 'generated/room_truth_schema.dart';
 
 final class RoomFailure implements Exception {
   const RoomFailure(this.code);
@@ -32,7 +33,7 @@ final class RoomFailure implements Exception {
     'INVALID_PHASE' => 'Этап игры уже изменился. Обновите комнату.',
     'SESSION_CONFLICT' => 'Эта партия уже закончилась. Обновите комнату.',
     'SERVER_UPGRADE_REQUIRED' =>
-      'На сервере пока старая версия. Для личного голосования нужно обновить сервер комнат.',
+      'На сервере пока старая версия. Обновите сервер комнат.',
     'CLIENT_UPGRADE_REQUIRED' =>
       'Все участники должны открыть комнату в новой версии приложения.',
     'INVALID_REQUEST' => 'Проверьте имя и код комнаты.',
@@ -58,6 +59,9 @@ final class RoomContract {
     );
     (base[r'$defs'] as Map).addAll(
       (jsonDecode(roomBallotSchemaJson) as Map)[r'$defs'] as Map,
+    );
+    (base[r'$defs'] as Map).addAll(
+      (jsonDecode(roomTruthSchemaJson) as Map)[r'$defs'] as Map,
     );
     return base;
   })();
@@ -203,20 +207,18 @@ final class RoomSnapshot {
     this.protocolVersion,
     this.clues,
     this.privateClues,
+    this.truth,
+    this.privateTruth,
   );
   factory RoomSnapshot.parse(Object? json) {
-    RoomContract.require(
-      json is Map && json['protocolVersion'] == 5
-          ? 'V5Snapshot'
-          : json is Map && json['protocolVersion'] == 4
-          ? 'V4Snapshot'
-          : json is Map && json['protocolVersion'] == 3
-          ? 'V3Snapshot'
-          : json is Map && json['protocolVersion'] == 2
-          ? 'GameSnapshot'
-          : 'Snapshot',
-      json,
-    );
+    RoomContract.require(switch (json is Map ? json['protocolVersion'] : null) {
+      6 => 'V6Snapshot',
+      5 => 'V5Snapshot',
+      4 => 'V4Snapshot',
+      3 => 'V3Snapshot',
+      2 => 'GameSnapshot',
+      _ => 'Snapshot',
+    }, json);
     final map = json as Map;
     final state = map['publicState'] as Map;
     final players = List<RoomPlayer>.unmodifiable(
@@ -301,6 +303,19 @@ final class RoomSnapshot {
       map['selfId'] as String,
       gameValue != null || tolerance != null,
     );
+    final truth = state['truth'] as Map<String, dynamic>?;
+    final privateTruth = map['privateTruth'] as Map<String, dynamic>?;
+    final truthGame = truth == null ? null : TruthGame(truth);
+    final truthChoices = privateTruth == null
+        ? null
+        : TruthPrivate(privateTruth);
+    _validateTruth(
+      truthGame,
+      truthChoices,
+      ids,
+      map['selfId'] as String,
+      gameValue != null || tolerance != null || clues != null,
+    );
     return RoomSnapshot._(
       map['roomId'] as String,
       map['version'] as int,
@@ -321,6 +336,8 @@ final class RoomSnapshot {
       map['protocolVersion'] as int,
       clues == null ? null : CluesGame(clues),
       privateClues == null ? null : CluesPrivate(privateClues),
+      truthGame,
+      truthChoices,
     );
   }
   final String roomId, selfId, hostId, pin;
@@ -334,8 +351,91 @@ final class RoomSnapshot {
   final TolerancePrivate? privateTolerance;
   final CluesGame? clues;
   final CluesPrivate? privateClues;
+  final TruthGame? truth;
+  final TruthPrivate? privateTruth;
   String? get sessionId =>
-      clues?.sessionId ?? tolerance?.sessionId ?? game?.sessionId;
+      truth?.sessionId ??
+      clues?.sessionId ??
+      tolerance?.sessionId ??
+      game?.sessionId;
+
+  static void _validateTruth(
+    TruthGame? game,
+    TruthPrivate? personal,
+    Set<String> players,
+    String self,
+    bool otherGame,
+  ) {
+    void require(bool condition) {
+      if (!condition) throw const RoomFailure('PROTOCOL');
+    }
+
+    if (game == null) {
+      require(personal == null);
+      return;
+    }
+    require(!otherGame && players.length >= 2);
+    final revealed = game.phase == 'reveal' || game.phase == 'finished';
+    require(
+      revealed == (game.result != null) && revealed == (personal == null),
+    );
+    for (final ids in [game.initialAnsweredIds, game.betIds, game.winners]) {
+      require(ids.toSet().length == ids.length && ids.every(players.contains));
+    }
+    require(
+      (game.phase == 'initial') ==
+          (game.initialAnsweredIds.length < players.length),
+    );
+    require(revealed == (game.betIds.length == players.length));
+    if (game.phase == 'initial' || game.phase == 'discussion') {
+      require(game.betIds.isEmpty);
+    }
+    final scoreIds = game.scores.map((score) => score.playerId).toSet();
+    require(
+      game.scores.length == players.length && scoreIds.containsAll(players),
+    );
+    if (game.phase == 'finished') {
+      final highest = game.scores.map((score) => score.score).reduce(max);
+      require(
+        game.roundIndex == game.roundCount - 1 &&
+            game.winners.toSet().length ==
+                game.scores.where((score) => score.score == highest).length &&
+            game.scores
+                .where((score) => score.score == highest)
+                .every((score) => game.winners.contains(score.playerId)),
+      );
+    } else {
+      require(game.winners.isEmpty);
+    }
+    if (personal != null) {
+      require(
+        (personal.initialAnswer != null) ==
+            game.initialAnsweredIds.contains(self),
+      );
+      require((personal.answer != null) == game.betIds.contains(self));
+      require((personal.answer == null) == (personal.stake == null));
+    }
+    final result = game.result;
+    if (result != null) {
+      final answerIds = result.answers.map((answer) => answer.playerId).toSet();
+      require(
+        result.answers.length == players.length &&
+            answerIds.containsAll(players),
+      );
+      require(
+        result.answers.every(
+          (choice) =>
+              choice.initialAnswer != null &&
+              choice.answer != null &&
+              choice.stake >= 1 &&
+              choice.points ==
+                  (choice.answer == result.truth
+                      ? choice.stake
+                      : -choice.stake),
+        ),
+      );
+    }
+  }
 
   static void _validateClues(
     Map<String, dynamic>? value,
@@ -599,7 +699,7 @@ final class ToleranceGame {
       submittedIds = List<String>.unmodifiable(value['submittedIds'] as List),
       scores = List.unmodifiable(
         (value['scores'] as List).map(
-          (s) => ToleranceScore(s as Map<String, dynamic>),
+          (s) => RoomScore(s as Map<String, dynamic>),
         ),
       ),
       result = value['result'] as Map<String, dynamic>?,
@@ -608,7 +708,7 @@ final class ToleranceGame {
   final int roundIndex;
   final List<ToleranceCard> cards;
   final List<String> visibleOrder, submittedIds, winners;
-  final List<ToleranceScore> scores;
+  final List<RoomScore> scores;
   final Map<String, dynamic>? result;
   String text(String id) => cards.firstWhere((c) => c.id == id).text;
 }
@@ -620,8 +720,8 @@ final class ToleranceCard {
   final String id, text;
 }
 
-final class ToleranceScore {
-  ToleranceScore(Map<String, dynamic> value)
+final class RoomScore {
+  RoomScore(Map<String, dynamic> value)
     : playerId = value['playerId'] as String,
       score = value['score'] as int;
   final String playerId;
@@ -650,9 +750,9 @@ final class CluesGame {
       clues = List<String>.unmodifiable(value['clues'] as List),
       solvedIds = List<String>.unmodifiable(value['solvedIds'] as List),
       attemptedIds = List<String>.unmodifiable(value['attemptedIds'] as List),
-      scores = List<ToleranceScore>.unmodifiable(
+      scores = List<RoomScore>.unmodifiable(
         (value['scores'] as List).map(
-          (s) => ToleranceScore(s as Map<String, dynamic>),
+          (s) => RoomScore(s as Map<String, dynamic>),
         ),
       ),
       result = value['result'] as Map<String, dynamic>?,
@@ -660,7 +760,7 @@ final class CluesGame {
   final String sessionId, phase;
   final int roundIndex, roundCount, clueIndex;
   final List<String> clues, solvedIds, attemptedIds, winners;
-  final List<ToleranceScore> scores;
+  final List<RoomScore> scores;
   final Map<String, dynamic>? result;
 }
 
@@ -676,4 +776,76 @@ final class CluesPrivate {
   final int points;
   @override
   String toString() => 'CluesPrivate(<redacted>)';
+}
+
+final class TruthGame {
+  TruthGame(Map<String, dynamic> value)
+    : sessionId = value['sessionId'] as String,
+      phase = value['phase'] as String,
+      topic = value['topic'] as String,
+      statement = value['statement'] as String,
+      roundIndex = value['roundIndex'] as int,
+      roundCount = value['roundCount'] as int,
+      initialAnsweredIds = List<String>.unmodifiable(
+        value['initialAnsweredIds'] as List,
+      ),
+      betIds = List<String>.unmodifiable(value['betIds'] as List),
+      scores = List<RoomScore>.unmodifiable(
+        (value['scores'] as List).map(
+          (score) => RoomScore(score as Map<String, dynamic>),
+        ),
+      ),
+      result = value['result'] == null
+          ? null
+          : TruthReveal(value['result'] as Map<String, dynamic>),
+      winners = List<String>.unmodifiable(value['winners'] as List);
+  final String sessionId, phase, topic, statement;
+  final int roundIndex, roundCount;
+  final List<String> initialAnsweredIds, betIds, winners;
+  final List<RoomScore> scores;
+  final TruthReveal? result;
+}
+
+final class TruthPrivate {
+  TruthPrivate(Map<String, dynamic> value)
+    : initialAnswer = value['initialAnswer'] as bool?,
+      answer = value['answer'] as bool?,
+      stake = value['stake'] as int?;
+  final bool? initialAnswer, answer;
+  final int? stake;
+  @override
+  String toString() => 'TruthPrivate(<redacted>)';
+}
+
+final class TruthReveal {
+  TruthReveal(Map<String, dynamic> value)
+    : truth = value['truth'] as bool,
+      explanation = value['explanation'] as String,
+      sources = List<({String title, String url})>.unmodifiable(
+        (value['sources'] as List).cast<Map<String, dynamic>>().map(
+          (source) =>
+              (title: source['title'] as String, url: source['url'] as String),
+        ),
+      ),
+      answers = List<TruthRevealedAnswer>.unmodifiable(
+        (value['answers'] as List).cast<Map<String, dynamic>>().map(
+          TruthRevealedAnswer.new,
+        ),
+      );
+  final bool truth;
+  final String explanation;
+  final List<({String title, String url})> sources;
+  final List<TruthRevealedAnswer> answers;
+}
+
+final class TruthRevealedAnswer {
+  TruthRevealedAnswer(Map<String, dynamic> value)
+    : playerId = value['playerId'] as String,
+      initialAnswer = value['initialAnswer'] as bool?,
+      answer = value['answer'] as bool?,
+      stake = value['stake'] as int,
+      points = value['points'] as int;
+  final String playerId;
+  final bool? initialAnswer, answer;
+  final int stake, points;
 }

@@ -1,0 +1,148 @@
+{
+  "V6Enrollment": {
+    "protocolVersion": 6,
+    "requestId": "00000000-0000-4000-8000-000000000003",
+    "retryKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "name": "Игрок 1"
+  },
+  "V6Command": {
+    "protocolVersion": 6,
+    "commandId": "00000000-0000-4000-8000-000000000030",
+    "expectedVersion": 1,
+    "sessionId": "00000000-0000-4000-8000-000000000020",
+    "type": "truth.bet",
+    "payload": {
+      "answer": true,
+      "stake": 3
+    }
+  },
+  "V6Snapshot": {
+    "protocolVersion": 6,
+    "roomId": "00000000-0000-4000-8000-000000000001",
+    "version": 1,
+    "serverTime": "2026-11-08T12:00:00.000Z",
+    "publicState": {
+      "phase": "lobby",
+      "pin": "123456",
+      "hostId": "00000000-0000-4000-8000-000000000002",
+      "expiresAt": "2026-11-09T12:00:00.000Z",
+      "players": [
+        {
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "Игрок 1"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000010",
+          "name": "Игрок 2"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000011",
+          "name": "Игрок 3"
+        },
+        {
+          "id": "00000000-0000-4000-8000-000000000012",
+          "name": "Игрок 4"
+        }
+      ],
+      "game": null,
+      "tolerance": null,
+      "clues": null,
+      "truth": {
+        "sessionId": "00000000-0000-4000-8000-000000000020",
+        "phase": "betting",
+        "roundIndex": 0,
+        "roundCount": 10,
+        "topic": "animals",
+        "statement": "У осьминога три сердца.",
+        "initialAnsweredIds": [
+          "00000000-0000-4000-8000-000000000002",
+          "00000000-0000-4000-8000-000000000010",
+          "00000000-0000-4000-8000-000000000011",
+          "00000000-0000-4000-8000-000000000012"
+        ],
+        "betIds": ["00000000-0000-4000-8000-000000000002"],
+        "scores": [
+          {
+            "playerId": "00000000-0000-4000-8000-000000000002",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000010",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000011",
+            "score": 0
+          },
+          {
+            "playerId": "00000000-0000-4000-8000-000000000012",
+            "score": 0
+          }
+        ],
+        "result": null,
+        "winners": []
+      }
+    },
+    "privateState": null,
+    "selfId": "00000000-0000-4000-8000-000000000002",
+    "privateTolerance": null,
+    "privateClues": null,
+    "privateTruth": {
+      "initialAnswer": false,
+      "answer": true,
+      "stake": 3
+    }
+  },
+  "V6EnrollmentResult": {
+    "guestToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "snapshot": {
+      "protocolVersion": 6,
+      "roomId": "00000000-0000-4000-8000-000000000001",
+      "version": 1,
+      "serverTime": "2026-11-08T12:00:00.000Z",
+      "publicState": {
+        "phase": "lobby",
+        "pin": "123456",
+        "hostId": "00000000-0000-4000-8000-000000000002",
+        "expiresAt": "2026-11-09T12:00:00.000Z",
+        "players": [
+          {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "Игрок 1"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000010",
+            "name": "Игрок 2"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000011",
+            "name": "Игрок 3"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000012",
+            "name": "Игрок 4"
+          }
+        ],
+        "game": null,
+        "tolerance": null,
+        "clues": null,
+        "truth": null
+      },
+      "privateState": null,
+      "selfId": "00000000-0000-4000-8000-000000000002",
+      "privateTolerance": null,
+      "privateClues": null,
+      "privateTruth": null
+    }
+  },
+  "V6Ack": {
+    "protocolVersion": 6,
+    "commandId": "00000000-0000-4000-8000-000000000004",
+    "accepted": true,
+    "version": 2
+  },
+  "V6Error": {
+    "protocolVersion": 6,
+    "code": "FORBIDDEN"
+  }
+}

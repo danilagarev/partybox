@@ -2,6 +2,15 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'room_models.dart';
 
+const privateRoomCommandTypes = {
+  'tolerance.rank',
+  'tolerance.guess',
+  'clues.answer',
+  'spy.ballot',
+  'truth.initial',
+  'truth.bet',
+};
+
 /// Only access/retry metadata. No snapshots, names of other players or game secrets.
 final class RoomAccess {
   const RoomAccess({
@@ -16,12 +25,7 @@ final class RoomAccess {
   final Map<String, dynamic>? enrollment, leave;
   final String? pin, roomId, token;
   Map<String, dynamic> toJson() {
-    if (const {
-      'tolerance.rank',
-      'tolerance.guess',
-      'clues.answer',
-      'spy.ballot',
-    }.contains(leave?['type'])) {
+    if (privateRoomCommandTypes.contains(leave?['type'])) {
       throw const RoomFailure('STORAGE');
     }
     return {
@@ -60,7 +64,8 @@ final class RoomAccess {
           2 => 'V2Enrollment',
           3 => 'V3Enrollment',
           4 => 'V4Enrollment',
-          _ => 'V5Enrollment',
+          5 => 'V5Enrollment',
+          _ => 'V6Enrollment',
         }, map['enrollment']);
         if (map.containsKey('roomId') ||
             map.containsKey('token') ||
@@ -83,12 +88,7 @@ final class RoomAccess {
         throw const FormatException();
       }
       if (map['leave'] != null) {
-        if (const {
-          'tolerance.rank',
-          'tolerance.guess',
-          'clues.answer',
-          'spy.ballot',
-        }.contains((map['leave'] as Map)['type'])) {
+        if (privateRoomCommandTypes.contains((map['leave'] as Map)['type'])) {
           throw const FormatException();
         }
         RoomContract.require(switch ((map['leave'] as Map)['protocolVersion']) {
@@ -96,7 +96,8 @@ final class RoomAccess {
           2 => 'GameCommand',
           3 => 'V3Command',
           4 => 'V4Command',
-          _ => 'V5Command',
+          5 => 'V5Command',
+          _ => 'V6Command',
         }, map['leave']);
       }
       return RoomAccess(

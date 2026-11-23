@@ -1,3 +1,16 @@
+import type { V6Command, V6Snapshot, V6Ack } from '@partybox/game-contracts/rooms-v6';
+import {
+  createTruth,
+  initialTruth,
+  discussTruth,
+  betTruth,
+  nextTruth,
+  truthPublic,
+  truthPrivate,
+  TruthRuleError,
+  type TruthState,
+} from '../games/truth.js';
+import { selectTruthCards, truthPackVersion } from '../games/truth-content.js';
 import type { V5Command, V5Snapshot, V5Ack } from '@partybox/game-contracts/rooms-v5';
 import type { V4Command, V4Snapshot, V4Ack } from '@partybox/game-contracts/rooms-v4';
 import {
@@ -59,6 +72,7 @@ interface Member {
   toleranceClient?: boolean;
   cluesClient?: boolean;
   ballotClient?: boolean;
+  truthClient?: boolean;
 }
 interface Room {
   id: string;
@@ -71,7 +85,16 @@ interface Room {
   game?: { id: string; packId: string; packVersion: number; state: SpyState; readyIds: string[] };
   spyHistory?: Record<string, string[]>;
   tolerance?: { id: string; state: ToleranceState };
+  truth?: { id: string; packVersion: number; phaseVersion: number; state: TruthState };
   clues?: { id: string; packVersion: number; state: CluesState };
+}
+function inProgress(room: Room) {
+  return (
+    (room.game && room.game.state.phase !== 'results') ||
+    (room.tolerance && room.tolerance.state.phase !== 'finished') ||
+    (room.clues && room.clues.state.phase !== 'finished') ||
+    (room.truth && room.truth.state.phase !== 'finished')
+  );
 }
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const ttl = 24 * 60 * 60 * 1000;
@@ -216,17 +239,13 @@ export class RoomService {
         // Joining a PIN never discloses whether an unavailable room existed.
         if (room.closed || this.now().getTime() >= Date.parse(room.expiresAt))
           throw new RoomError('ROOM_UNAVAILABLE', 404);
-        if (
-          (room.game && room.game.state.phase !== 'results') ||
-          (room.tolerance && room.tolerance.state.phase !== 'finished') ||
-          (room.clues && room.clues.state.phase !== 'finished')
-        )
-          throw new RoomError('ROOM_UNAVAILABLE', 409);
+        if (inProgress(room)) throw new RoomError('ROOM_UNAVAILABLE', 409);
         if (room.members.filter((m) => !m.left).length >= 12) throw new RoomError('ROOM_FULL', 409);
         // A completed party belongs to its frozen roster; a newcomer starts a fresh lobby.
         delete room.game;
         delete room.tolerance;
         delete room.clues;
+        delete room.truth;
         room.members.push(member);
         room.version++;
       } else {
@@ -302,6 +321,7 @@ export class RoomService {
       delete room.game;
       delete room.tolerance;
       delete room.clues;
+      delete room.truth;
       member.left = true;
       const remaining = room.members.filter((m) => !m.left);
       if (!remaining.length) room.closed = true;
@@ -365,11 +385,14 @@ export class RoomService {
   async snapshotV5(roomId: string, token: string): Promise<V5Snapshot> {
     return this.snapshotBoth(roomId, token, 5) as Promise<V5Snapshot>;
   }
+  async snapshotV6(roomId: string, token: string): Promise<V6Snapshot> {
+    return this.snapshotBoth(roomId, token, 6) as Promise<V6Snapshot>;
+  }
   private async snapshotBoth(
     roomId: string,
     token: string,
-    protocol: 2 | 3 | 4 | 5,
-  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot | V5Snapshot> {
+    protocol: 2 | 3 | 4 | 5 | 6,
+  ): Promise<GameSnapshot | V3Snapshot | V4Snapshot | V5Snapshot | V6Snapshot> {
     let changed = false;
     const snapshot = await this.transaction(async (client) => {
       const room = await this.read(client, roomId);
@@ -383,13 +406,15 @@ export class RoomService {
         !member.gameClient ||
         (protocol >= 3 && !member.toleranceClient) ||
         (protocol >= 4 && !member.cluesClient) ||
-        (protocol === 5 && !member.ballotClient) ||
+        (protocol >= 5 && !member.ballotClient) ||
+        (protocol === 6 && !member.truthClient) ||
         advanced
       ) {
         member.gameClient = true;
         if (protocol >= 3) member.toleranceClient = true;
         if (protocol >= 4) member.cluesClient = true;
-        if (protocol === 5) member.ballotClient = true;
+        if (protocol >= 5) member.ballotClient = true;
+        if (protocol === 6) member.truthClient = true;
         await client.query('UPDATE pb_rooms SET state=$2 WHERE id=$1', [roomId, room]);
       }
       const view = this.gameView(room, member);
@@ -418,7 +443,7 @@ export class RoomService {
       if (protocol === 4) return v4;
       const voting = room.game ? spyVoting(room.game.state) : undefined;
       const ballot = room.game ? spyBallot(room.game.state, member.id) : undefined;
-      return {
+      const v5 = {
         ...v4,
         protocolVersion: 5 as const,
         publicState: {
@@ -433,6 +458,16 @@ export class RoomService {
         privateState: v4.privateState
           ? { ...v4.privateState, ...(ballot ? { ballot } : {}) }
           : null,
+      };
+      if (protocol === 5) return v5;
+      return {
+        ...v5,
+        protocolVersion: 6 as const,
+        publicState: {
+          ...v5.publicState,
+          truth: room.truth ? truthPublic(room.truth.state, room.truth.id) : null,
+        },
+        privateTruth: room.truth ? truthPrivate(room.truth.state, member.id) : null,
       };
     });
     if (changed) this.onChanged?.(roomId);
@@ -450,11 +485,14 @@ export class RoomService {
   async commandV5(roomId: string, token: string, command: V5Command): Promise<V5Ack> {
     return this.commandBoth(roomId, token, command) as Promise<V5Ack>;
   }
+  async commandV6(roomId: string, token: string, command: V6Command): Promise<V6Ack> {
+    return this.commandBoth(roomId, token, command) as Promise<V6Ack>;
+  }
   private async commandBoth(
     roomId: string,
     token: string,
-    command: GameCommand | V3Command | V4Command | V5Command,
-  ): Promise<GameAck | V3Ack | V4Ack | V5Ack> {
+    command: GameCommand | V3Command | V4Command | V5Command | V6Command,
+  ): Promise<GameAck | V3Ack | V4Ack | V5Ack | V6Ack> {
     return this.transaction(async (client) => {
       const room = await this.read(client, roomId);
       const member = this.member(room, token, true);
@@ -478,7 +516,9 @@ export class RoomService {
             ? { round: command.payload.round, suspectId: command.payload.suspectId }
             : command.type === 'clues.answer'
               ? { answer: command.payload.answer, clueIndex: command.payload.clueIndex }
-              : command.payload,
+              : command.type === 'truth.bet'
+                ? { answer: command.payload.answer, stake: command.payload.stake }
+                : command.payload,
       );
       // Earlier receipts stored the caller's field order. Accept equivalent
       // legacy payload orders, while changed values still conflict.
@@ -502,7 +542,7 @@ export class RoomService {
             : [fingerprint];
       const previous = await client.query<{
         fingerprint: string;
-        ack: GameAck | V3Ack | V4Ack | V5Ack;
+        ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack;
       }>(
         'SELECT fingerprint,ack FROM pb_room_commands WHERE room_id=$1 AND player_id=$2 AND command_id=$3',
         [roomId, member.id, command.commandId],
@@ -521,14 +561,24 @@ export class RoomService {
         command.expectedVersion <= room.version &&
         room.game?.state.phase === 'voting' &&
         room.game.state.ballots?.round === command.payload.round;
-      if (command.expectedVersion !== room.version && !independentBallot)
+      // Accept concurrent answers only from the exact phase of this round.
+      const independentTruth =
+        room.truth &&
+        ((command.type === 'truth.initial' && room.truth.state.phase === 'initial') ||
+          (command.type === 'truth.bet' && room.truth.state.phase === 'betting')) &&
+        command.expectedVersion >= room.truth.phaseVersion &&
+        command.expectedVersion <= room.version;
+      if (command.expectedVersion !== room.version && !independentBallot && !independentTruth)
         throw new RoomError('VERSION_CONFLICT', 409);
+      if (room.truth && command.protocolVersion < 6 && command.type !== 'room.leave')
+        throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
       const expectedSession =
-        command.protocolVersion === 2 && command.type === 'room.leave'
+        (command.protocolVersion === 6 ? room.truth?.id : undefined) ??
+        (command.protocolVersion === 2 && command.type === 'room.leave'
           ? (room.game?.id ?? null)
           : command.protocolVersion >= 4
             ? (room.clues?.id ?? room.tolerance?.id ?? room.game?.id ?? null)
-            : (room.tolerance?.id ?? room.game?.id ?? null);
+            : (room.tolerance?.id ?? room.game?.id ?? null));
       if (command.sessionId !== expectedSession) throw new RoomError('SESSION_CONFLICT', 409);
       try {
         if (command.type === 'room.leave') {
@@ -536,20 +586,61 @@ export class RoomService {
           delete room.game;
           delete room.tolerance;
           delete room.clues;
+          delete room.truth;
           const remaining = room.members.filter((m) => !m.left);
           if (!remaining.length) room.closed = true;
           else if (room.hostId === member.id) room.hostId = remaining[0]!.id;
+        } else if (command.type === 'truth.start') {
+          if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+          const players = room.members.filter((m) => !m.left);
+          if (inProgress(room) || players.length < 2) throw new RoomError('INVALID_PHASE', 409);
+          if (players.some((m) => !m.truthClient))
+            throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          room.truth = {
+            id: randomUUID(),
+            packVersion: truthPackVersion,
+            phaseVersion: room.version + 1,
+            state: createTruth(
+              players.map((p) => p.id),
+              selectTruthCards(command.payload.topics, randomInt),
+            ),
+          };
+          delete room.game;
+          delete room.tolerance;
+          delete room.clues;
+        } else if (
+          command.type === 'truth.initial' ||
+          command.type === 'truth.bet' ||
+          command.type === 'truth.discussed' ||
+          command.type === 'truth.next' ||
+          command.type === 'truth.cancel'
+        ) {
+          const game = room.truth;
+          if (!game) throw new RoomError('INVALID_PHASE', 409);
+          const before = game.state.phase;
+          if (command.type === 'truth.initial')
+            game.state = initialTruth(game.state, member.id, command.payload.answer);
+          else if (command.type === 'truth.bet')
+            game.state = betTruth(
+              game.state,
+              member.id,
+              command.payload.answer,
+              command.payload.stake,
+            );
+          else {
+            if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
+            if (command.type === 'truth.discussed') game.state = discussTruth(game.state);
+            else if (command.type === 'truth.next') game.state = nextTruth(game.state);
+            else delete room.truth;
+          }
+          if (before !== game.state.phase) game.phaseVersion = room.version + 1;
         } else if (command.type === 'clues.start') {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
-          if (
-            (room.game && room.game.state.phase !== 'results') ||
-            (room.tolerance && room.tolerance.state.phase !== 'finished') ||
-            (room.clues && room.clues.state.phase !== 'finished')
-          )
-            throw new RoomError('INVALID_PHASE', 409);
+          if (inProgress(room)) throw new RoomError('INVALID_PHASE', 409);
           const players = room.members.filter((m) => !m.left);
           if (players.some((m) => !m.cluesClient))
             throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          delete room.truth;
           room.clues = {
             id: randomUUID(),
             packVersion: cluesPackVersion,
@@ -583,16 +674,12 @@ export class RoomService {
           }
         } else if (command.type === 'tolerance.start') {
           if (room.hostId !== member.id) throw new RoomError('FORBIDDEN', 403);
-          if (
-            (room.game && room.game.state.phase !== 'results') ||
-            (room.tolerance && room.tolerance.state.phase !== 'finished') ||
-            (room.clues && room.clues.state.phase !== 'finished')
-          )
-            throw new RoomError('INVALID_PHASE', 409);
+          if (inProgress(room)) throw new RoomError('INVALID_PHASE', 409);
           const players = room.members.filter((m) => !m.left);
           if (players.length < 4) throw new RoomError('INVALID_PHASE', 409);
           if (players.some((m) => !m.toleranceClient))
             throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
+          delete room.truth;
           room.tolerance = {
             id: randomUUID(),
             state: createTolerance(
@@ -648,18 +735,12 @@ export class RoomService {
           if (command.type !== 'spy.start' && (room.tolerance || room.clues))
             throw new RoomError('INVALID_PHASE', 409);
           if (command.type === 'spy.start') {
-            if (
-              (room.tolerance && room.tolerance.state.phase !== 'finished') ||
-              (room.clues && room.clues.state.phase !== 'finished')
-            )
-              throw new RoomError('INVALID_PHASE', 409);
+            if (inProgress(room)) throw new RoomError('INVALID_PHASE', 409);
             const pack = spyPacks.get(command.payload.packId);
             if (!pack) throw new RoomError('INVALID_REQUEST', 400);
-            if (room.game && room.game.state.phase !== 'results')
-              throw new RoomError('INVALID_PHASE', 409);
             const players = room.members.filter((m) => !m.left);
             if (players.length < 4) throw new RoomError('INVALID_PHASE', 409);
-            if (command.protocolVersion === 5 && players.some((m) => !m.ballotClient))
+            if (command.protocolVersion >= 5 && players.some((m) => !m.ballotClient))
               throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
             if (players.some((m) => !m.gameClient))
               throw new RoomError('CLIENT_UPGRADE_REQUIRED', 409);
@@ -673,6 +754,7 @@ export class RoomService {
             );
             delete room.tolerance;
             delete room.clues;
+            delete room.truth;
             room.game = {
               id: randomUUID(),
               packId: pack.id,
@@ -682,7 +764,7 @@ export class RoomService {
                 selection.location,
                 randomInt(players.length),
                 command.payload.discussionMinutes * 60000,
-                command.protocolVersion === 5,
+                command.protocolVersion >= 5,
               ),
               readyIds: [],
             };
@@ -704,7 +786,7 @@ export class RoomService {
           }
         }
       } catch (error) {
-        if (error instanceof CluesRuleError)
+        if (error instanceof CluesRuleError || error instanceof TruthRuleError)
           throw new RoomError(
             error.code,
             error.code === 'FORBIDDEN' ? 403 : error.code === 'INVALID_REQUEST' ? 400 : 409,
@@ -718,7 +800,7 @@ export class RoomService {
         throw error;
       }
       room.version++;
-      const ack: GameAck | V3Ack | V4Ack | V5Ack = {
+      const ack: GameAck | V3Ack | V4Ack | V5Ack | V6Ack = {
         protocolVersion: command.protocolVersion,
         commandId: command.commandId,
         accepted: true,

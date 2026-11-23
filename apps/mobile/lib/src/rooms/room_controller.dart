@@ -171,12 +171,12 @@ final class RoomController extends ChangeNotifier {
   Future<void> enroll(String name, {String? pin}) => _run(() async {
     if (!canEnroll) return;
     final request = <String, dynamic>{
-      'protocolVersion': 5,
+      'protocolVersion': 6,
       'requestId': roomCommandId(),
       'retryKey': randomRoomKey(),
       'name': name.trim(),
     };
-    if (!RoomContract.accepts('V5Enrollment', request) ||
+    if (!RoomContract.accepts('V6Enrollment', request) ||
         (pin != null && !RegExp(r'^\d{6}$').hasMatch(pin))) {
       throw const RoomFailure('INVALID_REQUEST');
     }
@@ -203,7 +203,23 @@ final class RoomController extends ChangeNotifier {
       // Persist retry identity BEFORE sending. Lost responses can never create a second guest.
       await _save(access);
       if (_disposed) return;
-      final result = await api.enroll(access);
+      final ({String token, RoomSnapshot snapshot}) result;
+      try {
+        result = await api.enroll(access);
+      } on RoomFailure catch (failure) {
+        if (failure.code != 'SERVER_UPGRADE_REQUIRED' ||
+            access.enrollment!['protocolVersion'] != 6) {
+          rethrow;
+        }
+        if (_disposed) return;
+        _access = RoomAccess(
+          origin: access.origin,
+          enrollment: {...access.enrollment!, 'protocolVersion': 5},
+          pin: access.pin,
+        );
+        await _recover();
+        return;
+      }
       if (_disposed) return;
       final joined = RoomAccess(
         origin: api.origin,
@@ -214,6 +230,13 @@ final class RoomController extends ChangeNotifier {
       _access = joined;
       if (_disposed) return;
       _accept(result.snapshot);
+      if ((access.enrollment!['protocolVersion'] as int) < 6) {
+        // A recovered registration keeps its old endpoint. Read the latest
+        // protocol with the issued token before subscribing to room updates.
+        final fresh = await api.snapshot(joined);
+        if (_disposed) return;
+        _accept(fresh);
+      }
       _watch();
     } else if (access.leave != null) {
       await _save(access);
@@ -282,7 +305,11 @@ final class RoomController extends ChangeNotifier {
       return;
     }
     _serverOffset = fresh.serverTime.difference(DateTime.now());
-    if (fresh.tolerance != null
+    if (fresh.truth != null
+        ? fresh.truth?.sessionId != snapshot?.truth?.sessionId ||
+              fresh.truth?.roundIndex != snapshot?.truth?.roundIndex ||
+              fresh.truth?.phase != snapshot?.truth?.phase
+        : fresh.tolerance != null
         ? fresh.tolerance?.sessionId != snapshot?.tolerance?.sessionId ||
               fresh.tolerance?.roundIndex != snapshot?.tolerance?.roundIndex ||
               fresh.tolerance?.phase != snapshot?.tolerance?.phase
@@ -328,7 +355,9 @@ final class RoomController extends ChangeNotifier {
           error = null;
         }
         _notify();
-        if (gap) unawaited(retry());
+        // Truth revisions carry the complete round, including personal state.
+        // Skipped intermediate revisions are normal when a room votes together.
+        if (gap && fresh.truth == null) unawaited(retry());
       },
       (failure) {
         if (_disposed || generation != _watchGeneration) return;
@@ -383,69 +412,77 @@ final class RoomController extends ChangeNotifier {
     );
     await _recover();
   });
-  Future<void> play(String type, [Map<String, dynamic> payload = const {}]) =>
-      _run(() async {
-        final access = _access;
-        final initial = snapshot;
-        if (access == null || initial == null || hasPending) return;
-        RoomSnapshot current = initial;
-        final sessionId = current.sessionId;
-        _stop();
-        if (const {
-          'tolerance.rank',
-          'tolerance.guess',
-          'clues.answer',
-          'spy.ballot',
-        }.contains(type)) {
-          await _sendSecret(access, current, type, payload);
+  Future<void> play(
+    String type, [
+    Map<String, dynamic> payload = const {},
+    RoomSnapshot? intent,
+  ]) => _run(() async {
+    final access = _access;
+    final initial = snapshot;
+    if (access == null || initial == null || hasPending) return;
+    if (intent != null &&
+        (!online ||
+            intent.roomId != initial.roomId ||
+            intent.sessionId != initial.sessionId ||
+            intent.truth?.phase != initial.truth?.phase ||
+            intent.truth?.roundIndex != initial.truth?.roundIndex)) {
+      return;
+    }
+    RoomSnapshot current = intent ?? initial;
+    final sessionId = current.sessionId;
+    if (privateRoomCommandTypes.contains(type)) {
+      // Truth has no visible secret card and its complete snapshots can be
+      // merged while a decision is in flight. Keep the healthy socket open.
+      if (!type.startsWith('truth.')) _stop();
+      await _sendSecret(access, current, type, payload);
+      return;
+    }
+    for (var attempt = 0; ; attempt++) {
+      _stop();
+      _access = RoomAccess(
+        origin: access.origin,
+        roomId: access.roomId,
+        token: access.token,
+        leave: {
+          'protocolVersion': current.protocolVersion >= 3
+              ? current.protocolVersion
+              : 2,
+          'commandId': roomCommandId(),
+          'expectedVersion': current.version,
+          'sessionId': current.sessionId,
+          'type': type,
+          'payload': payload,
+        },
+      );
+      try {
+        await _recover(reconnectOnRejection: type != 'spy.ready');
+        return;
+      } on RoomFailure catch (failure) {
+        final fresh = snapshot;
+        // Independent confirmations can race. Only a definite version
+        // rejection permits a new ID; uncertain requests keep their ID.
+        if (type != 'spy.ready' ||
+            failure.code != 'VERSION_CONFLICT' ||
+            fresh == null ||
+            fresh.sessionId != sessionId) {
+          if (type == 'spy.ready' && !hasPending) _watch();
+          rethrow;
+        }
+        if (fresh.game?.readyIds.contains(fresh.selfId) ?? false) {
+          _watch();
           return;
         }
-        for (var attempt = 0; ; attempt++) {
-          _stop();
-          _access = RoomAccess(
-            origin: access.origin,
-            roomId: access.roomId,
-            token: access.token,
-            leave: {
-              'protocolVersion': current.protocolVersion >= 3
-                  ? current.protocolVersion
-                  : 2,
-              'commandId': roomCommandId(),
-              'expectedVersion': current.version,
-              'sessionId': current.sessionId,
-              'type': type,
-              'payload': payload,
-            },
-          );
-          try {
-            await _recover(reconnectOnRejection: type != 'spy.ready');
-            return;
-          } on RoomFailure catch (failure) {
-            final fresh = snapshot;
-            // Independent confirmations can race. Only a definite version
-            // rejection permits a new ID; uncertain requests keep their ID.
-            if (type != 'spy.ready' ||
-                failure.code != 'VERSION_CONFLICT' ||
-                fresh == null ||
-                fresh.sessionId != sessionId) {
-              if (type == 'spy.ready' && !hasPending) _watch();
-              rethrow;
-            }
-            if (fresh.game?.readyIds.contains(fresh.selfId) ?? false) {
-              _watch();
-              return;
-            }
-            if (!_active ||
-                _disposed ||
-                fresh.game?.phase != 'distribution' ||
-                attempt >= fresh.players.length - 1) {
-              _watch();
-              rethrow;
-            }
-            current = fresh;
-          }
+        if (!_active ||
+            _disposed ||
+            fresh.game?.phase != 'distribution' ||
+            attempt >= fresh.players.length - 1) {
+          _watch();
+          rethrow;
         }
-      });
+        current = fresh;
+      }
+    }
+  });
   // Secret decisions stay in memory. After an uncertain response, read the
   // authoritative personal view; a retry requires another explicit user action.
   Future<void> _sendSecret(
@@ -486,7 +523,7 @@ final class RoomController extends ChangeNotifier {
       } catch (_) {
         // Even an uncertain command followed by a failed read must not leave
         // live updates permanently disconnected. Never resend the secret here.
-        _watch();
+        if (!online) _watch();
         rethrow;
       }
       if (_disposed) return;
@@ -514,7 +551,16 @@ final class RoomController extends ChangeNotifier {
                   fresh.card?.ballotSuspectId == payload['suspectId']))) {
         failure = null;
       }
-      _watch();
+      final truth = fresh.truth;
+      if (truth != null &&
+          truth.sessionId == current.truth?.sessionId &&
+          truth.roundIndex == current.truth?.roundIndex &&
+          (type == 'truth.initial' &&
+                  truth.initialAnsweredIds.contains(fresh.selfId) ||
+              type == 'truth.bet' && truth.betIds.contains(fresh.selfId))) {
+        failure = null;
+      }
+      if (!online) _watch();
       if (failure != null) {
         notice =
             'Проверили состояние на сервере. Если ответ не принят, отправьте его ещё раз.';
