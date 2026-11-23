@@ -15,7 +15,7 @@ dependencies:
   partybox_game_content:
     path: ../../packages/game-content
   http: 1.6.0
-  socket_io_client: 3.1.5
+  socket_io_client: 3.1.6
   flutter_secure_storage: 9.2.4
   web: 1.1.1
   qr_flutter: 4.1.0
